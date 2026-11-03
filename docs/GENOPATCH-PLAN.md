@@ -34,7 +34,7 @@ klingen („sound → seed"). Ziel von genopatch ist, diese Suche qualitativ und
 | `Resources/net.bin` | trainiertes Netz, Format „SDNN". |
 
 ### Feature-/Netz-Fakten (Default)
-- `FEAT_SR = 24000`, `FEAT_LEN = 48000` (2 s), `FFT_N = 1024`, `MEL = 32`, `FRAMES = 16`, `NFEAT = 513`.
+- `FEAT_SR = 24000`, `FEAT_LEN = 48000` (2 s), `FFT_N = 1024`, `MEL = 40`, `FRAMES = 20`, `NFEAT = 801` (seit G4; vorher 32 × 16 / 513).
 - Feature-Vektor = `melBands × frames` normalisierte Log-Mel-Zellen + 1 Note (`nfeat(cfg)`).
 - `netGenes()` = alle Gene außer Master-Genen und `spread` → aktuell **40** Ausgänge.
 - Netz-Format: `"SDNN"`, int32 Layerzahl, je Layer `in,out`, Gewichte `[out][in]`, Bias `[out]`, optional `"SIGN"` + uint32 `featSignature`. ReLU, Sigmoid-Ausgang. **Die Eingangsbreite steht in der Datei** (`Net::inDim()`), nicht mehr als Compile-Konstante.
@@ -59,6 +59,7 @@ klingen („sound → seed"). Ziel von genopatch ist, diese Suche qualitativ und
 | G2 | Per-Strang-Live-Status (`Search::Status`, `genoPoll`, Such-Infobox) | **erledigt** | `fc1f23b` |
 | G3 | Feature-Dimension dynamisch: `FeatConfig` steuert `features()`/`nfeat()`/`featLen()`, `Features = std::vector<float>`, `Net::inDim()`, `Search::cfg`, `DatasetGen` nutzt `nfeat(cfg)` | **erledigt** | `f1e85c5` (Branch `genopatch/g3-dynamic-feature-dim`) |
 | G5 | `genoPoll` liefert `netDim`/`featDim`/`netHint`, UI zeigt sie an und warnt bei Abweichung | **erledigt** | `e6ec83a` (Branch `genopatch/g5-runtime-dim-check`) |
+| G4 | Defaults auf 40 × 20 (`NFEAT = 801`), Datensatz neu, Netz neu trainiert und signiert | **erledigt** | Branch `genopatch/g4-resolution` |
 | G6 | `FeatConfig::version` + `featSignature()`; Signatur im Datensatz-Header und als `SIGN`-Anhang im Netz; `Net::load` lehnt falsche Signatur, falsche Genzahl und kaputte Dateien mit `loadError()` ab | **erledigt** | Branch `genopatch/g6-config-version` |
 
 Verifikation für G3: `EngineTest` grün; `first guess: net 66.5 %` **identisch** zu vor G3 → Default-Features
@@ -77,18 +78,26 @@ abgeschnittene Dateien werden mit Meldung abgelehnt. Kette mit 2000 Patches und 
 und Netz-Anhang tragen dieselbe Signatur (`260418764`), `EngineTest` lädt dieses Netz. Danach `net.bin` per Git
 wiederhergestellt. **Nicht** im laufenden Plugin geprüft: die Ablehnungsmeldung in Toast und Infobox.
 
+Verifikation für G4: Datensatz 150.000 Patches (`nfeat 801`, `ngenes 40`, Signatur `3878685456`), 40 Epochen,
+`val MSE 0.0595` vs. Baseline `0.0706` (altes Netz: `0.0594` vs. `0.0707`). `EngineTest` grün, neue Referenz
+`first guess: net 64.4 %, neutral 34.2 %`; die alten 66.5 % sind nicht vergleichbar. Gegenprobe alt gegen neu auf
+denselben ungesehenen Patches, gleiches Trainings-Budget: erster Treffer in alten Features 71.1 / 71.2 %, in neuen
+69.5 / 70.2 %, Gen-MSE 0.0619 / 0.0621. Suche 12 × 5 s: in alten Features 86.4 / 86.5 %, in neuen 83.0 / 86.9 %,
+15315 / 14597 Patches. Ergebnis: nicht schlechter, kaum besser; beim ersten Treffer im Rahmen des Rauschens. Der
+Vorsprung in den neuen Features ist teils erwartbar, weil das neue Netz in diesem Maß sucht.
+
 ---
 
 ## 4. Guardrails (nicht verhandelbar)
 
-1. **Rückwärtskompatibilität:** Das Default-`FeatConfig` muss die ursprünglichen 16 × 32 / 24 kHz
-   Features **bit-identisch** erzeugen. Tripwire: `nfeat(FeatConfig{}) == NFEAT` und `featLen(FeatConfig{}) == FEAT_LEN`
+1. **Rückwärtskompatibilität:** Das Default-`FeatConfig` muss die Features, auf denen `Resources/net.bin`
+   trainiert ist (seit G4 20 × 40 / 24 kHz, per Entscheidung des Menschen), **bit-identisch** erzeugen. Tripwire: `nfeat(FeatConfig{}) == NFEAT` und `featLen(FeatConfig{}) == FEAT_LEN`
    im `EngineTest`. `Resources/net.bin` bleibt dadurch gültig.
 2. **UI-Parität:** Jede Änderung an `seedParams`/`dirsFor`/Genen muss in `Resources/index.html`
    gespiegelt werden, sonst weichen Seeds/Branches ab. `EngineTest` prüft Referenzwerte.
 3. **Tests grün:** `EngineTest` muss `all checks passed` melden. Kein Commit mit FAIL.
 4. **Netz-Treffer:** Der erste Netz-Treffer muss den Neutralstart schlagen (Test erzwingt das).
-   Der aktuelle Wert (~66.5 % vs. 34.2 %) ist die Referenz bei unverändertem Default-Feature.
+   Der aktuelle Wert (64.4 % vs. 34.2 %) ist die Referenz bei unverändertem Default-Feature.
 5. **Dimensionen konsequent:** Referenz, Guess, Kinder und Netz müssen dieselbe `nfeat(cfg)` haben.
    `Net::predict` fällt bei falscher Größe auf `neutralGenes()` zurück; `distance` liefert bei
    unterschiedlichen Dimensionen 1.0 (nie vergleichen).
@@ -182,8 +191,8 @@ Ohne vcvars schlägt `cl.exe` mit `C1083 "algorithm": No such file or directory`
 ```powershell
 cmd /c tools\dataset.cmd <count>
 ```
-Schreibt `tools\train\dataset.bin`. Der vorhandene Datensatz: **~150.000** Patches (`nfeat 513`,
-`ngenes 40`, ≈ 332 MB) ist noch ohne Signatur; `train.py` lehnt ihn seit G6 ab, er muss neu erzeugt werden. Laufzeit grob wenige Minuten (multithreaded). `count` passend zur
+Schreibt `tools\train\dataset.bin`. Aktueller Datensatz: **150.000** Patches (`nfeat 801`,
+`ngenes 40`, ≈ 505 MB), Laufzeit hier 6 min. `train.py` lehnt Datensätze ohne Signatur (vor G6) ab. Laufzeit grob wenige Minuten (multithreaded). `count` passend zur
 Ziel-Auflösung wählen; mehr Features → mehr Bytes/Sample.
 
 ### Netz trainieren

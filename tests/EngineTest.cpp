@@ -170,7 +170,7 @@ int main()
     // ---- dynamic feature dimension (G3): the config drives the vector, the defaults stay exact
     {
         const FeatConfig def;
-        check (nfeat (def) == NFEAT && featLen (def) == FEAT_LEN, "default config matches the original 32 x 16 / 2 s features");
+        check (nfeat (def) == NFEAT && featLen (def) == FEAT_LEN, "default config matches the nominal feature size and 2 s window");
         check (int (melBankFor (def).size()) == MEL && int (melBankFor (def)[0].size()) == FFT_N / 2 + 1, "default mel bank shape");
 
         // a non-default config yields a correctly sized, finite, in-range vector
@@ -189,7 +189,7 @@ int main()
         check (distance (fSmall, features (audio.data(), int (audio.size()), 60, small)) == 0, "custom features are deterministic");
         check (distance (fSmall, features (audio.data(), int (audio.size()), 60, def)) == 1.0f, "mismatched feature dimensions are not compared");
 
-        // the shipped net keeps its 32 x 16 input and refuses a wrong-sized vector
+        // the shipped net takes the default input and refuses a wrong-sized vector
         Net net;
         std::ifstream in ("Resources/net.bin", std::ios::binary);
         std::vector<char> blob ((std::istreambuf_iterator<char> (in)), {});

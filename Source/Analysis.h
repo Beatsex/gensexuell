@@ -14,7 +14,7 @@
 namespace seedling {
 
 constexpr float FEAT_SR = 24000;
-constexpr int FEAT_LEN = 48000, FFT_N = 1024, MEL = 32, FRAMES = 16, NFEAT = MEL * FRAMES + 1;
+constexpr int FEAT_LEN = 48000, FFT_N = 1024, MEL = 40, FRAMES = 20, NFEAT = MEL * FRAMES + 1;
 constexpr float HOLD_SECONDS = 1.5f;
 
 // genes the net predicts: everything that shapes a single dry voice (not the master effects or panning)
@@ -66,10 +66,9 @@ inline void fft (std::vector<std::complex<float>>& a)
 
 using Features = std::vector<float>;
 
-// Extraction parameters for the melogram. The defaults reproduce the original 16 x 32 / 24 kHz
-// features exactly, so an existing net.bin stays valid. melBands/frames/fftN/sampleRate and the hz
-// range now drive the whole extraction: the vector (and the net's input width) is nfeat(cfg), no
-// longer a compile-time array. Changing them needs a fresh dataset and a retrained net (step G3).
+// Extraction parameters for the melogram. The defaults are what Resources/net.bin was trained on.
+// melBands/frames/fftN/sampleRate and the hz range drive the whole extraction: the vector (and the
+// net's input width) is nfeat(cfg). Changing them needs a fresh dataset and a retrained net.
 struct FeatConfig
 {
     int   sampleRate  = int (FEAT_SR);
@@ -143,8 +142,7 @@ inline const std::vector<std::vector<float>>& melBankFor (const FeatConfig& c)
 }
 
 // `frames` windows (denser near the attack) x `melBands` mel bands of log power, normalised to the
-// loudest cell, plus the note. The vector length is nfeat(cfg); the defaults are bit-identical to
-// the original fixed 16 x 32 extraction, so an existing net.bin stays valid.
+// loudest cell, plus the note. The vector length is nfeat(cfg).
 inline Features features (const float* x, int n, int midi, const FeatConfig& cfg = {})
 {
     const int mel = cfg.melBands, frames = cfg.frames, fftN = cfg.fftN;
