@@ -2,7 +2,7 @@
 ;   "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\gensexuell.iss
 ; The setup lands in build\installer. Run installer\make-source.py first: the source zip ships inside.
 
-#define AppVersion "0.2.0"
+#define AppVersion "0.3.0"
 #define Artefacts "..\build\Seedling_artefacts\Release"
 
 [Setup]

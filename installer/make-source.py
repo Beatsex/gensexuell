@@ -4,7 +4,7 @@
 import pathlib, zipfile
 
 root = pathlib.Path(__file__).resolve().parent.parent
-version = "0.2.0"
+version = "0.3.0"
 keep = ["LICENSE", "THIRD-PARTY-LICENSES.txt", "README.md", "CHANGELOG.md", "SECURITY.md", "README.de.md", "README.es.md", "README.fr.md", "README.ja.md", "CMakeLists.txt", "build.cmd", ".gitignore", ".github", "installer",
         "docs", "Resources", "Source", "tests", "tools"]
 out = root / "build/installer" / f"gensexuell-{version}-source.zip"
