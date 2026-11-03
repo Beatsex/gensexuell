@@ -201,6 +201,28 @@ int main()
             for (int k = 0; k < NP; ++k) same &= near (p[size_t (k)], neutral[size_t (k)]);
             check (same, "wrong-sized input falls back to neutral genes");
         }
+
+        // a net of the wrong input width loads but only guesses neutral
+        auto tinyNet = [] (int32_t inputs, int32_t outputs)
+        {
+            std::vector<char> b;
+            auto put = [&b] (const void* p, size_t n) { auto* c = static_cast<const char*> (p); b.insert (b.end(), c, c + n); };
+            const int32_t one = 1;
+            const std::vector<float> zeros (size_t (inputs * outputs + outputs));
+            put ("SDNN", 4);
+            put (&one, 4);
+            put (&inputs, 4);
+            put (&outputs, 4);
+            put (zeros.data(), zeros.size() * 4);
+            return b;
+        };
+        const auto wide = tinyNet (8, int32_t (netGenes().size()));
+        Net tiny;
+        check (tiny.load (wide.data(), wide.size()) && tiny.ready() && tiny.inDim() == 8, "a net of another input width loads and reports its width");
+        const auto guess = tiny.predict (features (audio.data(), int (audio.size()), 60, def)), neutralGuess = neutralGenes();
+        bool neutral = true;
+        for (int k = 0; k < NP; ++k) neutral &= near (guess[size_t (k)], neutralGuess[size_t (k)]);
+        check (neutral, "a net of the wrong input width only guesses neutral");
     }
 
     // ---- pitch detection and pitch bend

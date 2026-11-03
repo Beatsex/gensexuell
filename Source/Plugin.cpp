@@ -1114,6 +1114,9 @@ private:
         r->setProperty ("strands", strands);
         r->setProperty ("tested", (int64) tested);
         r->setProperty ("running", proc.search.running());
+        r->setProperty ("netDim", proc.net.inDim());
+        r->setProperty ("featDim", nfeat (proc.search.cfg));
+        r->setProperty ("netHint", proc.net.ready() && proc.net.inDim() != nfeat (proc.search.cfg) ? "NET DOES NOT FIT THE FEATURES: STRANDS START NEUTRAL" : "");
         return var (r.get());
     }
 

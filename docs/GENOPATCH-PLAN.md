@@ -58,10 +58,17 @@ klingen („sound → seed"). Ziel von genopatch ist, diese Suche qualitativ und
 | G1 | `FeatConfig` eingeführt; Genom 35 → 54; neue Gene verdrahtet; Netz neu trainiert | **erledigt** | `26d4e77` |
 | G2 | Per-Strang-Live-Status (`Search::Status`, `genoPoll`, Such-Infobox) | **erledigt** | `fc1f23b` |
 | G3 | Feature-Dimension dynamisch: `FeatConfig` steuert `features()`/`nfeat()`/`featLen()`, `Features = std::vector<float>`, `Net::inDim()`, `Search::cfg`, `DatasetGen` nutzt `nfeat(cfg)` | **erledigt** | `f1e85c5` (Branch `genopatch/g3-dynamic-feature-dim`) |
+| G5 | `genoPoll` liefert `netDim`/`featDim`/`netHint`, UI zeigt sie an und warnt bei Abweichung | **erledigt** | Branch `genopatch/g5-runtime-dim-check` |
 
 Verifikation für G3: `EngineTest` grün; `first guess: net 66.5 %` **identisch** zu vor G3 → Default-Features
 bit-genau, `net.bin` weiter gültig. `DatasetGen` separat gebaut und mit 2000 Patches geprüft
 (Header `nfeat=513 ngenes=40`).
+
+Verifikation für G5: `EngineTest` grün, `first guess: net 66.5 %, neutral 34.2 %` unverändert (der
+Suchtreffer schwankt zwischen Läufen, hier 88.5–91.4 %). Neue Checks: Netz falscher Eingangsbreite lädt,
+meldet seine Breite und schätzt nur neutral.
+Standalone mit Testnetz (Eingangsbreite 8) von Hand geprüft: Infobox zeigt `NET 8 ≠ FEAT 513: NEUTRAL START`,
+die Suche läuft. Passender Fall nur im Browser mit gesetzten Werten geprüft. **Nicht** bestätigt: der Toast.
 
 ---
 
@@ -146,6 +153,9 @@ cmd /c build.cmd
 ```
 `build.cmd` ruft `vcvars64.bat`, hängt CMake + Ninja in den PATH, konfiguriert und baut
 VST3/CLAP/LV2/Standalone + `EngineTest`, und führt `EngineTest.exe` aus. Erfolg = `all checks passed`.
+Meldet `cmd` „build.cmd nicht gefunden" (Umgebung mit `NoDefaultCurrentDirectoryInExePath`), hilft
+`cmd /c .\build.cmd`. Ist C: voll, `TEMP`/`TMP` vorher auf H: setzen. Das gilt auch beim Start der App:
+Der WebView2-Datenordner liegt in `%TEMP%`, bei vollem C: bleibt das Fenster sonst schwarz.
 
 ### Einzel-Target bauen (z. B. DatasetGen)
 `DatasetGen` baut `build.cmd` **nicht** mit. Es braucht die vcvars-Umgebung. Am einfachsten ein
