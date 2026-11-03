@@ -334,6 +334,51 @@ int main()
         check (best > randomScore + 0.1f && best > 0.75f, "search gets close to the target");
     }
 
+    // ---- a custom feature config through the whole chain (G7): signed net, reference, guess, children
+    {
+        FeatConfig cfg;
+        cfg.melBands = 24;
+        cfg.frames = 8;
+        std::vector<char> blob;
+        auto put = [&blob] (const void* p, size_t n) { auto* c = static_cast<const char*> (p); blob.insert (blob.end(), c, c + n); };
+        const int32_t one = 1, inputs = nfeat (cfg), outputs = int32_t (netGenes().size());
+        const uint32_t signature = featSignature (cfg);
+        const std::vector<float> zeros (size_t (inputs * outputs + outputs));
+        put ("SDNN", 4);
+        put (&one, 4);
+        put (&inputs, 4);
+        put (&outputs, 4);
+        put (zeros.data(), zeros.size() * 4);
+        put ("SIGN", 4);
+        put (&signature, 4);
+        Net net;
+        check (! net.load (blob.data(), blob.size()), "a net signed for a custom config is refused by the default one");
+        check (net.load (blob.data(), blob.size(), cfg) && net.inDim() == inputs, "a net signed for a custom config loads with it");
+
+        static const Genome g0;
+        Controls ct;
+        ct.base = seedParams (4242, 10);
+        ct.atonality = 0;
+        const auto ref = renderNote (g0, ct, 0, 60, FEAT_LEN / FEAT_SR, FEAT_SR, HOLD_SECONDS);
+        Search search;
+        search.cfg = cfg;
+        search.setReference (ref, 60, &net);
+        search.resume();
+        std::this_thread::sleep_for (std::chrono::seconds (3));
+        search.pause();
+        std::array<std::vector<Search::Solution>, Search::STRANDS> sol;
+        std::array<bool, Search::STRANDS> done {};
+        long tested = 0;
+        search.snapshot (sol, done, tested);
+        float best = 0;
+        bool finite = true;
+        for (auto& st : sol) for (auto& x : st) { finite &= std::isfinite (x.score); best = std::max (best, x.score); }
+        const float randomScore = similarity (distance (features (ref.data(), int (ref.size()), 60, cfg), patchFeatures (seedParams (99, 20), 60, 0, cfg)));
+        std::printf ("custom config search: %d features, %ld patches tried, best match %.1f %% (a random patch: %.1f %%)\n", inputs, tested, best * 100, randomScore * 100);
+        check (tested > 0 && finite, "a custom config search runs and every score is finite");
+        check (best > randomScore, "a custom config search beats a random patch");
+    }
+
     // ---- text -> seed
     {
         const Wish dark = parseWish ("dunkler Bass"), bright = parseWish ("heller pluck");

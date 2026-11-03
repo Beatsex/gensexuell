@@ -60,6 +60,7 @@ klingen („sound → seed"). Ziel von genopatch ist, diese Suche qualitativ und
 | G3 | Feature-Dimension dynamisch: `FeatConfig` steuert `features()`/`nfeat()`/`featLen()`, `Features = std::vector<float>`, `Net::inDim()`, `Search::cfg`, `DatasetGen` nutzt `nfeat(cfg)` | **erledigt** | `f1e85c5` (Branch `genopatch/g3-dynamic-feature-dim`) |
 | G5 | `genoPoll` liefert `netDim`/`featDim`/`netHint`, UI zeigt sie an und warnt bei Abweichung | **erledigt** | `e6ec83a` (Branch `genopatch/g5-runtime-dim-check`) |
 | G4 | Defaults auf 40 × 20 (`NFEAT = 801`), Datensatz neu, Netz neu trainiert und signiert | **erledigt** | Branch `genopatch/g4-resolution` |
+| G7 | End-to-End-Test: signiertes Netz und Suche mit Custom-Config (24 × 8 + 1) im `EngineTest` | **erledigt** | Branch `genopatch/g7-e2e-custom-config` |
 | G6 | `FeatConfig::version` + `featSignature()`; Signatur im Datensatz-Header und als `SIGN`-Anhang im Netz; `Net::load` lehnt falsche Signatur, falsche Genzahl und kaputte Dateien mit `loadError()` ab | **erledigt** | Branch `genopatch/g6-config-version` |
 
 Verifikation für G3: `EngineTest` grün; `first guess: net 66.5 %` **identisch** zu vor G3 → Default-Features
@@ -85,6 +86,10 @@ denselben ungesehenen Patches, gleiches Trainings-Budget: erster Treffer in alte
 69.5 / 70.2 %, Gen-MSE 0.0619 / 0.0621. Suche 12 × 5 s: in alten Features 86.4 / 86.5 %, in neuen 83.0 / 86.9 %,
 15315 / 14597 Patches. Ergebnis: nicht schlechter, kaum besser; beim ersten Treffer im Rahmen des Rauschens. Der
 Vorsprung in den neuen Features ist teils erwartbar, weil das neue Netz in diesem Maß sucht.
+
+Verifikation für G7: `EngineTest` grün. Custom-Config 193 Features, 3 s Suche: 863 Patches, bester Treffer 82.3 %
+(Zufallspatch 0.0 %), alle Scores endlich. Das Netz ist ein synthetisches Nullnetz, der Test prüft also die Kette,
+nicht die Qualität einer Schätzung.
 
 ---
 
@@ -192,7 +197,7 @@ Ohne vcvars schlägt `cl.exe` mit `C1083 "algorithm": No such file or directory`
 cmd /c tools\dataset.cmd <count>
 ```
 Schreibt `tools\train\dataset.bin`. Aktueller Datensatz: **150.000** Patches (`nfeat 801`,
-`ngenes 40`, ≈ 505 MB), Laufzeit hier 6 min. `train.py` lehnt Datensätze ohne Signatur (vor G6) ab. Laufzeit grob wenige Minuten (multithreaded). `count` passend zur
+`ngenes 40`, ≈ 505 MB), Laufzeit hier 6 min. `train.py` lehnt Datensätze ohne Signatur (vor G6) ab. `count` passend zur
 Ziel-Auflösung wählen; mehr Features → mehr Bytes/Sample.
 
 ### Netz trainieren
