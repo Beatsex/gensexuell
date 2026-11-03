@@ -161,19 +161,21 @@ struct MasterChain
         fx.family = f.family; // -1: every engine disabled (Mix 0, passes the dry signal)
         fx.variant = f.variant;
         fx.swarm = f.swarm;
-        fx.tail = f.tail;
-        fx.span = f.span;
+        fx.tail = std::clamp (f.tail + (g[fxLength] - 0.5f), 0.0f, 1.0f);   // expansion gene
+        fx.span = std::clamp (f.span + (g[fxSize] - 0.5f), 0.0f, 1.0f);     // expansion gene
         fx.scatter = f.scatter;
-        fx.mix = f.mix;
+        fx.mix = std::clamp (f.mix + (g[fxMix] - 0.5f), 0.0f, 1.0f);        // expansion gene
         fx.bpm = c.bpm;
         const int hazeMode = std::clamp (int (g[space] * 4), 0, 3); // Room Plate Hall Swell
-        const float duskHz = g[damp] <= 0.5f ? grain::dsp::Lowpass::bypassHz : 19900.0f * std::exp2 (-(g[damp] - 0.5f) * 14);
+        const float rvbScale = std::exp2 ((g[rvbSize] - 0.5f) * 2.0f);      // expansion gene: reverb amount (1 at 0.5)
+        const float duskScale = std::exp2 ((g[fxDamp] - 0.5f) * 2.0f);      // expansion gene: extra damping (1 at 0.5)
+        const float duskHz = g[damp] <= 0.5f ? grain::dsp::Lowpass::bypassHz : 19900.0f * std::exp2 (-(g[damp] - 0.5f) * 14) * duskScale;
         for (int pos = 0; pos < n; pos += 512)
         {
             const int m = std::min (512, n - pos);
             float* chans[2] { buffer.getWritePointer (0) + pos, buffer.getWritePointer (1) + pos };
             grain.process (chans, 2, m, fx);
-            haze.process (chans, 2, m, effect, hazeMode);
+            haze.process (chans, 2, m, effect * rvbScale, hazeMode);
             dusk.process (chans, 2, m, duskHz);
         }
 

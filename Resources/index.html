@@ -488,8 +488,11 @@ footer{display:grid;grid-template-columns:260px minmax(0,1fr) 340px;border-top:1
 // ================================================================ genes (keep in sync with Engine.h)
 const KEYS=['waveA','waveB','ratioB','fm','mix','noise','cutoff','reso','fltEnv','attack','decay','sustain','modDecay','pitchMod','lfoRate','lfoAmt',
   'volFade','envLoop','envKey','modAttack','modVel','lfoShape','lfoDelay','noiseColor','sub','fltType','fltSpread','fltKey','drive',
-  'space','damp','chorus','bass','treble','spread'];
-const MASTER=new Set(['space','damp','chorus','bass','treble']);
+  'space','damp','chorus','bass','treble','spread',
+  'envTime','envTilt','modHold','lfoBalance','pitchA','noiseB','modB','holdB','fmMod','mixMod','shaper',
+  'rvbSize','rvbAttack','rvbLength','fxMix','fxSize','fxLength','fxDamp','fxChorus'];
+const BASE=KEYS.slice(0,35); // genes seeded/streamed before the expansion (keep in sync with Engine.h BASE_GENES)
+const MASTER=new Set(['space','damp','chorus','bass','treble','rvbSize','rvbAttack','rvbLength','fxMix','fxSize','fxLength','fxDamp','fxChorus']);
 const GENE_INFO={
   attack:['ATTACK','Volume attack time'],decay:['DECAY','Volume decay time'],sustain:['SUSTAIN','Level held while the key is down (below 0.08: none)'],
   volFade:['FADE','Extra fade after the attack (above 0.75)'],envLoop:['LOOP','Envelope loop time (top = no loop)'],envKey:['ENV KEY','Above 0.5: shorter on high keys'],
@@ -501,10 +504,17 @@ const GENE_INFO={
   cutoff:['CUTOFF','Filter cutoff, relative to the note'],reso:['RESONANCE','Filter resonance'],fltEnv:['FILTER ENV','How far the mod envelope opens the filter'],
   fltType:['FILTER TYPE','Band-pass → low-pass → notch'],fltSpread:['SPREAD','A second filter stage below or above the first'],fltKey:['KEY TRACK','Cutoff follows the key (0.5 = exactly)'],
   drive:['DRIVE','Saturation inside the voice (above 0.5) · wavefolding (above 0.8)'],space:['ROOM','Haze reverb: room / plate / hall / swell'],damp:['DUSK','Low-pass on the output (above 0.5)'],
-  chorus:['CHORUS','Chorus (above 0.5)'],bass:['BASS','Low shelf ±12 dB'],treble:['TREBLE','High shelf ±12 dB'],spread:['PAN','How wide branches pan around the seed']};
+  chorus:['CHORUS','Chorus (above 0.5)'],bass:['BASS','Low shelf ±12 dB'],treble:['TREBLE','High shelf ±12 dB'],spread:['PAN','How wide branches pan around the seed'],
+  envTime:['ENV TIME','Overall envelope time scale'],envTilt:['ENV TILT','Envelope tilt'],modHold:['MOD HOLD','Mod envelope hold'],
+  lfoBalance:['LFO BALANCE','LFO balance'],pitchA:['PITCH A','Oscillator A pitch'],noiseB:['NOISE B','Noise into B'],
+  modB:['MOD B','Modulation of oscillator B'],holdB:['HOLD B','Sample & hold on B'],fmMod:['FM MOD','FM depth from the mod envelope'],
+  mixMod:['MIX MOD','Mix follows the mod envelope'],shaper:['SHAPER','Wave shaper'],rvbSize:['ROOM SIZE','Reverb size'],
+  rvbAttack:['ROOM ATTACK','Reverb attack'],rvbLength:['ROOM LENGTH','Reverb length'],fxMix:['FX MIX GENE','Extra FX mix'],
+  fxSize:['FX SIZE','Extra FX size'],fxLength:['FX LENGTH','Extra FX length'],fxDamp:['FX DAMP','Extra FX damping'],fxChorus:['FX CHORUS','Extra FX chorus']};
 const SECTIONS=[['ENVELOPE & LFO',['attack','decay','sustain','volFade','envLoop','envKey','modAttack','modDecay','modVel','lfoRate','lfoAmt','lfoShape','lfoDelay']],
   ['OSCILLATORS',['waveA','waveB','ratioB','fm','mix','noise','noiseColor','sub','pitchMod']],
-  ['FILTER & EFFECT',['cutoff','reso','fltEnv','fltType','fltSpread','fltKey','drive','space','damp','chorus','bass','treble','spread']]];
+  ['FILTER & EFFECT',['cutoff','reso','fltEnv','fltType','fltSpread','fltKey','drive','space','damp','chorus','bass','treble','spread']],
+  ['EXTRA',['envTime','envTilt','modHold','lfoBalance','pitchA','noiseB','modB','holdB','fmMod','mixMod','shaper','rvbSize','rvbAttack','rvbLength','fxMix','fxSize','fxLength','fxDamp','fxChorus']]];
 const NOTE=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 const HARM=[0,.5,.75,.5+Math.log2(3)/4,1]; // ratio positions for 0.5x 1x 2x 3x 4x
 const PATCH_FIELDS=['name','seed','base','br','len','gain','layers','tuning','effect','volume','release','atonality','fxType','fxVariant','fxSwarm','fxTail','fxSpan','fxScatter','fxMix',
@@ -547,7 +557,14 @@ function seedParams(n){
 }
 function dirsFor(n){
   const r=mulberry32(n^0xA5A5A5A5);
-  return Array.from({length:12},()=>({dir:Object.fromEntries(KEYS.map(k=>[k,r()*2-1])),off:(r()-.5)*.36,bend:(r()-.5)*.7}));
+  const out=Array.from({length:12},()=>{
+    const dir={};
+    for(const k of BASE)dir[k]=r()*2-1;                 // matches Engine.h: BASE dirs, then off, then bend
+    const off=(r()-.5)*.36,bend=(r()-.5)*.7;
+    return {dir,off,bend};
+  });
+  for(const o of out)for(const k of KEYS)if(!(k in o.dir))o.dir[k]=r()*2-1; // second pass after all branches
+  return out;
 }
 function freshLens(n){const r=mulberry32(n^0x1234567);return Array.from({length:12},()=>.15+r()*.45)}
 function wheelAmt(){return clamp(Math.max(S.wheel,wheelLive))*S.wheelScale/100}

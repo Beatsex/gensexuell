@@ -17,15 +17,32 @@ enum Gene
     waveA, waveB, ratioB, fm, mix, noise, cutoff, reso, fltEnv, attack, decay, sustain, modDecay, pitchMod, lfoRate, lfoAmt,
     volFade, envLoop, envKey, modAttack, modVel, lfoShape, lfoDelay, noiseColor, sub, fltType, fltSpread, fltKey, drive,
     space, damp, chorus, bass, treble, spread,
+    // 54-gene expansion (P1a): appended, so existing indices/patches stay valid. Not yet seeded from the
+    // random stream and not yet wired into the voice until P1b (keeps index.html parity + net stable).
+    envTime, envTilt, modHold, lfoBalance, pitchA, noiseB, modB, holdB, fmMod, mixMod, shaper,
+    rvbSize, rvbAttack, rvbLength, fxMix, fxSize, fxLength, fxDamp, fxChorus,
     NP
 };
+// genes that existed before the expansion; the seed/dirs stream covers exactly these
+inline constexpr int BASE_GENES = 35;
 inline const char* const KEYS[NP] = {
     "waveA", "waveB", "ratioB", "fm", "mix", "noise", "cutoff", "reso", "fltEnv", "attack", "decay", "sustain", "modDecay", "pitchMod", "lfoRate", "lfoAmt",
     "volFade", "envLoop", "envKey", "modAttack", "modVel", "lfoShape", "lfoDelay", "noiseColor", "sub", "fltType", "fltSpread", "fltKey", "drive",
-    "space", "damp", "chorus", "bass", "treble", "spread"
+    "space", "damp", "chorus", "bass", "treble", "spread",
+    "envTime", "envTilt", "modHold", "lfoBalance", "pitchA", "noiseB", "modB", "holdB", "fmMod", "mixMod", "shaper",
+    "rvbSize", "rvbAttack", "rvbLength", "fxMix", "fxSize", "fxLength", "fxDamp", "fxChorus"
 };
 // effect genes act on the shared master bus, so they always come from the seed, never from a branch
-inline bool isMasterGene (int k) { return k >= space && k != spread; }
+inline bool isMasterGene (int k)
+{
+    switch (k)
+    {
+        case space: case damp: case chorus: case bass: case treble:
+        case rvbSize: case rvbAttack: case rvbLength: case fxMix: case fxSize: case fxLength: case fxDamp: case fxChorus:
+            return true;
+        default: return false;
+    }
+}
 
 using Params = std::array<float, NP>;
 
@@ -90,8 +107,8 @@ inline float snap (float x)
 inline Params seedParams (uint32_t n, float atonality)
 {
     Mulberry32 r { n };
-    Params p;
-    for (auto& v : p) v = r();
+    Params p {};
+    for (int k = 0; k < NP; ++k) p[size_t (k)] = r();
     p[attack] = std::pow (p[attack], 2.2f);
     p[noise] *= p[noise] * 0.6f;
     p[pitchMod] = 0.5f + (p[pitchMod] - 0.5f) * 0.25f;
@@ -120,10 +137,13 @@ inline void dirsFor (uint32_t n, Genome& g)
     Mulberry32 r { n ^ 0xA5A5A5A5u };
     for (int i = 0; i < NB; ++i)
     {
-        for (auto& d : g.dir[size_t (i)]) d = r() * 2 - 1;
+        for (int k = 0; k < BASE_GENES; ++k) g.dir[size_t (i)][size_t (k)] = r() * 2 - 1;
         g.off[size_t (i)] = (r() - 0.5f) * 0.36f;
         r(); // bend
     }
+    // new genes consume in a second pass after every branch, so all existing dirs/offs keep their values (UI parity)
+    for (int i = 0; i < NB; ++i)
+        for (int k = BASE_GENES; k < NP; ++k) g.dir[size_t (i)][size_t (k)] = r() * 2 - 1;
 }
 
 inline std::array<float, NB> freshLens (uint32_t n)
@@ -307,6 +327,7 @@ public:
 
         // envelope times, scaled by key follow and the wheel's env-time targets
         float timeMul = std::exp2 (-(p[envKey] - 0.5f) * 2 * (midi - 60) / 12.0f);
+        timeMul *= std::exp2 ((p[envTime] - 0.5f) * 2.0f); // expansion gene: overall envelope time (1 at 0.5)
         const float w = wheelAmount (c);
         if (c.wheelTarget == envUp) timeMul *= std::exp2 (w * 2);
         if (c.wheelTarget == envDown) timeMul *= std::exp2 (-w * 2);
@@ -332,8 +353,8 @@ public:
         foldAmt = p[drive] > 0.8f ? (p[drive] - 0.8f) / 0.2f : 0.0f; // above every seed's range: wavefolding on top of the saturation
         k = 1.0f / std::max (0.707f, std::pow (10.0f, 0.5f * std::pow (30.0f, p[reso]) / 20)); // resonance in dB, like Web Audio
 
-        atkS = std::max (1.0f, 0.002f * std::pow (2000.0f, p[attack]) * timeMul * sr);
-        const float dec = 0.01f * std::pow (800.0f, p[decay]) * timeMul;
+        atkS = std::max (1.0f, 0.002f * std::pow (2000.0f, p[attack]) * timeMul * sr * std::exp2 (envTiltVal * 0.7f));
+        const float dec = 0.01f * std::pow (800.0f, p[decay]) * timeMul * std::exp2 (-envTiltVal * 0.7f);
         decCoef = std::exp (-1.0f / (dec / 3 * sr));
         sus = p[sustain] < 0.08f ? 0.0f : p[sustain];
         peak = velEff * 0.22f * g.gain[size_t (br)];
@@ -346,6 +367,18 @@ public:
         const float x = (std::clamp (pan, -1.0f, 1.0f) + 1) * 0.25f * PI; // equal power, like StereoPannerNode
         gl = std::cos (x);
         gr = std::sin (x);
+
+        // 54-gene expansion voice controls (neutral at 0.5 where possible)
+        pitchASemi = (p[pitchA] - 0.5f) * 24.0f;      // oscillator A detune in semitones
+        fmModAmt = std::max (0.0f, p[fmMod] - 0.5f) * 2.0f;
+        mixModAmt = (p[mixMod] - 0.5f) * 2.0f;
+        noiseBAmt = std::max (0.0f, p[noiseB] - 0.5f) * 2.0f;
+        shaperAmt = std::max (0.0f, p[shaper] - 0.5f) * 2.0f;
+        envTiltVal = (p[envTilt] - 0.5f) * 2.0f;
+        modHoldLevel = std::max (0.0f, p[modHold] - 0.5f) * 2.0f;
+        lfoBal = (p[lfoBalance] - 0.5f) * 2.0f;
+        modBAmt = (p[modB] - 0.5f) * 2.0f;
+        holdBAmt = std::max (0.0f, p[holdB] - 0.5f) * 2.0f;
 
         phA = phB = phL = phS = 0;
         shHold = 0;
@@ -384,11 +417,10 @@ public:
     {
         const auto& T = Tables::get();
         const float fNow = masterTune * std::exp2 ((semi - 69) / 12);
-        const float* ta = T.table (p[waveA], fNow * 2, sr); // headroom for vibrato, sweep and glide
+        const float* ta = T.table (p[waveA], fNow * std::exp2 (pitchASemi / 12.0f) * 2, sr); // headroom for vibrato, sweep and glide
         const float* tb = T.table (p[waveB], fNow * ratio * 2, sr);
-        const float mixB = p[mix], mixA = 1 - mixB;
         const float fmIndex = std::pow (clamp01 (p[fm] + live.fmAdd), 2.0f) * 10;
-        const float lfoA = clamp01 (p[lfoAmt] + live.lfoAdd), lfoCents = lfoA * lfoA * 100 * (1 - trem), tremDepth = lfoA * trem * 0.5f;
+        const float lfoA = clamp01 (p[lfoAmt] + live.lfoAdd), lfoCents = lfoA * lfoA * 100 * (1 - trem) * (1 - 0.5f * lfoBal), tremDepth = lfoA * trem * 0.5f * (1 + 0.5f * lfoBal);
         const float fltT = p[fltType];
 
         for (int s = 0; s < n; ++s)
@@ -412,6 +444,7 @@ public:
 
             if (modAtkS > 0 && t < modAtkS) mod = (t + 1) / modAtkS;
             else mod *= modCoef;
+            if (mod < modHoldLevel) mod = modHoldLevel; // expansion gene: mod-envelope hold floor
 
             semi += (targetSemi - semi) * glideCoef;
             const float lfoFade = lfoDelayS > 0 ? std::min (1.0f, tAll / lfoDelayS) : 1.0f;
@@ -420,11 +453,15 @@ public:
             const float f = masterTune * std::exp2 (cents / 1200);
 
             const float b = lookup (tb, phB);
-            phA = wrap (phA + (f + fmIndex * f * ratio * (0.3f + 0.7f * mod * modScale) * b) / sr);
-            phB = wrap (phB + f * ratio / sr);
+            phA = wrap (phA + (f + fmIndex * (1 + fmModAmt * mod) * f * ratio * (0.3f + 0.7f * mod * modScale) * b) / sr);
+            phB = wrap (phB + f * ratio * (1 + modBAmt * mod * 0.15f) * std::exp2 (shB * holdBAmt / 12.0f) / sr);
             phS = wrap (phS + f * 0.5f / sr);
             const float phLNext = wrap (phL + lfoHz / sr);
-            if (shMix > 0 && phLNext < phL) shHold = rand (rng) * 2 - 1; // only here, so the noise of every other patch stays the same
+            if ((shMix > 0 || holdBAmt > 0) && phLNext < phL)
+            {
+                if (shMix > 0) shHold = rand (rng) * 2 - 1;    // only here, so the noise of every other patch stays the same
+                if (holdBAmt > 0) shB = rand (rng) * 2 - 1;    // expansion gene: sample & hold on oscillator B
+            }
             phL = phLNext;
 
             const float w = rand (rng) * 2 - 1;
@@ -433,7 +470,8 @@ public:
             const float nz = nLp - noiseHp * nSlow;
 
             const float a = lookup (ta, phA);
-            const float x = (a * mixA + b * mixB) * (1 - ringAmt) + a * b * ringAmt + subAmt * std::sin (2 * PI * phS) + noiseAmt * nz;
+            const float mixB = clamp01 (p[mix] + mixModAmt * mod * 0.5f), mixA = 1 - mixB; // expansion gene: mix can follow the mod envelope
+            const float x = (a * mixA + b * mixB) * (1 - ringAmt) + a * b * ringAmt + subAmt * std::sin (2 * PI * phS) + noiseAmt * nz + noiseBAmt * nz * mixB;
 
             // cutoff follows the key by fltKey (0.5 = fully, 0 = fixed at middle C)
             const float keyAmt = clamp01 (p[fltKey] * 2);
@@ -456,6 +494,8 @@ public:
                 const float sat = std::tanh (y * driveGain);
                 y = (foldAmt > 0 ? sat + foldAmt * (std::sin (y * driveGain * 1.5f) - sat) : sat) / std::sqrt (driveGain);
             }
+            if (shaperAmt > 0.001f)
+                y = std::tanh (y * (1 + shaperAmt * 3)); // expansion gene: extra wave shaping
 
             const float out = y * amp * fade * (1 - tremDepth * (1 + std::sin (2 * PI * phL)));
             L[s] += out * gl;
@@ -485,6 +525,8 @@ private:
     float decCoef = 0, relCoef = 0, sus = 0, peak = 0, amp = 0, ampStart = 0, fade = 1, fadeCoef = 1, loopS = 0;
     float atkS = 1, oneShotEnd = -1, gl = 0.7f, gr = 0.7f, phA = 0, phB = 0, phL = 0, phS = 0, t = 0, tAll = 0;
     float shMix = 0, shHold = 0, ringAmt = 0, foldAmt = 0;
+    float pitchASemi = 0, fmModAmt = 0, mixModAmt = 0, noiseBAmt = 0, shaperAmt = 0;
+    float envTiltVal = 0, modHoldLevel = 0, lfoBal = 0, modBAmt = 0, holdBAmt = 0, shB = 0;
     bool releasing = false;
 };
 

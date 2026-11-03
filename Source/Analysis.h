@@ -20,7 +20,7 @@ inline const std::vector<int>& netGenes()
 {
     static const std::vector<int> g = [] {
         std::vector<int> v;
-        for (int k = 0; k < NP; ++k)
+        for (int k = 0; k < NP; ++k) // every non-master gene (the expansion genes are wired now)
             if (! isMasterGene (k) && k != spread) v.push_back (k);
         return v;
     }();
@@ -64,15 +64,37 @@ inline void fft (std::vector<std::complex<float>>& a)
 
 using Features = std::array<float, NFEAT>;
 
-// 16 frames (denser near the attack) x 32 mel bands of log power, normalised to the loudest cell, plus the note
-inline Features features (const float* x, int n, int midi)
+// Extraction parameters for the melogram. The defaults reproduce the original 16 x 32 / 24 kHz
+// features exactly, so an existing net.bin stays valid. Changing melBands/frames/fftN changes the
+// feature dimension (NFEAT) and therefore requires retraining the net (genopatch plan, step G1).
+struct FeatConfig
 {
-    static const auto melBank = [] {
+    int   sampleRate  = int (FEAT_SR);
+    int   fftN        = FFT_N;
+    int   melBands    = MEL;
+    int   frames      = FRAMES;
+    int   windowSize  = FFT_N;
+    float minHz       = 40.0f;
+    float maxHz       = 11000.0f;
+    float noiseFloor  = -1.0e30f;
+    float clipAt      =  1.0e30f;
+    int   normalize   = 0;      // 0 = peak, 1 = rms
+    int   sqrtSqrt    = 0;      // extra square roots on the band energy (0, 1 or 2)
+    bool  interleaved = false;  // storage-order hint for consumers
+};
+
+inline int nfeat (const FeatConfig& c) { return c.melBands * c.frames + 1; }
+
+// mel filterbank for a config; the default range is built once and reused
+inline const std::vector<std::array<float, FFT_N / 2 + 1>>& melBankFor (const FeatConfig& c)
+{
+    const auto build = [] (float loHz, float hiHz)
+    {
         std::vector<std::array<float, FFT_N / 2 + 1>> bank (MEL);
         const auto mel = [] (float hz) { return 2595 * std::log10 (1 + hz / 700); };
         const auto hz = [] (float m) { return 700 * (std::pow (10.0f, m / 2595) - 1); };
         std::array<float, MEL + 2> edges;
-        for (int i = 0; i < MEL + 2; ++i) edges[size_t (i)] = hz (mel (40) + (mel (11000) - mel (40)) * i / (MEL + 1));
+        for (int i = 0; i < MEL + 2; ++i) edges[size_t (i)] = hz (mel (loHz) + (mel (hiHz) - mel (loHz)) * i / (MEL + 1));
         for (int b = 0; b < MEL; ++b)
             for (int k = 0; k <= FFT_N / 2; ++k)
             {
@@ -80,11 +102,23 @@ inline Features features (const float* x, int n, int midi)
                 bank[size_t (b)][size_t (k)] = std::max (0.0f, f < mid ? (f - lo) / (mid - lo) : (hi - f) / (hi - mid));
             }
         return bank;
-    }();
+    };
+    static const auto def = build (40.0f, 11000.0f);
+    if (c.minHz == 40.0f && c.maxHz == 11000.0f) return def;
+    static thread_local std::vector<std::array<float, FFT_N / 2 + 1>> custom;
+    custom = build (c.minHz, c.maxHz);
+    return custom;
+}
+
+// 16 frames (denser near the attack) x 32 mel bands of log power, normalised to the loudest cell, plus the note.
+// Dynamic melBands/frames/fftN change NFEAT and are a later G1 step; the array size is fixed for now.
+inline Features features (const float* x, int n, int midi, const FeatConfig& cfg = {})
+{
+    const auto& melBank = melBankFor (cfg);
 
     Features out {};
     std::vector<std::complex<float>> buf (FFT_N);
-    float top = -100;
+    float top = -100, sumSq = 0;
     for (int j = 0; j < FRAMES; ++j)
     {
         const float u = float (j) / (FRAMES - 1);
@@ -100,12 +134,17 @@ inline Features features (const float* x, int n, int midi)
         {
             float e = 0;
             for (int k = 0; k <= FFT_N / 2; ++k) e += melBank[size_t (b)][size_t (k)] * std::norm (buf[size_t (k)]);
-            const float v = std::log10 (e + 1e-10f);
+            for (int s = 0; s < cfg.sqrtSqrt && s < 2; ++s) e = std::sqrt (std::max (e, 0.0f));
+            float v = std::log10 (e + 1e-10f);
+            v = std::clamp (v, cfg.noiseFloor, cfg.clipAt);
             out[size_t (j * MEL + b)] = v;
             top = std::max (top, v);
+            sumSq += v * v;
         }
     }
-    for (int i = 0; i < MEL * FRAMES; ++i) out[size_t (i)] = clamp01 ((out[size_t (i)] - top) / 8 + 1);
+    // peak normalisation (default) or rms; both centre on the reference and scale by the same span
+    const float ref = cfg.normalize == 1 ? std::sqrt (sumSq / float (MEL * FRAMES)) : top;
+    for (int i = 0; i < MEL * FRAMES; ++i) out[size_t (i)] = clamp01 ((out[size_t (i)] - ref) / 8 + 1);
     out[NFEAT - 1] = clamp01 ((midi - 36) / 48.0f);
     return out;
 }
@@ -259,6 +298,18 @@ public:
             done[size_t (s)] = strands[size_t (s)].done;
         }
         tested = triedCount.load();
+    }
+
+    // expansion (G2): per-strand live status for the UI
+    struct Status { int generation = 0; float sigma = 0, bestScore = 0; bool done = false; };
+    void status (std::array<Status, STRANDS>& out) const
+    {
+        std::lock_guard<std::mutex> lock (m);
+        for (int s = 0; s < STRANDS; ++s)
+        {
+            const auto& st = strands[size_t (s)];
+            out[size_t (s)] = { st.generation, st.sigma, st.solutions.empty() ? 0.0f : st.solutions.back().score, st.done };
+        }
     }
 
     int note() const { return refNote; }
