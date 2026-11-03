@@ -1,0 +1,4 @@
+#!/bin/sh
+# makes macOS forget its cached Audio Unit list, so DAWs see the new gensexuell.component right away
+killall -9 AudioComponentRegistrar 2>/dev/null || true
+exit 0

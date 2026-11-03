@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- macOS installer (.pkg, universal): app and plugins (VST3, AU, CLAP, LV2) in one step, formats selectable, with manual, source and an uninstaller.
+
 ## 0.3.0
 
 - The genome grows from 35 to 54 genes.

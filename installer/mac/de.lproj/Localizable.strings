@@ -1,0 +1,13 @@
+"SU_TITLE" = "gensexuell @VERSION@ Beta";
+"APP_TITLE" = "Eigenständige App";
+"APP_DESC" = "gensexuell.app in /Programme";
+"VST3_TITLE" = "VST3";
+"VST3_DESC" = "/Library/Audio/Plug-Ins/VST3";
+"AU_TITLE" = "Audio Unit (AU)";
+"AU_DESC" = "/Library/Audio/Plug-Ins/Components, für Logic Pro, GarageBand und andere";
+"CLAP_TITLE" = "CLAP";
+"CLAP_DESC" = "/Library/Audio/Plug-Ins/CLAP";
+"LV2_TITLE" = "LV2";
+"LV2_DESC" = "/Library/Audio/Plug-Ins/LV2";
+"DOCS_TITLE" = "Handbuch, Lizenzen und Quellcode";
+"DOCS_DESC" = "/Library/Application Support/beatsexuell/gensexuell, dort liegt auch das Deinstallationsprogramm";

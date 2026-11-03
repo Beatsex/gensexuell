@@ -33,7 +33,7 @@ Descarga la última versión en [Releases](https://github.com/Beatsex/gensexuell
 | Sistema | Cómo |
 |---|---|
 | Windows 10 / 11 (64 bits) | Ejecuta `gensexuell-…-win64-setup.exe`. La beta aún no está firmada: si aparece SmartScreen, haz clic en *Más información* → *Ejecutar de todas formas*. La interfaz necesita Microsoft WebView2 Runtime; Windows 11 ya lo incluye y el instalador te avisa si falta. |
-| macOS | Copia `gensexuell.vst3` a `~/Library/Audio/Plug-Ins/VST3`, `gensexuell.component` a `~/Library/Audio/Plug-Ins/Components` y `gensexuell.clap` a `~/Library/Audio/Plug-Ins/CLAP`. La versión de macOS aún no se ha probado a mano. |
+| macOS 10.15+ (Apple silicon + Intel) | Abre `gensexuell-…-macos-universal.pkg`. La beta aún no está firmada por Apple: si macOS se niega a abrirlo, ve a *Ajustes del Sistema → Privacidad y seguridad* y haz clic en *Abrir igualmente*. El instalador coloca la aplicación en `/Applications` y los plugins en `/Library/Audio/Plug-Ins` (VST3, Components, CLAP, LV2); en *Personalizar* puedes omitir formatos. *Uninstall gensexuell* está en `/Library/Application Support/beatsexuell/gensexuell`. La versión de macOS aún no se ha probado a mano. |
 
 Después reinicia tu DAW (o vuelve a escanear los plugins) e insértalo como instrumento: *beatsexuell → gensexuell*.
 

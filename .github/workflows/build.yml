@@ -1,5 +1,5 @@
 # Builds, tests and packages gensexuell for Windows x64 and macOS (universal: Intel + Apple Silicon).
-# A tag push (or a manual run with a release tag) attaches the zips and the installer to that tag's GitHub release
+# A tag push (or a manual run with a release tag) attaches the zips and the installers (Windows setup, macOS .pkg) to that tag's GitHub release
 # (a draft is created if none exists); other runs only build and test, they store nothing.
 name: build
 
@@ -86,6 +86,8 @@ jobs:
               codesign --force --deep --sign - "$b"
             done
             ditto -c -k --keepParent "$OUT" "$OUT.zip"
+            installer/mac/build-pkg.sh "$OUT"
+            cp build/installer/*.pkg .
           else
             cp "$A/Standalone/gensexuell.exe" "$OUT/"
             7z a -bd "$OUT.zip" "$OUT" > /dev/null
@@ -95,6 +97,20 @@ jobs:
             cp build/installer/*-setup.exe build/installer/*-source.zip .
           fi
           echo "PACKAGE=$OUT" >> "$GITHUB_ENV"
+
+      - name: Test macOS installer
+        if: runner.os == 'macOS'
+        run: |
+          sudo installer -pkg gensexuell-*.pkg -target /
+          for f in /Applications/gensexuell.app /Library/Audio/Plug-Ins/VST3/gensexuell.vst3 \
+            /Library/Audio/Plug-Ins/Components/gensexuell.component /Library/Audio/Plug-Ins/CLAP/gensexuell.clap \
+            /Library/Audio/Plug-Ins/LV2/gensexuell.lv2 "/Library/Application Support/beatsexuell/gensexuell/User Manual.html"; do
+            test -e "$f" || { echo "missing after install: $f"; exit 1; }
+          done
+          pkgutil --pkgs='com\.beatsexuell\.gensexuell\..*'
+          rm -rf ~/Library/Audio/Plug-Ins/Components/gensexuell.component
+          killall -9 AudioComponentRegistrar || true
+          auval -v aumu Sdlg Sxsl
 
       - name: Attach to release
         if: github.ref_type == 'tag' || inputs.release_tag != ''
@@ -107,4 +123,5 @@ jobs:
           files: |
             ${{ env.PACKAGE }}.zip
             *-setup.exe
+            *.pkg
             *-source.zip
