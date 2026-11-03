@@ -1,0 +1,7 @@
+plugin/build/
+plugin/libs/
+plugin/*.log
+plugin/train/dataset.bin
+ds.py
+CLAUDE.md
+design/
