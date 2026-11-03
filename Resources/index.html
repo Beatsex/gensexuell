@@ -6,8 +6,8 @@
 <title>gensexuell</title>
 <style>
 /* fonts ship with gensexuell (OFL 1.1), nothing loads from the internet */
-@font-face{font-family:Inter;src:url(plugin/Resources/fonts/inter.woff2) format('woff2');font-weight:100 900;font-display:swap}
-@font-face{font-family:'JetBrains Mono';src:url(plugin/Resources/fonts/jetbrainsmono.woff2) format('woff2');font-weight:100 800;font-display:swap}
+@font-face{font-family:Inter;src:url(fonts/inter.woff2) format('woff2');font-weight:100 900;font-display:swap}
+@font-face{font-family:'JetBrains Mono';src:url(fonts/jetbrainsmono.woff2) format('woff2');font-weight:100 800;font-display:swap}
 :root{--pink:#F2B8C6;--cream:#F2F1ED;--ink:#111;--line:#0004;--mute:#0008;--glass:rgba(242,241,237,.55)}
 *{box-sizing:border-box;margin:0}
 html,body{background:var(--pink);color:var(--ink);font:500 15px/1.2 Inter,system-ui,sans-serif;letter-spacing:.08em}
@@ -166,6 +166,16 @@ td input{font:400 12px 'JetBrains Mono',monospace;width:5em;background:#fff8;bor
 .chip:hover{background:#0000000d}
 .chip[aria-current=true]{background:var(--ink);color:var(--cream)}
 .chip:disabled{border-color:#0003}
+.labRow{display:flex;justify-content:space-between;align-items:baseline}
+.howTo:hover{color:var(--ink);text-decoration:underline}
+.guide{font-size:13px;line-height:1.5}
+.guide h3{font:400 11px 'JetBrains Mono',monospace;letter-spacing:.1em;color:#333;margin:16px 0 6px}
+.guide h3:first-of-type{margin-top:12px}
+.guide dl{display:grid;grid-template-columns:120px 1fr;gap:3px 14px;margin:0}
+.guide dt{font:400 11px/1.75 'JetBrains Mono',monospace;color:#333}
+.guide dd{margin:0}
+.guide code{font:400 12px 'JetBrains Mono',monospace}
+.exRow{display:flex;flex-wrap:wrap;gap:6px}
 .words[hidden]{display:none}
 .words{font:400 10px/1.4 'JetBrains Mono',monospace;letter-spacing:.02em;color:var(--mute)}
 .words b{color:var(--ink);font-weight:500}
@@ -230,7 +240,7 @@ footer{display:grid;grid-template-columns:260px minmax(0,1fr) 340px;border-top:1
   <main>
     <aside class="panel left">
       <div class="sec">
-        <label class="lab" for="desc">DESCRIBE</label>
+        <div class="labRow"><label class="lab" for="desc">DESCRIBE</label><button class="lab howTo" id="bGuide" title="How to describe a sound, with examples to try">HOW TO ?</button></div>
         <input id="desc" type="text" placeholder="z. B. dunkler, weicher Bass" autocomplete="off" spellcheck="false">
         <div class="growRow"><button id="bGrow" title="Grow seeds from the description (again: new takes)">GROW</button><span id="takes" style="display:contents"></span></div>
         <div class="words" id="wordLine" hidden></div>
@@ -367,6 +377,93 @@ footer{display:grid;grid-template-columns:260px minmax(0,1fr) 340px;border-top:1
 <dialog id="dlgPrograms" aria-labelledby="hPrograms">
   <div class="dlgHead"><h2 id="hPrograms">PROGRAM LIST</h2><button data-close>CLOSE ✕</button></div>
   <div class="dlgBody"><table id="progTable"></table><p class="foot mono">MIDI PROGRAM CHANGE 0–15 SWITCHES BETWEEN THESE (SEE MIDI SETTINGS)</p></div>
+</dialog>
+
+<!-- keep in sync with the lexicon in Words.h -->
+<dialog id="dlgDescribe" aria-labelledby="hDescribe">
+  <div class="dlgHead"><h2 id="hDescribe">HOW TO DESCRIBE</h2><button id="guideLang"></button><button data-close>CLOSE ✕</button></div>
+  <div class="dlgBody guide" lang="de">
+    <b>Was + wie:</b> Nenn eine Klangart und ein bis drei Eigenschaften, auf Deutsch oder Englisch. gensexuell sucht dann Klänge, die wirklich so klingen, und gibt dir vier Takes. Mehr braucht es nicht.
+    <h3>PROBIER ES AUS: KLICK EIN BEISPIEL AN</h3>
+    <div class="exRow">
+      <button class="chip ex">dunkler weicher Bass</button><button class="chip ex">kurze metallische Glocke</button><button class="chip ex">glassy pluck, not too bright</button>
+      <button class="chip ex">808 kick, sehr kurz, etwas verzerrt</button><button class="chip ex">breites Juno-Pad mit Chorus</button><button class="chip ex">wärmeres Pad mit viel Raum</button>
+    </div>
+    <h3>DAS VERSTEHT GENSEXUELL</h3>
+    <dl>
+      <dt>Klangart</dt><dd>Pad, Fläche, Bass, Sub, 808, Pluck, Lead, Glocke, Mallet, Kick, Snare, Hat, Drone, FX, Riser, Textur, Atmo, Orgel, Akkord, Stab</dd>
+      <dt>Helligkeit</dt><dd>hell, spitz · dunkel, dumpf</dd>
+      <dt>Charakter</dt><dd>warm, weich, rund · hart, aggressiv, scharf</dd>
+      <dt>Material</dt><dd>glasig, Kristall · metallisch · holzig · eisig, kalt</dd>
+      <dt>Schmutz</dt><dd>dreckig, kaputt, lofi · verzerrt · sauber, pur</dd>
+      <dt>Zeit</dt><dd>kurz, knapp, staccato · lang, endlos · langsam, schwellend · schnell, direkt</dd>
+      <dt>Bewegung</dt><dd>wobbel, schwebend, vibrato · lebendig, organisch · statisch</dd>
+      <dt>Körper</dt><dd>fett, dick, breit · dünn · tief · hoch · hohl, nasal · luftig, rauschig</dd>
+      <dt>Raum</dt><dd>Raum, Hall, weit · trocken, nah · Shimmer, Kathedrale</dd>
+      <dt>Epoche</dt><dd>analog, vintage · FM, digital, 80er · acid, 303 · Tape, Vinyl · Laser, Sci-Fi</dd>
+      <dt>Vorbilder</dt><dd>Juno, Moog, Prophet, DX7, Rhodes, MS-20, Mellotron, Supersaw, Chiptune · Harfe, Sitar, Cello, Flöte, Trompete, Chor, Gong, Kalimba. Das sind Annäherungen, keine Nachbildungen.</dd>
+    </dl>
+    <h3>STÄRKER, SCHWÄCHER, GEGENTEIL</h3>
+    <dl>
+      <dt>sehr, viel</dt><dd>das nächste Wort zählt stärker: <code>sehr kurz</code></dd>
+      <dt>etwas, leicht</dt><dd>das nächste Wort zählt schwächer: <code>etwas verzerrt</code></dd>
+      <dt>nicht, ohne</dt><dd>das nächste Wort kippt ins Gegenteil: <code>nicht hell</code>, <code>ohne Hall</code></dd>
+      <dt>nicht zu</dt><dd>das nächste Wort landet in der Mitte: <code>nicht zu luftig</code></dd>
+    </dl>
+    <h3>DAS ERGEBNIS LESEN</h3>
+    <dl>
+      <dt>1 2 3 4</dt><dd>die vier Takes, der beste zuerst. Ein Klick lädt und spielt ihn. GROW nochmal: vier neue.</dd>
+      <dt>Prozent</dt><dd>Fahr mit der Maus über einen Take. Die Zahl sagt, wie nah er an deinen Wörtern liegt, nicht, wie gut er klingt. Hör auch die anderen an.</dd>
+      <dt>UNDERSTOOD</dt><dd>die erkannten Wörter. Durchgestrichene kennt gensexuell nicht und ignoriert sie, nimm dann ein Wort von oben.</dd>
+    </dl>
+    <h3>WENN ES NICHT PASST</h3>
+    <dl>
+      <dt>Zu vage</dt><dd>Nenn eine Klangart. <code>schön</code> versteht gensexuell nicht, <code>warmes Pad</code> schon.</dd>
+      <dt>Zu viel</dt><dd>Drei gute Wörter treffen meist besser als acht, die sich widersprechen.</dd>
+      <dt>Fast richtig</dt><dd>Nimm den besten Take und zieh Äste. Worte für die Richtung, Äste für den Feinschliff.</dd>
+    </dl>
+  </div>
+  <div class="dlgBody guide" lang="en" hidden>
+    <b>What + how:</b> name a kind of sound and one to three qualities, in English or German. gensexuell then searches for sounds that really sound that way and gives you four takes. That is all it takes.
+    <h3>TRY IT: CLICK AN EXAMPLE</h3>
+    <div class="exRow">
+      <button class="chip ex">dark soft bass</button><button class="chip ex">short metallic bell</button><button class="chip ex">glassy pluck, not too bright</button>
+      <button class="chip ex">808 kick, very short, slightly distorted</button><button class="chip ex">wide Juno-pad with chorus</button><button class="chip ex">warm pad with lots of reverb</button>
+    </div>
+    <h3>WHAT GENSEXUELL UNDERSTANDS</h3>
+    <dl>
+      <dt>Kind of sound</dt><dd>pad, strings, bass, sub, 808, pluck, lead, bell, mallet, kick, snare, hat, drone, fx, riser, texture, atmo, organ, chord, stab</dd>
+      <dt>Brightness</dt><dd>bright, crisp · dark, muffled</dd>
+      <dt>Character</dt><dd>warm, soft, smooth · hard, aggressive, harsh</dd>
+      <dt>Material</dt><dd>glassy, crystal · metallic · wood · icy, cold</dd>
+      <dt>Dirt</dt><dd>dirty, gritty, lofi · distorted · clean, pure</dd>
+      <dt>Time</dt><dd>short, snappy, staccato · long, endless · slow, swell · fast, immediate</dd>
+      <dt>Motion</dt><dd>wobble, wavy, vibrato · evolving, organic · static</dd>
+      <dt>Body</dt><dd>fat, thick, wide · thin · low, deep · high · hollow, nasal · airy, noisy</dd>
+      <dt>Space</dt><dd>reverb, spacey · dry, close · shimmer, cathedral</dd>
+      <dt>Era</dt><dd>analog, vintage · FM, digital, 80s · acid, 303 · tape, vinyl · laser, sci-fi</dd>
+      <dt>References</dt><dd>Juno, Moog, Prophet, DX7, Rhodes, MS-20, Mellotron, supersaw, chiptune · harp, sitar, cello, flute, trumpet, choir, gong, kalimba. These are approximations, not recreations.</dd>
+    </dl>
+    <h3>STRONGER, WEAKER, OPPOSITE</h3>
+    <dl>
+      <dt>very, lots</dt><dd>the next word counts more: <code>very short</code></dd>
+      <dt>slightly, less</dt><dd>the next word counts less: <code>slightly distorted</code></dd>
+      <dt>not, without</dt><dd>the next word flips: <code>not bright</code>, <code>no reverb</code></dd>
+      <dt>not too</dt><dd>the next word lands in the middle: <code>not too airy</code></dd>
+    </dl>
+    <h3>READING THE RESULT</h3>
+    <dl>
+      <dt>1 2 3 4</dt><dd>the four takes, best first. A click loads and plays one. GROW again: four new ones.</dd>
+      <dt>Percent</dt><dd>Hover over a take. The number says how close it is to your words, not how good it sounds. Listen to the others too.</dd>
+      <dt>UNDERSTOOD</dt><dd>the words it recognised. Struck-through words are unknown and ignored, so swap them for a word from above.</dd>
+    </dl>
+    <h3>WHEN IT DOESN'T FIT</h3>
+    <dl>
+      <dt>Too vague</dt><dd>Name a kind of sound. gensexuell doesn't know <code>beautiful</code>, but it does know <code>warm pad</code>.</dd>
+      <dt>Too much</dt><dd>Three good words usually hit better than eight that contradict each other.</dd>
+      <dt>Almost right</dt><dd>Take the best take and drag branches. Words for the direction, branches for the finish.</dd>
+    </dl>
+  </div>
 </dialog>
 
 <dialog id="dlgAbout" aria-labelledby="hAbout">
@@ -883,7 +980,7 @@ function fitWindow(){if(!HOST)return;const r=document.documentElement,z=Math.min
 addEventListener('resize',fitWindow);fitWindow();
 const MAIN=[['UNDO',doUndo,'Ctrl+Z'],['REDO',doRedo,'Ctrl+Shift+Z'],null,['OPEN PATCH…',openPatch,'Ctrl+O'],['SAVE PATCH…',savePatch,'Ctrl+S'],['COPY PATCH',copyPatch],['PASTE PATCH',pastePatch],null,
   ['SOW',sow],['NEW RANDOM SEED',newSeed],['CLONE BRANCH TO ALL',clone],['GROW NEW RANDOM BRANCH',()=>reroll()],null,
-  ['GENES…',()=>{openDlg('dlgGenes');renderGenes()}],['SOUND → SEED…',()=>openDlg('dlgSound')],['TEXT → SEED',()=>$('desc').focus()],['PERFORMANCE → SEED…',()=>openDlg('dlgPerf')],null,
+  ['GENES…',()=>{openDlg('dlgGenes');renderGenes()}],['SOUND → SEED…',()=>openDlg('dlgSound')],['TEXT → SEED',()=>$('desc').focus()],['HOW TO DESCRIBE…',()=>openDlg('dlgDescribe')],['PERFORMANCE → SEED…',()=>openDlg('dlgPerf')],null,
   ['CORRECT TUNING',correctTuning],['NORMALIZE VOLUME',normalizeVolume],['NORMALIZE BRANCH VOLUMES',normalizeBranches],['BRANCH VOLUMES…',()=>{openDlg('dlgBranches');renderBranches()}],null,
   ['MIDI CONTROLLERS…',()=>{openDlg('dlgCc');renderCc()}],['MIDI SETTINGS…',()=>{openDlg('dlgMidi');renderMidi()}],['PROGRAM LIST…',()=>{openDlg('dlgPrograms');renderPrograms()}],null,
   ['ZOOM',null],['ABOUT',()=>openDlg('dlgAbout')]];
@@ -1045,6 +1142,10 @@ function loadTake(i,play){
   syncAll();if(play)preview();
 }
 $('bGrow').onclick=grow;
+const guideLang=l=>{document.querySelectorAll('.guide').forEach(g=>g.hidden=g.lang!==l);$('guideLang').textContent=l==='de'?'ENGLISH':'DEUTSCH';$('guideLang').onclick=()=>guideLang(l==='de'?'en':'de')};
+guideLang(navigator.language.startsWith('de')?'de':'en');
+$('bGuide').onclick=()=>openDlg('dlgDescribe');
+document.querySelectorAll('.ex').forEach(b=>b.onclick=()=>{$('desc').value=b.textContent;$('dlgDescribe').close();grow()});
 $('desc').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();grow()}});
 
 // ================================================================ performance → seed

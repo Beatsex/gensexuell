@@ -791,8 +791,8 @@ private:
             return WebBrowserComponent::Resource { { d, d + size }, mime };
         };
         if (url == "/" || url == "/index.html") return make (BinaryData::index_html, BinaryData::index_htmlSize, "text/html");
-        if (url == "/plugin/Resources/fonts/inter.woff2") return make (BinaryData::inter_woff2, BinaryData::inter_woff2Size, "font/woff2");
-        if (url == "/plugin/Resources/fonts/jetbrainsmono.woff2") return make (BinaryData::jetbrainsmono_woff2, BinaryData::jetbrainsmono_woff2Size, "font/woff2");
+        if (url == "/fonts/inter.woff2") return make (BinaryData::inter_woff2, BinaryData::inter_woff2Size, "font/woff2");
+        if (url == "/fonts/jetbrainsmono.woff2") return make (BinaryData::jetbrainsmono_woff2, BinaryData::jetbrainsmono_woff2Size, "font/woff2");
         return std::nullopt;
     }
 

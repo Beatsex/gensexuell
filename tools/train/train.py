@@ -1,4 +1,4 @@
-"""Trains the sound -> seed net (features -> genes) on dataset.bin from DatasetGen and writes ../Resources/net.bin.
+"""Trains the sound -> seed net (features -> genes) on dataset.bin from DatasetGen and writes ../../Resources/net.bin.
 
 numpy only: MLP NFEAT -> 512 -> 256 -> genes, ReLU, sigmoid out, MSE, Adam.
 usage: py -I train.py [dataset.bin] [epochs]
@@ -71,7 +71,7 @@ for epoch in range(epochs):
         lr *= 0.3
     print(f"epoch {epoch + 1:2d}  val MSE {mse(val):.4f}  ({time.time() - t0:.0f}s)", flush=True)
 
-out = os.path.join(here, "..", "Resources", "net.bin")
+out = os.path.join(here, "..", "..", "Resources", "net.bin")
 os.makedirs(os.path.dirname(out), exist_ok=True)
 with open(out, "wb") as f:
     f.write(b"SDNN" + struct.pack("<i", len(W)))

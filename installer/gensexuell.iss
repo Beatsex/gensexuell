@@ -1,9 +1,9 @@
-﻿; Windows installer for gensexuell (Inno Setup 6). After plugin\build.cmd, build with:
+﻿; Windows installer for gensexuell (Inno Setup 6). After build.cmd, build with:
 ;   "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\gensexuell.iss
-; The setup lands in plugin\build\installer. Run installer\make-source.py first: the source zip ships inside.
+; The setup lands in build\installer. Run installer\make-source.py first: the source zip ships inside.
 
 #define AppVersion "0.2.0"
-#define Artefacts "..\plugin\build\Seedling_artefacts\Release"
+#define Artefacts "..\build\Seedling_artefacts\Release"
 
 [Setup]
 ; the AppId identifies the app for upgrades and uninstall: never change it
@@ -24,7 +24,7 @@ ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0
 ; the plugin folders under Common Files need admin rights
 PrivilegesRequired=admin
-OutputDir=..\plugin\build\installer
+OutputDir=..\build\installer
 OutputBaseFilename=gensexuell-beta-{#AppVersion}-win64-setup
 Compression=lzma2/max
 SolidCompression=yes
@@ -80,10 +80,10 @@ Source: "{#Artefacts}\VST3\gensexuell.vst3\desktop.ini"; DestDir: "{commoncf64}\
 Source: "{#Artefacts}\CLAP\gensexuell.clap"; DestDir: "{commoncf64}\CLAP"; Components: clap; Flags: ignoreversion
 Source: "{#Artefacts}\LV2\gensexuell.lv2\*"; DestDir: "{commoncf64}\LV2\gensexuell.lv2"; Components: lv2; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "*.exp,*.lib"
 Source: "README.txt"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\USER_MANUAL.html"; DestDir: "{app}"; Flags: ignoreversion
+Source: "USER_MANUAL.html"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\LICENSE"; DestDir: "{app}"; DestName: "LICENSE.txt"; Flags: ignoreversion
 Source: "..\THIRD-PARTY-LICENSES.txt"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\plugin\build\installer\gensexuell-{#AppVersion}-source.zip"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\build\installer\gensexuell-{#AppVersion}-source.zip"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\gensexuell"; Filename: "{app}\gensexuell.exe"; Components: standalone

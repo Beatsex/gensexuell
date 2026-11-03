@@ -33,7 +33,7 @@ clap_juce_extensions_plugin(TARGET Seedling
     CLAP_FEATURES instrument synthesizer stereo)
 
 # the web UI is the same index.html that also opens in a browser; net.bin is the trained sound -> seed net
-set(binary_sources "${CMAKE_CURRENT_SOURCE_DIR}/../index.html"
+set(binary_sources "${CMAKE_CURRENT_SOURCE_DIR}/Resources/index.html"
     "${CMAKE_CURRENT_SOURCE_DIR}/Resources/fonts/inter.woff2"
     "${CMAKE_CURRENT_SOURCE_DIR}/Resources/fonts/jetbrainsmono.woff2")
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/Resources/net.bin")
@@ -54,8 +54,11 @@ target_link_libraries(Seedling
     PRIVATE SeedlingData juce::juce_audio_utils juce::juce_gui_extra juce::juce_dsp
     PUBLIC juce::juce_recommended_config_flags juce::juce_recommended_lto_flags juce::juce_recommended_warning_flags)
 
-add_executable(EngineTest test/EngineTest.cpp)
+add_executable(EngineTest tests/EngineTest.cpp)
 target_include_directories(EngineTest PRIVATE Source)
 
 add_executable(DatasetGen tools/DatasetGen.cpp)
 target_include_directories(DatasetGen PRIVATE Source)
+
+enable_testing()
+add_test(NAME EngineTest COMMAND EngineTest WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")

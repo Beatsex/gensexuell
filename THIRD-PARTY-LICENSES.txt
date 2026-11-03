@@ -3,7 +3,7 @@ It is built with JUCE 8 (https://juce.com), used under the AGPLv3 option of its 
 The parts below keep their own licenses.
 
 ==============================================================================
-grainsexuell effects (plugin/Source/grain)
+grainsexuell effects (Source/grain)
 ==============================================================================
 MIT License
 

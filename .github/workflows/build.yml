@@ -1,0 +1,110 @@
+# Builds, tests and packages gensexuell for Windows x64 and macOS (universal: Intel + Apple Silicon).
+# A tag push (or a manual run with a release tag) attaches the zips and the installer to that tag's GitHub release
+# (a draft is created if none exists); other runs only build and test, they store nothing.
+name: build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Attach the files to the release of this tag (e.g. v0.2.0); empty = build and test only"
+        required: false
+
+permissions:
+  contents: write # release assets
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows-x64
+            os: windows-2022
+          - name: macos-universal
+            os: macos-14
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Fetch pinned JUCE, clap-juce-extensions and the WebView2 SDK
+        run: |
+          git clone --depth 1 --branch 8.0.16-security https://github.com/juce-framework/JUCE.git libs/JUCE
+          git clone --recurse-submodules --shallow-submodules https://github.com/free-audio/clap-juce-extensions.git libs/clap-juce-extensions
+          git -C libs/clap-juce-extensions checkout 7adee3a1bd4684d4caa5601100e364abccff4b4d
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            curl -sSL -o webview2.zip https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2/1.0.3485.44
+            mkdir -p libs/nuget/Microsoft.Web.WebView2.1.0.3485.44
+            unzip -q webview2.zip -d libs/nuget/Microsoft.Web.WebView2.1.0.3485.44
+          fi
+
+      - name: Configure
+        run: |
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15
+          else
+            cmake -B build
+          fi
+
+      - name: Build
+        run: |
+          targets="Seedling_VST3 Seedling_CLAP Seedling_LV2 Seedling_Standalone EngineTest"
+          if [ "$RUNNER_OS" = "macOS" ]; then targets="$targets Seedling_AU"; fi
+          cmake --build build --config Release --parallel 4 --target $targets
+
+      - name: Test
+        run: ctest --test-dir build -C Release --output-on-failure
+
+      - name: Validate AU
+        if: runner.os == 'macOS'
+        run: |
+          mkdir -p ~/Library/Audio/Plug-Ins/Components
+          cp -R build/Seedling_artefacts/Release/AU/gensexuell.component ~/Library/Audio/Plug-Ins/Components/
+          killall -9 AudioComponentRegistrar || true
+          auval -v aumu Sdlg Sxsl
+
+      - name: Package
+        run: |
+          VERSION=$(sed -n 's/^#define AppVersion "\(.*\)"/\1/p' installer/gensexuell.iss | tr -d '\r')
+          OUT="gensexuell-beta-${VERSION}-${{ matrix.name }}"
+          A=build/Seedling_artefacts/Release
+          mkdir -p "$OUT"
+          cp installer/README.txt LICENSE THIRD-PARTY-LICENSES.txt "$OUT/"
+          cp installer/USER_MANUAL.html "$OUT/User Manual.html"
+          cp -R "$A/VST3/gensexuell.vst3" "$A/CLAP/gensexuell.clap" "$A/LV2/gensexuell.lv2" "$OUT/"
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            cp -R "$A/AU/gensexuell.component" "$A/Standalone/gensexuell.app" "$OUT/"
+            # ad-hoc signature: required for Apple Silicon to load the code at all (not a notarization)
+            for b in "$OUT/gensexuell.vst3" "$OUT/gensexuell.clap" "$OUT/gensexuell.component" "$OUT/gensexuell.app"; do
+              codesign --force --deep --sign - "$b"
+            done
+            ditto -c -k --keepParent "$OUT" "$OUT.zip"
+          else
+            cp "$A/Standalone/gensexuell.exe" "$OUT/"
+            7z a -bd "$OUT.zip" "$OUT" > /dev/null
+            python installer/make-source.py
+            choco install innosetup -y --no-progress > /dev/null
+            "/c/Program Files (x86)/Inno Setup 6/ISCC.exe" installer/gensexuell.iss
+            cp build/installer/*-setup.exe build/installer/*-source.zip .
+          fi
+          echo "PACKAGE=$OUT" >> "$GITHUB_ENV"
+
+      - name: Attach to release
+        if: github.ref_type == 'tag' || inputs.release_tag != ''
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ inputs.release_tag || github.ref_name }}
+          # a tag push creates a draft; a manual run with release_tag leaves an existing release as it is (published stays published)
+          draft: ${{ inputs.release_tag == '' }}
+          fail_on_unmatched_files: false
+          files: |
+            ${{ env.PACKAGE }}.zip
+            *-setup.exe
+            *-source.zip
