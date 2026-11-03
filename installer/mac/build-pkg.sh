@@ -77,6 +77,7 @@ for lang in en de; do
   for f in installer/mac/$lang.lproj/*; do
     sed "s/@VERSION@/$VERSION/g" "$f" > "$WORK/resources/$lang.lproj/$(basename "$f")"
   done
+  cp installer/mac/screenshots/*.jpg "$WORK/resources/$lang.lproj/"
 done
 sed "s/@VERSION@/$VERSION/g" installer/mac/Distribution.xml > "$WORK/Distribution.xml"
 
