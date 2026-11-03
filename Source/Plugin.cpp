@@ -1097,6 +1097,8 @@ private:
         long tested = 0;
         proc.search.snapshot (sol, done, tested);
         Array<var> strands;
+        std::array<Search::Status, Search::STRANDS> st;
+        proc.search.status (st);
         for (int s = 0; s < Search::STRANDS; ++s)
         {
             DynamicObject::Ptr o = new DynamicObject();
@@ -1104,6 +1106,8 @@ private:
             for (auto& x : sol[size_t (s)]) scores.add (x.score);
             o->setProperty ("scores", scores);
             o->setProperty ("done", done[size_t (s)]);
+            o->setProperty ("generation", st[size_t (s)].generation);
+            o->setProperty ("sigma", st[size_t (s)].sigma);
             strands.add (var (o.get()));
         }
         DynamicObject::Ptr r = new DynamicObject();

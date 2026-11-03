@@ -1100,7 +1100,7 @@ function drawInfo(){
   if($('gInfoBox').hidden)return;
   const f=G.info?.pitch,best=Math.max(0,...G.strands.flatMap(s=>s.scores));
   $('gInfoBox').innerHTML=`SAMPLE ${G.name??'—'}<br>PITCH ${f?f.toFixed(1)+' HZ · '+NOTE[G.info.note%12]+(Math.floor(G.info.note/12)-1):'UNPITCHED'}<br>
-    TESTED ${G.tested} · ${G.rate.toFixed(0)} / S<br>BEST MATCH ${(best*100).toFixed(1)} %<br>${netReady?'NEURAL GUESS ON':'NET NOT TRAINED: NEUTRAL START'}`;
+    TESTED ${G.tested} · ${G.rate.toFixed(0)} / S<br>STRANDS ${G.strands.map(s=>s.generation??0).join('/')} GEN<br>BEST MATCH ${(best*100).toFixed(1)} %<br>${netReady?'NEURAL GUESS ON':'NET NOT TRAINED: NEUTRAL START'}`;
 }
 function drawStrands(){
   gStrands.replaceChildren();
