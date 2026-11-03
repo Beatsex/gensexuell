@@ -39,7 +39,9 @@ part() {
   pkgbuild --analyze --root "$root" "$plist" >/dev/null
   local i=0
   while /usr/libexec/PlistBuddy -c "Print :$i" "$plist" >/dev/null 2>&1; do
-    /usr/libexec/PlistBuddy -c "Set :$i:BundleIsRelocatable false" "$plist"
+    # the key is not always there, so replace instead of set
+    /usr/libexec/PlistBuddy -c "Delete :$i:BundleIsRelocatable" "$plist" >/dev/null 2>&1 || true
+    /usr/libexec/PlistBuddy -c "Add :$i:BundleIsRelocatable bool false" "$plist"
     i=$((i + 1))
   done
   local args=(--root "$root" --identifier "$ID.$name" --version "$VERSION" --install-location "$location")
