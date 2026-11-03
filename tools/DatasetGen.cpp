@@ -13,8 +13,10 @@ int main (int argc, char** argv)
     const int nThreads = argc > 3 ? std::atoi (argv[3]) : int (std::max (1u, std::thread::hardware_concurrency()));
     const auto& genes = netGenes();
     const int NG = int (genes.size());
+    const FeatConfig fcfg;           // the dataset fixes the net's input width; the defaults match Resources/net.bin
+    const int NF = nfeat (fcfg);
 
-    std::vector<float> feats (size_t (count) * NFEAT), targets (size_t (count) * size_t (NG));
+    std::vector<float> feats (size_t (count) * size_t (NF)), targets (size_t (count) * size_t (NG));
     std::atomic<int> next { 0 }, skipped { 0 };
     Tables::get(); // build the wavetables once before the workers start
 
@@ -35,10 +37,10 @@ int main (int argc, char** argv)
                 Controls c;
                 c.base = p;
                 c.atonality = 0;
-                const auto audio = renderNote (g, c, 0, midi, FEAT_LEN / FEAT_SR, FEAT_SR, HOLD_SECONDS);
+                const auto audio = renderNote (g, c, 0, midi, float (featLen (fcfg)) / float (fcfg.sampleRate), float (fcfg.sampleRate), HOLD_SECONDS);
                 if (rms (audio) < 1e-4f) { ++skipped; continue; } // silent patches teach nothing
-                const auto f = features (audio.data(), FEAT_LEN, midi);
-                std::copy (f.begin(), f.end(), feats.begin() + ptrdiff_t (i) * NFEAT);
+                const auto f = features (audio.data(), int (audio.size()), midi, fcfg);
+                std::copy (f.begin(), f.end(), feats.begin() + ptrdiff_t (i) * NF);
                 // values that sound the same get one target, so the net isn't punished for what it can't hear
                 Params t = p;
                 t[modAttack] = std::max (t[modAttack], 0.5f);
@@ -58,7 +60,7 @@ int main (int argc, char** argv)
     for (auto& t : pool) t.join();
 
     std::ofstream out (argv[1], std::ios::binary);
-    const int32_t header[3] = { count, NFEAT, NG };
+    const int32_t header[3] = { count, NF, NG };
     out.write (reinterpret_cast<const char*> (header), sizeof (header));
     out.write (reinterpret_cast<const char*> (feats.data()), std::streamsize (feats.size() * 4));
     out.write (reinterpret_cast<const char*> (targets.data()), std::streamsize (targets.size() * 4));

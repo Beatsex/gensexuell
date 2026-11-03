@@ -5,6 +5,7 @@
 #include <atomic>
 #include <complex>
 #include <cstring>
+#include <map>
 #include <mutex>
 #include <random>
 #include <thread>
@@ -62,11 +63,12 @@ inline void fft (std::vector<std::complex<float>>& a)
     }
 }
 
-using Features = std::array<float, NFEAT>;
+using Features = std::vector<float>;
 
 // Extraction parameters for the melogram. The defaults reproduce the original 16 x 32 / 24 kHz
-// features exactly, so an existing net.bin stays valid. Changing melBands/frames/fftN changes the
-// feature dimension (NFEAT) and therefore requires retraining the net (genopatch plan, step G1).
+// features exactly, so an existing net.bin stays valid. melBands/frames/fftN/sampleRate and the hz
+// range now drive the whole extraction: the vector (and the net's input width) is nfeat(cfg), no
+// longer a compile-time array. Changing them needs a fresh dataset and a retrained net (step G3).
 struct FeatConfig
 {
     int   sampleRate  = int (FEAT_SR);
@@ -85,82 +87,105 @@ struct FeatConfig
 
 inline int nfeat (const FeatConfig& c) { return c.melBands * c.frames + 1; }
 
-// mel filterbank for a config; the default range is built once and reused
-inline const std::vector<std::array<float, FFT_N / 2 + 1>>& melBankFor (const FeatConfig& c)
+// analysis window length in samples for a config: 2 s, so the default equals FEAT_LEN exactly
+inline int featLen (const FeatConfig& c) { return int (std::lround (FEAT_LEN * (double (c.sampleRate) / FEAT_SR))); }
+
+// mel filterbank for a config, built once per distinct config and cached per thread.
+// The default key (24 kHz, fftN 1024, 32 bands, 40..11000 Hz) reproduces the original bank.
+inline const std::vector<std::vector<float>>& melBankFor (const FeatConfig& c)
 {
-    const auto build = [] (float loHz, float hiHz)
+    struct Key
     {
-        std::vector<std::array<float, FFT_N / 2 + 1>> bank (MEL);
-        const auto mel = [] (float hz) { return 2595 * std::log10 (1 + hz / 700); };
-        const auto hz = [] (float m) { return 700 * (std::pow (10.0f, m / 2595) - 1); };
-        std::array<float, MEL + 2> edges;
-        for (int i = 0; i < MEL + 2; ++i) edges[size_t (i)] = hz (mel (loHz) + (mel (hiHz) - mel (loHz)) * i / (MEL + 1));
-        for (int b = 0; b < MEL; ++b)
-            for (int k = 0; k <= FFT_N / 2; ++k)
-            {
-                const float f = k * FEAT_SR / FFT_N, lo = edges[size_t (b)], mid = edges[size_t (b + 1)], hi = edges[size_t (b + 2)];
-                bank[size_t (b)][size_t (k)] = std::max (0.0f, f < mid ? (f - lo) / (mid - lo) : (hi - f) / (hi - mid));
-            }
-        return bank;
+        int sr, fftN, mel;
+        float lo, hi;
+        bool operator< (const Key& o) const
+        {
+            if (sr != o.sr) return sr < o.sr;
+            if (fftN != o.fftN) return fftN < o.fftN;
+            if (mel != o.mel) return mel < o.mel;
+            if (lo != o.lo) return lo < o.lo;
+            return hi < o.hi;
+        }
     };
-    static const auto def = build (40.0f, 11000.0f);
-    if (c.minHz == 40.0f && c.maxHz == 11000.0f) return def;
-    static thread_local std::vector<std::array<float, FFT_N / 2 + 1>> custom;
-    custom = build (c.minHz, c.maxHz);
-    return custom;
+    static thread_local std::map<Key, std::vector<std::vector<float>>> cache;
+    const Key key { c.sampleRate, c.fftN, c.melBands, c.minHz, c.maxHz };
+    if (const auto it = cache.find (key); it != cache.end()) return it->second;
+
+    const int bins = c.fftN / 2 + 1;
+    std::vector<std::vector<float>> bank (size_t (c.melBands), std::vector<float> (size_t (bins), 0.0f));
+    const auto mel = [] (float hz) { return 2595 * std::log10 (1 + hz / 700); };
+    const auto hz = [] (float m) { return 700 * (std::pow (10.0f, m / 2595) - 1); };
+    std::vector<float> edges (size_t (c.melBands) + 2);
+    for (int i = 0; i < c.melBands + 2; ++i)
+        edges[size_t (i)] = hz (mel (c.minHz) + (mel (c.maxHz) - mel (c.minHz)) * i / (c.melBands + 1));
+    for (int b = 0; b < c.melBands; ++b)
+        for (int k = 0; k < bins; ++k)
+        {
+            const float f = k * float (c.sampleRate) / c.fftN, lo = edges[size_t (b)], mid = edges[size_t (b + 1)], hi = edges[size_t (b + 2)];
+            bank[size_t (b)][size_t (k)] = std::max (0.0f, f < mid ? (f - lo) / (mid - lo) : (hi - f) / (hi - mid));
+        }
+    return cache.emplace (key, std::move (bank)).first->second;
 }
 
-// 16 frames (denser near the attack) x 32 mel bands of log power, normalised to the loudest cell, plus the note.
-// Dynamic melBands/frames/fftN change NFEAT and are a later G1 step; the array size is fixed for now.
+// `frames` windows (denser near the attack) x `melBands` mel bands of log power, normalised to the
+// loudest cell, plus the note. The vector length is nfeat(cfg); the defaults are bit-identical to
+// the original fixed 16 x 32 extraction, so an existing net.bin stays valid.
 inline Features features (const float* x, int n, int midi, const FeatConfig& cfg = {})
 {
+    const int mel = cfg.melBands, frames = cfg.frames, fftN = cfg.fftN;
     const auto& melBank = melBankFor (cfg);
 
-    Features out {};
-    std::vector<std::complex<float>> buf (FFT_N);
+    Features out (static_cast<size_t> (nfeat (cfg)), 0.0f);
+    std::vector<std::complex<float>> buf (static_cast<size_t> (fftN));
+    const int span = std::max (fftN, featLen (cfg));
     float top = -100, sumSq = 0;
-    for (int j = 0; j < FRAMES; ++j)
+    for (int j = 0; j < frames; ++j)
     {
-        const float u = float (j) / (FRAMES - 1);
-        const int start = int (u * u * (FEAT_LEN - FFT_N));
-        for (int i = 0; i < FFT_N; ++i)
+        const float u = frames > 1 ? float (j) / (frames - 1) : 0.0f;
+        const int start = int (u * u * (span - fftN));
+        for (int i = 0; i < fftN; ++i)
         {
             const int idx = start + i;
-            const float win = 0.5f - 0.5f * std::cos (2 * PI * i / (FFT_N - 1));
+            const float win = fftN > 1 ? 0.5f - 0.5f * std::cos (2 * PI * i / (fftN - 1)) : 1.0f;
             buf[size_t (i)] = { idx < n ? x[idx] * win : 0.0f, 0.0f };
         }
         fft (buf);
-        for (int b = 0; b < MEL; ++b)
+        for (int b = 0; b < mel; ++b)
         {
             float e = 0;
-            for (int k = 0; k <= FFT_N / 2; ++k) e += melBank[size_t (b)][size_t (k)] * std::norm (buf[size_t (k)]);
+            const auto& band = melBank[size_t (b)];
+            for (int k = 0; k < fftN / 2 + 1; ++k) e += band[size_t (k)] * std::norm (buf[size_t (k)]);
             for (int s = 0; s < cfg.sqrtSqrt && s < 2; ++s) e = std::sqrt (std::max (e, 0.0f));
             float v = std::log10 (e + 1e-10f);
             v = std::clamp (v, cfg.noiseFloor, cfg.clipAt);
-            out[size_t (j * MEL + b)] = v;
+            out[size_t (j * mel + b)] = v;
             top = std::max (top, v);
             sumSq += v * v;
         }
     }
     // peak normalisation (default) or rms; both centre on the reference and scale by the same span
-    const float ref = cfg.normalize == 1 ? std::sqrt (sumSq / float (MEL * FRAMES)) : top;
-    for (int i = 0; i < MEL * FRAMES; ++i) out[size_t (i)] = clamp01 ((out[size_t (i)] - ref) / 8 + 1);
-    out[NFEAT - 1] = clamp01 ((midi - 36) / 48.0f);
+    const int cells = mel * frames;
+    const float ref = cfg.normalize == 1 ? std::sqrt (sumSq / float (cells)) : top;
+    for (int i = 0; i < cells; ++i) out[size_t (i)] = clamp01 ((out[size_t (i)] - ref) / 8 + 1);
+    out.back() = clamp01 ((midi - 36) / 48.0f);
     return out;
 }
 
+// cell-wise distance; different dimensions are never comparable, so they read as "as far as possible"
 inline float distance (const Features& a, const Features& b)
 {
+    if (a.size() != b.size() || a.size() < 2) return 1.0f;
+    const int cells = int (a.size()) - 1; // every cell but the note
     float d = 0;
-    for (int i = 0; i < MEL * FRAMES; ++i) d += std::abs (a[size_t (i)] - b[size_t (i)]);
-    return d / (MEL * FRAMES);
+    for (int i = 0; i < cells; ++i) d += std::abs (a[size_t (i)] - b[size_t (i)]);
+    return d / cells;
 }
 
 // similarity shown on the strands: 1 = identical features
 inline float similarity (float d) { return clamp01 (1 - d / 0.25f); }
 
 // how a patch sounds at the analysis rate: dry, one note, held for HOLD_SECONDS
-inline Features patchFeatures (const Params& genes, int midi, float tuning = 0)
+inline Features patchFeatures (const Params& genes, int midi, float tuning = 0, const FeatConfig& cfg = {})
 {
     static const Genome g;
     Controls c;
@@ -168,8 +193,9 @@ inline Features patchFeatures (const Params& genes, int midi, float tuning = 0)
     c.len.fill (0);
     c.atonality = 0;
     c.tuning = tuning;
-    const auto audio = renderNote (g, c, 0, midi, FEAT_LEN / FEAT_SR, FEAT_SR, HOLD_SECONDS);
-    return features (audio.data(), FEAT_LEN, midi);
+    const int span = featLen (cfg);
+    const auto audio = renderNote (g, c, 0, midi, float (span) / float (cfg.sampleRate), float (cfg.sampleRate), HOLD_SECONDS);
+    return features (audio.data(), int (audio.size()), midi, cfg);
 }
 
 // ---------------------------------------------------------------- neural net
@@ -198,13 +224,17 @@ public:
             if (! read (L.w.data(), L.w.size() * 4) || ! read (L.b.data(), L.b.size() * 4)) return false;
             layers.push_back (std::move (L));
         }
-        return ! layers.empty() && layers.front().in == NFEAT && layers.back().out == int (netGenes().size());
+        // the input width lives in the file (any nfeat(cfg)); only the gene count is fixed
+        return ! layers.empty() && layers.front().in > 0 && layers.back().out == int (netGenes().size());
     }
 
     bool ready() const { return ! layers.empty(); }
 
+    int inDim() const { return layers.empty() ? 0 : layers.front().in; }
+
     Params predict (const Features& f) const
     {
+        if (int (f.size()) != inDim()) return neutralGenes(); // wrong feature config: fall back to neutral
         std::vector<float> x (f.begin(), f.end()), y;
         for (size_t l = 0; l < layers.size(); ++l)
         {
@@ -250,13 +280,16 @@ public:
 
     ~Search() { pause(); }
 
-    // reference: mono audio at FEAT_SR (any length, first FEAT_LEN samples used)
+    // the features the reference, the guess and every child are measured with; must match the net's input width
+    FeatConfig cfg;
+
+    // reference: mono audio at FEAT_SR (any length, the config's window length used)
     void setReference (const std::vector<float>& audio, int midi, const Net* net)
     {
         pause();
         refNote = midi;
-        ref = features (audio.data(), int (audio.size()), midi);
-        guess = net != nullptr && net->ready() ? net->predict (ref) : neutralGenes();
+        ref = features (audio.data(), int (audio.size()), midi, cfg);
+        guess = net != nullptr && net->ready() && net->inDim() == int (ref.size()) ? net->predict (ref) : neutralGenes();
         std::lock_guard<std::mutex> lock (m);
         for (int s = 0; s < STRANDS; ++s) resetStrand (s, nullptr);
     }
@@ -350,7 +383,7 @@ private:
             st = strands[size_t (s)];
         }
         rng.seed (st.seed + uint32_t (st.generation));
-        if (st.parentDist < 0) st.parentDist = distance (ref, patchFeatures (st.parent, refNote));
+        if (st.parentDist < 0) st.parentDist = distance (ref, patchFeatures (st.parent, refNote, 0, cfg));
 
         while (! stopFlag && ! st.done)
         {
@@ -360,7 +393,7 @@ private:
             {
                 Params child = st.parent;
                 for (int k : netGenes()) child[size_t (k)] = clamp01 (child[size_t (k)] + n (rng) * st.sigma);
-                const float d = distance (ref, patchFeatures (child, refNote));
+                const float d = distance (ref, patchFeatures (child, refNote, 0, cfg));
                 ++triedCount;
                 if (d < bestDist) { bestDist = d; best = child; }
             }
@@ -385,7 +418,7 @@ private:
         }
     }
 
-    Features ref {};
+    Features ref;
     Params guess {};
     int refNote = 60;
     std::array<Strand, STRANDS> strands;

@@ -167,6 +167,42 @@ int main()
         }
     }
 
+    // ---- dynamic feature dimension (G3): the config drives the vector, the defaults stay exact
+    {
+        const FeatConfig def;
+        check (nfeat (def) == NFEAT && featLen (def) == FEAT_LEN, "default config matches the original 32 x 16 / 2 s features");
+        check (int (melBankFor (def).size()) == MEL && int (melBankFor (def)[0].size()) == FFT_N / 2 + 1, "default mel bank shape");
+
+        // a non-default config yields a correctly sized, finite, in-range vector
+        FeatConfig small;
+        small.melBands = 24; small.frames = 8; small.fftN = 512; small.windowSize = 512;
+        static const Genome g0;
+        Controls ct;
+        ct.base = seedParams (4242, 10);
+        ct.atonality = 0;
+        const auto audio = renderNote (g0, ct, 0, 60, float (featLen (def)) / FEAT_SR, FEAT_SR, HOLD_SECONDS);
+        const auto fSmall = features (audio.data(), int (audio.size()), 60, small);
+        check (int (fSmall.size()) == nfeat (small) && int (fSmall.size()) == 24 * 8 + 1, "custom dimension is melBands * frames + 1");
+        bool inRange = true;
+        for (float v : fSmall) inRange &= std::isfinite (v) && v >= 0.0f && v <= 1.0f;
+        check (inRange, "custom features are finite and in range");
+        check (distance (fSmall, features (audio.data(), int (audio.size()), 60, small)) == 0, "custom features are deterministic");
+        check (distance (fSmall, features (audio.data(), int (audio.size()), 60, def)) == 1.0f, "mismatched feature dimensions are not compared");
+
+        // the shipped net keeps its 32 x 16 input and refuses a wrong-sized vector
+        Net net;
+        std::ifstream in ("Resources/net.bin", std::ios::binary);
+        std::vector<char> blob ((std::istreambuf_iterator<char> (in)), {});
+        if (! blob.empty() && net.load (blob.data(), blob.size()))
+        {
+            check (net.inDim() == NFEAT, "loaded net expects the default feature dimension");
+            const auto p = net.predict (fSmall), neutral = neutralGenes();
+            bool same = true;
+            for (int k = 0; k < NP; ++k) same &= near (p[size_t (k)], neutral[size_t (k)]);
+            check (same, "wrong-sized input falls back to neutral genes");
+        }
+    }
+
     // ---- pitch detection and pitch bend
     {
         std::vector<float> sine (24000);
