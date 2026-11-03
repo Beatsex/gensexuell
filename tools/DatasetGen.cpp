@@ -61,7 +61,10 @@ int main (int argc, char** argv)
 
     std::ofstream out (argv[1], std::ios::binary);
     const int32_t header[3] = { count, NF, NG };
+    const uint32_t signature = featSignature (fcfg);
+    out.write ("SDDS", 4);
     out.write (reinterpret_cast<const char*> (header), sizeof (header));
+    out.write (reinterpret_cast<const char*> (&signature), sizeof (signature));
     out.write (reinterpret_cast<const char*> (feats.data()), std::streamsize (feats.size() * 4));
     out.write (reinterpret_cast<const char*> (targets.data()), std::streamsize (targets.size() * 4));
     std::printf ("wrote %d samples (%d silent patches skipped)\n", count, skipped.load());

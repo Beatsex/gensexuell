@@ -1074,7 +1074,7 @@ $('gStart').onclick=async()=>{
   const running=$('gStart').textContent==='PAUSE';
   if(running){await native('genoRun',false);$('gStart').textContent='START';return}
   await ensureReference();await native('genoRun',true);$('gStart').textContent='PAUSE';
-  if(!netReady)toast('NET NOT TRAINED YET: STRANDS START NEUTRAL');
+  if(!netReady&&!G.info?.netHint)toast('NET NOT TRAINED YET: STRANDS START NEUTRAL');
   clearInterval(G.poll);G.poll=setInterval(pollSearch,300);
 };
 async function resetSearch(){await native('genoRun',false);clearInterval(G.poll);G.refSet=false;G.strands=[];G.count=0;$('gStart').textContent='START';drawStrands()}
@@ -1086,7 +1086,7 @@ async function pollSearch(){
   const r=await native('genoPoll');if(!r)return;
   G.strands=r.strands;
   const now=performance.now();if(now-G.lastT>1000){G.rate=(r.tested-G.lastTested)/((now-G.lastT)/1000);G.lastT=now;G.lastTested=r.tested}
-  G.tested=r.tested;G.netDim=r.netDim;G.featDim=r.featDim;
+  G.tested=r.tested;G.netDim=r.netDim;G.featDim=r.featDim;G.netHint=r.netHint;
   if(r.netHint&&!G.dimWarned){G.dimWarned=true;toast(r.netHint)}
   const count=r.strands.reduce((s,x)=>s+x.scores.length,0);
   if(count>G.count&&$('gAuto').getAttribute('aria-pressed')==='true'){ // auto preview: load the best new solution
@@ -1101,7 +1101,7 @@ function drawInfo(){
   if($('gInfoBox').hidden)return;
   const f=G.info?.pitch,best=Math.max(0,...G.strands.flatMap(s=>s.scores));
   $('gInfoBox').innerHTML=`SAMPLE ${G.name??'—'}<br>PITCH ${f?f.toFixed(1)+' HZ · '+NOTE[G.info.note%12]+(Math.floor(G.info.note/12)-1):'UNPITCHED'}<br>
-    TESTED ${G.tested} · ${G.rate.toFixed(0)} / S<br>STRANDS ${G.strands.map(s=>s.generation??0).join('/')} GEN<br>BEST MATCH ${(best*100).toFixed(1)} %<br>${!netReady?'NET NOT TRAINED: NEUTRAL START':G.netDim===G.featDim?`NEURAL GUESS ON · NET ${G.netDim??'—'} · FEAT ${G.featDim??'—'}`:`NET ${G.netDim} ≠ FEAT ${G.featDim}: NEUTRAL START`}`;
+    TESTED ${G.tested} · ${G.rate.toFixed(0)} / S<br>STRANDS ${G.strands.map(s=>s.generation??0).join('/')} GEN<br>BEST MATCH ${(best*100).toFixed(1)} %<br>${!netReady?G.netHint||'NET NOT TRAINED: NEUTRAL START':G.netDim===G.featDim?`NEURAL GUESS ON · NET ${G.netDim??'—'} · FEAT ${G.featDim??'—'}`:`NET ${G.netDim} ≠ FEAT ${G.featDim}: NEUTRAL START`}`;
 }
 function drawStrands(){
   gStrands.replaceChildren();

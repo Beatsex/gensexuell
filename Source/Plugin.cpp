@@ -235,7 +235,7 @@ public:
         for (auto& p : paramDefs()) raw.push_back (apvts.getRawParameterValue (p.id));
         cc.fill (-1);
        #if SEEDLING_HAS_NET
-        net.load (BinaryData::net_bin, size_t (BinaryData::net_binSize));
+        net.load (BinaryData::net_bin, size_t (BinaryData::net_binSize), search.cfg);
        #endif
         if (const var m = JSON::parse (userDir().getChildFile ("midi.json")); m.isObject()) // "make default" from MIDI settings
         {
@@ -1081,7 +1081,15 @@ private:
         DynamicObject::Ptr o = new DynamicObject();
         o->setProperty ("pitch", hz);
         o->setProperty ("note", note);
+        o->setProperty ("netHint", netHint());
         return var (o.get());
+    }
+
+    // why the search cannot use the net; empty when it can, or when no net was shipped at all
+    String netHint() const
+    {
+        if (! proc.net.ready()) return String (proc.net.loadError());
+        return proc.net.inDim() != nfeat (proc.search.cfg) ? "NET DOES NOT FIT THE FEATURES: STRANDS START NEUTRAL" : "";
     }
 
     void genoRestart (int strand, bool fromCurrent)
@@ -1116,7 +1124,7 @@ private:
         r->setProperty ("running", proc.search.running());
         r->setProperty ("netDim", proc.net.inDim());
         r->setProperty ("featDim", nfeat (proc.search.cfg));
-        r->setProperty ("netHint", proc.net.ready() && proc.net.inDim() != nfeat (proc.search.cfg) ? "NET DOES NOT FIT THE FEATURES: STRANDS START NEUTRAL" : "");
+        r->setProperty ("netHint", netHint());
         return var (r.get());
     }
 

@@ -37,7 +37,7 @@ klingen („sound → seed"). Ziel von genopatch ist, diese Suche qualitativ und
 - `FEAT_SR = 24000`, `FEAT_LEN = 48000` (2 s), `FFT_N = 1024`, `MEL = 32`, `FRAMES = 16`, `NFEAT = 513`.
 - Feature-Vektor = `melBands × frames` normalisierte Log-Mel-Zellen + 1 Note (`nfeat(cfg)`).
 - `netGenes()` = alle Gene außer Master-Genen und `spread` → aktuell **40** Ausgänge.
-- Netz-Format: `"SDNN"`, int32 Layerzahl, je Layer `in,out`, Gewichte `[out][in]`, Bias `[out]`. ReLU, Sigmoid-Ausgang. **Die Eingangsbreite steht in der Datei** (`Net::inDim()`), nicht mehr als Compile-Konstante.
+- Netz-Format: `"SDNN"`, int32 Layerzahl, je Layer `in,out`, Gewichte `[out][in]`, Bias `[out]`, optional `"SIGN"` + uint32 `featSignature`. ReLU, Sigmoid-Ausgang. **Die Eingangsbreite steht in der Datei** (`Net::inDim()`), nicht mehr als Compile-Konstante.
 - `Search`: 4 Stränge, Evolutionsstrategie, `patchFeatures` + `distance` als Fitness.
 
 ---
@@ -58,7 +58,8 @@ klingen („sound → seed"). Ziel von genopatch ist, diese Suche qualitativ und
 | G1 | `FeatConfig` eingeführt; Genom 35 → 54; neue Gene verdrahtet; Netz neu trainiert | **erledigt** | `26d4e77` |
 | G2 | Per-Strang-Live-Status (`Search::Status`, `genoPoll`, Such-Infobox) | **erledigt** | `fc1f23b` |
 | G3 | Feature-Dimension dynamisch: `FeatConfig` steuert `features()`/`nfeat()`/`featLen()`, `Features = std::vector<float>`, `Net::inDim()`, `Search::cfg`, `DatasetGen` nutzt `nfeat(cfg)` | **erledigt** | `f1e85c5` (Branch `genopatch/g3-dynamic-feature-dim`) |
-| G5 | `genoPoll` liefert `netDim`/`featDim`/`netHint`, UI zeigt sie an und warnt bei Abweichung | **erledigt** | Branch `genopatch/g5-runtime-dim-check` |
+| G5 | `genoPoll` liefert `netDim`/`featDim`/`netHint`, UI zeigt sie an und warnt bei Abweichung | **erledigt** | `e6ec83a` (Branch `genopatch/g5-runtime-dim-check`) |
+| G6 | `FeatConfig::version` + `featSignature()`; Signatur im Datensatz-Header und als `SIGN`-Anhang im Netz; `Net::load` lehnt falsche Signatur, falsche Genzahl und kaputte Dateien mit `loadError()` ab | **erledigt** | Branch `genopatch/g6-config-version` |
 
 Verifikation für G3: `EngineTest` grün; `first guess: net 66.5 %` **identisch** zu vor G3 → Default-Features
 bit-genau, `net.bin` weiter gültig. `DatasetGen` separat gebaut und mit 2000 Patches geprüft
@@ -69,6 +70,12 @@ Suchtreffer schwankt zwischen Läufen, hier 88.5–91.4 %). Neue Checks: Netz fa
 meldet seine Breite und schätzt nur neutral.
 Standalone mit Testnetz (Eingangsbreite 8) von Hand geprüft: Infobox zeigt `NET 8 ≠ FEAT 513: NEUTRAL START`,
 die Suche läuft. Passender Fall nur im Browser mit gesetzten Werten geprüft. **Nicht** bestätigt: der Toast.
+
+Verifikation für G6: `EngineTest` grün, `first guess: net 66.5 %, neutral 34.2 %` unverändert, `net.bin` nicht
+neu erzeugt (es hat keine Signatur und lädt weiter). Neue Checks: falsche Signatur, falsche Genzahl und
+abgeschnittene Dateien werden mit Meldung abgelehnt. Kette mit 2000 Patches und 1 Epoche geprüft: Datensatz-Header
+und Netz-Anhang tragen dieselbe Signatur (`260418764`), `EngineTest` lädt dieses Netz. Danach `net.bin` per Git
+wiederhergestellt. **Nicht** im laufenden Plugin geprüft: die Ablehnungsmeldung in Toast und Infobox.
 
 ---
 
@@ -175,8 +182,8 @@ Ohne vcvars schlägt `cl.exe` mit `C1083 "algorithm": No such file or directory`
 ```powershell
 cmd /c tools\dataset.cmd <count>
 ```
-Schreibt `tools\train\dataset.bin`. Aktueller Datensatz: **~150.000** Patches (`nfeat 513`,
-`ngenes 40`, ≈ 332 MB). Laufzeit grob wenige Minuten (multithreaded). `count` passend zur
+Schreibt `tools\train\dataset.bin`. Der vorhandene Datensatz: **~150.000** Patches (`nfeat 513`,
+`ngenes 40`, ≈ 332 MB) ist noch ohne Signatur; `train.py` lehnt ihn seit G6 ab, er muss neu erzeugt werden. Laufzeit grob wenige Minuten (multithreaded). `count` passend zur
 Ziel-Auflösung wählen; mehr Features → mehr Bytes/Sample.
 
 ### Netz trainieren

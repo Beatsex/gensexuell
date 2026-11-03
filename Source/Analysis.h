@@ -8,6 +8,7 @@
 #include <map>
 #include <mutex>
 #include <random>
+#include <string>
 #include <thread>
 
 namespace seedling {
@@ -83,9 +84,23 @@ struct FeatConfig
     int   normalize   = 0;      // 0 = peak, 1 = rms
     int   sqrtSqrt    = 0;      // extra square roots on the band energy (0, 1 or 2)
     bool  interleaved = false;  // storage-order hint for consumers
+    int   version     = 1;      // bump when the extraction changes without any field above changing
 };
 
 inline int nfeat (const FeatConfig& c) { return c.melBands * c.frames + 1; }
+
+// FNV-1a over the whole config: stored in the dataset header and the net, so a net trained on other features is refused
+inline uint32_t featSignature (const FeatConfig& c)
+{
+    uint32_t h = 2166136261u;
+    auto mix = [&h] (uint32_t v) { for (int i = 0; i < 4; ++i) h = (h ^ ((v >> (8 * i)) & 0xffu)) * 16777619u; };
+    auto bits = [] (float f) { uint32_t u; std::memcpy (&u, &f, 4); return u; };
+    for (int v : { c.version, c.sampleRate, c.fftN, c.melBands, c.frames, c.windowSize, c.normalize, c.sqrtSqrt, int (c.interleaved) })
+        mix (uint32_t (v));
+    for (float f : { c.minHz, c.maxHz, c.noiseFloor, c.clipAt })
+        mix (bits (f));
+    return h;
+}
 
 // analysis window length in samples for a config: 2 s, so the default equals FEAT_LEN exactly
 inline int featLen (const FeatConfig& c) { return int (std::lround (FEAT_LEN * (double (c.sampleRate) / FEAT_SR))); }
@@ -200,35 +215,55 @@ inline Features patchFeatures (const Params& genes, int midi, float tuning = 0, 
 
 // ---------------------------------------------------------------- neural net
 // MLP stored as "SDNN", layer count, then per layer: in, out, weights [out][in], bias [out]. ReLU between, sigmoid out.
+// Optionally followed by "SIGN" + featSignature of the features it was trained on; a net without it loads as before.
 class Net
 {
 public:
-    bool load (const void* data, size_t size)
+    bool load (const void* data, size_t size, const FeatConfig& cfg = {})
     {
         layers.clear();
+        error.clear();
+        auto fail = [this] (const char* why) { error = why; return false; };
+        static constexpr const char* damaged = "NET FILE IS DAMAGED: STRANDS START NEUTRAL";
         auto* p = static_cast<const char*> (data);
         const char* end = p + size;
-        auto read = [&] (void* dst, size_t n) { if (p + n > end) return false; std::memcpy (dst, p, n); p += n; return true; };
+        auto read = [&] (void* dst, size_t n) { if (size_t (end - p) < n) return false; std::memcpy (dst, p, n); p += n; return true; };
         char magic[4];
         int32_t count = 0;
-        if (! read (magic, 4) || std::memcmp (magic, "SDNN", 4) != 0 || ! read (&count, 4)) return false;
+        if (! read (magic, 4) || std::memcmp (magic, "SDNN", 4) != 0 || ! read (&count, 4)) return fail (damaged);
+        std::vector<Layer> parsed; // only a complete, valid net replaces layers: a rejected file must not read as ready()
         for (int l = 0; l < count; ++l)
         {
             Layer L;
             int32_t in = 0, out = 0;
-            if (! read (&in, 4) || ! read (&out, 4)) return false;
+            if (! read (&in, 4) || ! read (&out, 4) || in <= 0 || out <= 0) return fail (damaged);
+            if (! parsed.empty() && parsed.back().out != in) return fail (damaged);
+            if ((uint64_t (in) * uint64_t (out) + uint64_t (out)) > uint64_t (end - p) / 4) return fail (damaged);
             L.in = in;
             L.out = out;
             L.w.resize (size_t (in) * size_t (out));
             L.b.resize (size_t (out));
-            if (! read (L.w.data(), L.w.size() * 4) || ! read (L.b.data(), L.b.size() * 4)) return false;
-            layers.push_back (std::move (L));
+            if (! read (L.w.data(), L.w.size() * 4) || ! read (L.b.data(), L.b.size() * 4)) return fail (damaged);
+            parsed.push_back (std::move (L));
+        }
+        if (p != end)
+        {
+            char tag[4];
+            uint32_t signature = 0;
+            if (! read (tag, 4) || std::memcmp (tag, "SIGN", 4) != 0 || ! read (&signature, 4) || p != end) return fail (damaged);
+            if (signature != featSignature (cfg)) return fail ("NET WAS TRAINED ON OTHER FEATURES: STRANDS START NEUTRAL");
         }
         // the input width lives in the file (any nfeat(cfg)); only the gene count is fixed
-        return ! layers.empty() && layers.front().in > 0 && layers.back().out == int (netGenes().size());
+        if (parsed.empty()) return fail (damaged);
+        if (parsed.back().out != int (netGenes().size())) return fail ("NET HAS THE WRONG GENE COUNT: STRANDS START NEUTRAL");
+        layers = std::move (parsed);
+        return true;
     }
 
     bool ready() const { return ! layers.empty(); }
+
+    // why the last load was refused; empty after a good load
+    const std::string& loadError() const { return error; }
 
     int inDim() const { return layers.empty() ? 0 : layers.front().in; }
 
@@ -262,6 +297,7 @@ private:
         std::vector<float> w, b;
     };
     std::vector<Layer> layers;
+    std::string error;
 };
 
 // ---------------------------------------------------------------- search

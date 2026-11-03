@@ -15,8 +15,10 @@ path = sys.argv[1] if len(sys.argv) > 1 else os.path.join(here, "dataset.bin")
 epochs = int(sys.argv[2]) if len(sys.argv) > 2 else 40
 
 with open(path, "rb") as f:
-    n, nfeat, ngenes = struct.unpack("<3i", f.read(12))
-    X = np.frombuffer(f.read(n * nfeat * 4), np.float32).reshape(n, nfeat)
+    if f.read(4) != b"SDDS":
+        sys.exit(f"{path} has no feature signature: render it again with DatasetGen")
+    n, nfeat, ngenes, signature = struct.unpack("<3iI", f.read(16))
+    X =np.frombuffer(f.read(n * nfeat * 4), np.float32).reshape(n, nfeat)
     Y = np.frombuffer(f.read(n * ngenes * 4), np.float32).reshape(n, ngenes)
 
 rng = np.random.default_rng(1)
@@ -79,4 +81,5 @@ with open(out, "wb") as f:
         f.write(struct.pack("<2i", w.shape[1], w.shape[0]))
         f.write(np.ascontiguousarray(w, np.float32).tobytes())
         f.write(b.astype(np.float32).tobytes())
+    f.write(b"SIGN" + struct.pack("<I", signature))
 print(f"wrote {out}: val MSE {mse(val):.4f} vs baseline {baseline:.4f}")

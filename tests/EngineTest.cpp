@@ -223,6 +223,26 @@ int main()
         bool neutral = true;
         for (int k = 0; k < NP; ++k) neutral &= near (guess[size_t (k)], neutralGuess[size_t (k)]);
         check (neutral, "a net of the wrong input width only guesses neutral");
+
+        // the signature ties a net to its features: a mismatch or a broken file is refused with a reason
+        check (featSignature (def) == featSignature (FeatConfig {}) && featSignature (def) != featSignature (small), "the signature follows the feature config");
+        const auto refused = [&tiny] (std::vector<char> blob)
+        {
+            return ! tiny.load (blob.data(), blob.size()) && ! tiny.ready() && tiny.inDim() == 0 && ! tiny.loadError().empty();
+        };
+        const auto sign = [] (std::vector<char> blob, uint32_t signature)
+        {
+            blob.insert (blob.end(), { 'S', 'I', 'G', 'N' });
+            auto* c = reinterpret_cast<const char*> (&signature);
+            blob.insert (blob.end(), c, c + 4);
+            return blob;
+        };
+        const auto good = sign (wide, featSignature (def));
+        check (tiny.load (good.data(), good.size()) && tiny.ready() && tiny.loadError().empty(), "a net with the right signature loads");
+        check (refused (sign (wide, featSignature (small))), "a net with the wrong signature is refused with a reason");
+        check (refused (tinyNet (8, int32_t (netGenes().size()) + 1)), "a wrong gene count is refused with a reason");
+        check (refused (std::vector<char> (wide.begin(), wide.end() - 4)), "a truncated net is refused with a reason");
+        check (refused (std::vector<char> (good.begin(), good.end() - 1)), "a truncated signature is refused with a reason");
     }
 
     // ---- pitch detection and pitch bend
