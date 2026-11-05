@@ -577,7 +577,7 @@ function branchParams(i){
 }
 
 // ================================================================ state
-const MIDI_DEFAULT={inChannel:0,velCurve:1,pressure:3,minPoly:16,maxPoly:32,pbRange:2,masterTune:440,pbHeldOnly:false,selectBranches:true,programChange:true};
+const MIDI_DEFAULT={inChannel:0,velCurve:1,pressure:3,minPoly:16,maxPoly:32,pbRange:2,masterTune:440,pbHeldOnly:false,selectBranches:true,programChange:true,computerKeys:false};
 let S={seed:0x5EED1E55,name:'',sel:2,tuning:0,effect:35,volume:-8,release:40,atonality:20,velSens:100,glide:0,wheel:0,wheelScale:100,rotation:0,
   bulbMode:0,voiceMode:0,wheelTarget:0,tempoSync:0,fxType:0,fxVariant:0,fxSwarm:.5,fxTail:.5,fxSpan:.5,fxScatter:0,fxMix:.35,
   liveOn:0,liveGate:-45,liveGlide:.03,liveFollow:0,liveOctave:0,
@@ -897,7 +897,8 @@ function renderBranches(){
 const MIDI_FIELDS=[['inChannel','INPUT CHANNEL',['OMNI',...Array.from({length:16},(_,i)=>String(i+1))]],['velCurve','VELOCITY',['LOW','NORMAL','HIGH','FIXED']],
   ['pressure','PRESSURE → WHEEL',['SOFT','NORMAL','HARD','OFF']],['minPoly','MIN POLYPHONY',[1,32]],['maxPoly','MAX POLYPHONY',[1,32]],
   ['pbRange','PITCH WHEEL RANGE (ST)',[0,48]],['masterTune','MASTER TUNING (HZ)',[340,540]],['pbHeldOnly','PITCH WHEEL ONLY HELD NOTES',null],
-  ['selectBranches','SELECT BRANCHES WITH MIDI NOTES',null],['programChange','MIDI PROGRAM CHANGE',null]];
+  ['selectBranches','SELECT BRANCHES WITH MIDI NOTES',null],['programChange','MIDI PROGRAM CHANGE',null],
+  ['computerKeys','PLAY BRANCHES WITH COMPUTER KEYS (A W S E D…)',null]];
 function renderMidi(){
   $('midiForm').replaceChildren(...MIDI_FIELDS.flatMap(([k,label,opt])=>{
     const l=document.createElement('label');l.textContent=label;l.htmlFor='m_'+k;
@@ -1267,13 +1268,22 @@ function keyPress(n,on,v){KBD.get(n)?.classList.toggle('on',on);HOST?.emitEvent(
 // ================================================================ wiring
 $('bSow').onclick=sow;$('bNew').onclick=newSeed;$('bClone').onclick=clone;$('bReroll').onclick=()=>reroll();
 $('bGenes').onclick=()=>{openDlg('dlgGenes');renderGenes()};$('bUndo').onclick=doUndo;$('bRedo').onclick=doRedo;
+// letter keys play branches only when switched on in MIDI settings: in a DAW with its own computer MIDI keyboard they would sound twice
+const KB='awsedftgyhuj';
 addEventListener('keydown',e=>{
-  // letter keys play nothing: in a DAW they sounded twice next to the DAW's own computer MIDI keyboard
-  if(e.target.matches('input[type=number],input[type=text],select')||!(e.ctrlKey||e.metaKey))return;
-  const k=e.key.toLowerCase();
-  if(k==='z'){e.preventDefault();e.shiftKey?doRedo():doUndo()}else if(k==='y'){e.preventDefault();doRedo()}
-  else if(k==='s'){e.preventDefault();savePatch()}else if(k==='o'){e.preventDefault();openPatch()}
+  if(e.target.matches('input[type=number],input[type=text],select'))return;
+  if(e.ctrlKey||e.metaKey){
+    const k=e.key.toLowerCase();
+    if(k==='z'){e.preventDefault();e.shiftKey?doRedo():doUndo()}else if(k==='y'){e.preventDefault();doRedo()}
+    else if(k==='s'){e.preventDefault();savePatch()}else if(k==='o'){e.preventDefault();openPatch()}
+    return;
+  }
+  if(!S.midi.computerKeys||e.repeat||e.altKey||document.querySelector('dialog[open]'))return;
+  const i=KB.indexOf(e.key.toLowerCase());
+  if(i<0)return;
+  S.sel=i;hud(false);noteOn('k'+i,i);
 });
+addEventListener('keyup',e=>{const i=KB.indexOf(e.key.toLowerCase());if(i>=0)noteOff('k'+i)});
 
 function selfTest(){
   console.assert(JSON.stringify(seedParams(42))===JSON.stringify(seedParams(42)),'seed is deterministic');
