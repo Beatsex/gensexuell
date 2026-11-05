@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.1
 
 - Playing branches with the computer keys A W S E D F T G Y H U J is now a switch in the MIDI settings (PLAY BRANCHES WITH COMPUTER KEYS) and off by default. In a DAW the notes sounded twice, because many DAWs turn the same keys into MIDI.
 
