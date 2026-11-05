@@ -45,7 +45,7 @@ Dann die DAW neu starten (oder Plugins neu scannen) und als Instrument einfügen
 4. Oder links *„dunkler weicher Bass“* eintippen und **GROW** klicken.
 5. Oder einen One-Shot auf **Sound → Seed** ziehen.
 
-Gute Beschreibungen schreiben: der [Describe-Leitfaden](docs/DESCRIBE.de.md).
+Gute Beschreibungen schreiben: der [Describe-Leitfaden](docs/DESCRIBE.de.md). Den Parser ausprobieren und alle Wörter durchsuchen: der [interaktive Leitfaden](https://beatsex.github.io/gensexuell/de.html).
 
 Das ausführliche Handbuch ([`installer/USER_MANUAL.html`](installer/USER_MANUAL.html), englisch) liegt jedem Download bei.
 

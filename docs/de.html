@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+@font-face{font-family:Inter;src:url(fonts/inter.woff2) format('woff2');font-weight:100 900;font-display:swap}
+@font-face{font-family:'JetBrains Mono';src:url(fonts/jetbrainsmono.woff2) format('woff2');font-weight:100 800;font-display:swap}
+</style>
+<title>gensexuell Leitfaden</title>
+<style>
+:root{
+  --cream:#F2F1ED; --pink:#F2B8C6; --pink-2:#F7D3DC; --rose:#a8697b;
+  --ink:#111; --mute:rgba(0,0,0,.55); --dim:rgba(0,0,0,.38); --line:rgba(0,0,0,.25);
+  --glass:rgba(242,241,237,.55);
+  color-scheme:light;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{color:var(--ink);font:15px/1.55 Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;
+  background:var(--pink-2);
+  background-image:radial-gradient(60vw 50vw at 75% 18%,var(--pink) 0,transparent 70%),radial-gradient(50vw 40vw at 10% 60%,var(--cream) 0,transparent 70%),radial-gradient(60vw 50vw at 90% 90%,var(--pink) 0,transparent 70%);
+  background-attachment:fixed;min-height:100vh}
+.mono,code{font-family:"JetBrains Mono",ui-monospace,monospace}
+.wrap{max-width:1080px;margin:0 auto;padding:0 16px}
+/* uppercase mono label, the plugin's signature */
+.eyebrow,.panel h4,.fact span,.entry .sec,.card h3,.step .n,.legend,.count,.note-pill,.desc code,nav a,footer{
+  font-family:"JetBrains Mono",monospace;text-transform:uppercase;letter-spacing:.14em;font-size:11px;font-weight:400}
+
+header{position:sticky;top:0;z-index:20;background:var(--glass);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--ink)}
+header .wrap{display:flex;align-items:stretch;justify-content:space-between;height:56px;padding:0}
+.logo{display:flex;align-items:center;gap:14px;padding:0 20px;font-weight:700;font-size:16px;letter-spacing:.3em;text-transform:uppercase;text-decoration:none;color:var(--ink);border-right:1px solid var(--ink)}
+.logo i{display:none}
+nav{display:flex}
+nav a{display:flex;align-items:center;padding:0 18px;color:var(--ink);text-decoration:none;border-left:1px solid var(--ink);transition:background .1s}
+nav a:hover{background:var(--glass)}
+nav a:active{background:var(--pink)}
+nav a.cta{background:var(--ink);color:var(--pink);font-weight:700}
+@media(max-width:640px){nav a:not(.cta):not([hreflang]){display:none}.logo{letter-spacing:.2em;font-size:14px}}
+
+main{padding:56px 16px 80px;display:grid;gap:72px;grid-template-columns:minmax(0,1fr)}
+.eyebrow{display:block;color:var(--mute);margin-bottom:14px}
+.display{font-size:clamp(40px,7vw,76px);line-height:1;letter-spacing:-.04em;font-weight:700}
+.display span{color:var(--rose)}
+.h2{font-size:clamp(28px,4vw,40px);line-height:1.08;letter-spacing:-.03em;font-weight:700}
+.lead{font-size:clamp(16px,2vw,19px);color:var(--mute);margin-top:20px;max-width:40rem}
+.lead b{color:var(--ink);font-weight:600}
+.sub{color:var(--mute);margin-top:12px;max-width:42rem}
+
+/* boxes: hairline grids like the plugin panels */
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-top:40px;border:1px solid var(--ink);background:var(--glass)}
+.fact{padding:18px 16px;border-right:1px solid var(--ink);margin-right:-1px}
+.fact b{display:block;font-size:30px;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.fact span{color:var(--mute)}
+.card{background:var(--glass);border:1px solid var(--ink);padding:20px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0;margin-top:32px}
+.grid2 .card+.card{border-left:0}
+@media(max-width:820px){.grid2{grid-template-columns:1fr}.grid2 .card+.card{border-left:1px solid var(--ink);border-top:0}}
+.card h3{color:var(--mute);margin-bottom:18px}
+.card .foot{font-size:12px;color:var(--dim);margin-top:16px}
+
+/* sliders style: thin line + black square knob */
+.track{position:relative;height:2px;background:var(--line);display:block}
+.track i{display:block;position:absolute;left:0;top:0;height:2px;background:var(--ink)}
+.track i::after{content:"";position:absolute;right:-6px;top:-5px;width:12px;height:12px;background:var(--ink)}
+.bars{display:grid;gap:14px}
+.bars .row{display:grid;grid-template-columns:110px 1fr 36px;align-items:center;gap:14px;font-size:13px}
+.bars .row span:first-child{font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+.bars .row b{font-family:"JetBrains Mono";font-weight:400;font-size:12px;text-align:right}
+
+.desc{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(230px,100%),1fr));margin-top:32px;border-top:1px solid var(--ink);border-left:1px solid var(--ink)}
+.desc div{padding:16px;border-right:1px solid var(--ink);border-bottom:1px solid var(--ink);background:var(--glass)}
+.desc b{display:block;font-size:13px;text-transform:uppercase;letter-spacing:.08em}
+.desc code{color:var(--rose);letter-spacing:.06em}
+.desc p{font-size:13px;color:var(--mute);margin-top:6px;line-height:1.45}
+
+/* describe: the plugin's left panel, bigger */
+.describe{border:1px solid var(--ink);background:var(--glass);padding:clamp(18px,4vw,36px)}
+.field{margin-top:24px}
+.field input{width:100%;font:16px "JetBrains Mono",monospace;font-size:clamp(14px,2.2vw,18px);color:var(--ink);background:var(--cream);border:1px solid var(--ink);border-radius:0;padding:14px 16px;outline:none}
+.field input:focus{box-shadow:inset 0 0 0 1px var(--ink)}
+.field input::placeholder{color:var(--dim)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.chip{font:12px "JetBrains Mono",monospace;color:var(--ink);background:transparent;border:1px solid var(--ink);border-radius:0;padding:8px 12px;cursor:pointer;transition:background .1s}
+.chip:hover{background:var(--cream)}
+.chip:active{background:var(--ink);color:var(--pink)}
+.tokens{display:flex;flex-wrap:wrap;gap:6px;margin-top:20px;min-height:28px}
+.tok{font:12px "JetBrains Mono",monospace;padding:5px 9px;border:1px solid var(--ink)}
+.tok.word{background:var(--ink);color:var(--pink)}
+.tok.mod{background:var(--cream)}
+.tok.unk{border-style:dashed;color:var(--dim);text-decoration:line-through;border-color:var(--dim)}
+.legend{display:flex;gap:16px;flex-wrap:wrap;color:var(--mute);margin-top:10px}
+.legend span::before{content:"";display:inline-block;width:9px;height:9px;margin-right:6px;vertical-align:-1px;background:var(--c);border:1px solid var(--ink)}
+.result{display:grid;grid-template-columns:1.4fr 1fr;margin-top:20px;border:1px solid var(--ink)}
+.result .panel+.panel{border-left:1px solid var(--ink)}
+@media(max-width:820px){.result{grid-template-columns:1fr}.result .panel+.panel{border-left:0;border-top:1px solid var(--ink)}}
+.panel{padding:18px;background:rgba(242,241,237,.4)}
+.panel h4{color:var(--mute);margin-bottom:16px}
+.dbar{display:grid;grid-template-columns:96px 1fr 40px;align-items:center;gap:14px;padding:7px 0;font-size:12px;transition:opacity .15s}
+.dbar span:first-child{font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+.dbar.off{opacity:.3}
+.dbar .track i{width:100%;transform-origin:left;transform:scaleX(0);transition:transform .3s cubic-bezier(.22,1,.36,1)}
+.dbar .track i::after{display:none}
+.dbar b{font-family:"JetBrains Mono";font-weight:400;text-align:right}
+.genes{display:grid;gap:8px;font-size:13px}
+.genes div{display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid var(--line);padding-bottom:6px}
+.genes code{font-weight:600}
+.genes span{font-family:"JetBrains Mono";font-size:12px;color:var(--mute)}
+.empty{color:var(--mute);font-size:13px}
+.note-pill{display:block;margin-top:16px;color:var(--mute)}
+
+.lexbar{display:flex;gap:0;flex-wrap:wrap;margin-top:28px;border:1px solid var(--ink);background:var(--glass)}
+.search{flex:1;min-width:0;width:100%;font:14px "JetBrains Mono",monospace;color:var(--ink);background:var(--cream);border:0;border-bottom:1px solid var(--ink);border-radius:0;padding:13px 16px;outline:none}
+.seg{display:flex;overflow-x:auto;width:100%}
+.seg button{font:11px "JetBrains Mono",monospace;text-transform:uppercase;letter-spacing:.12em;color:var(--ink);background:transparent;border:0;border-right:1px solid var(--ink);padding:12px 14px;cursor:pointer;white-space:nowrap}
+.seg button:hover{background:var(--cream)}
+.seg button.on{background:var(--ink);color:var(--pink)}
+.lex{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr));margin-top:16px;border-top:1px solid var(--ink);border-left:1px solid var(--ink)}
+.entry{padding:16px;border-right:1px solid var(--ink);border-bottom:1px solid var(--ink);background:var(--glass)}
+.entry .sec{color:var(--dim)}
+.entry .stems{font-size:15px;font-weight:600;margin:6px 0 12px;line-height:1.4}
+.entry .stems mark{background:var(--ink);color:var(--pink);padding:0 2px}
+.entry .meta{display:flex;flex-wrap:wrap;gap:4px}
+.entry .meta span{font:10.5px "JetBrains Mono",monospace;padding:3px 6px;border:1px solid var(--line);color:var(--mute)}
+.entry .meta span.g{background:var(--ink);color:var(--pink);border-color:var(--ink)}
+.count{color:var(--mute);margin-top:14px}
+
+.steps{display:grid;grid-template-columns:repeat(3,1fr);margin-top:28px}
+.steps .card+.card{border-left:0}
+@media(max-width:820px){.steps{grid-template-columns:1fr}.steps .card+.card{border-left:1px solid var(--ink);border-top:0}}
+.step .n{color:var(--mute)}
+.step h3{font-size:18px;font-weight:700;letter-spacing:-.01em;margin:8px 0;text-transform:none;font-family:Inter;color:var(--ink)}
+.step p{font-size:14px;color:var(--mute)}
+
+footer{border-top:1px solid var(--ink);background:var(--glass);padding:22px 0;color:var(--mute)}
+footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+footer a{color:var(--ink)}
+
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.dbar .track i{transition:none}}
+@media (prefers-reduced-transparency:reduce){header,.card,.describe,.facts,.entry,.desc div,.lexbar{background:var(--cream);backdrop-filter:none}}
+</style>
+</head>
+<body>
+<header id="hdr"><div class="wrap">
+  <a class="logo" href="#top">gensexuell</a>
+  <nav aria-label="Abschnitte">
+    <a href="#descriptors">Messwerte</a>
+    <a href="#lexicon">Lexikon</a>
+    <a href="#workflow">Ablauf</a>
+    <a href="index.html" lang="en" hreflang="en">English</a>
+    <a href="#describe" class="cta">Ausprobieren</a>
+  </nav>
+</div></header>
+
+<main class="wrap" id="top">
+
+<section>
+  <span class="eyebrow">Beschreiben</span>
+  <h1 class="display">Tippe einen Klang.<br><span>Lass den Seed wachsen.</span></h1>
+  <p class="lead">gensexuell liest eine deutsche oder englische Beschreibung, macht daraus <b>neun messbare Klangwerte</b>, rendert Hunderte Seeds und behält die vier, die wirklich so klingen, wie du es geschrieben hast. Keine Cloud, kein Konto.</p>
+  <div class="facts">
+    <div class="fact"><b id="fStems">0</b><span>Deutsche &amp; englische Wortstämme</span></div>
+    <div class="fact"><b id="fWords">0</b><span>Wortgruppen</span></div>
+    <div class="fact"><b>9</b><span>Klangwerte</span></div>
+    <div class="fact"><b>54</b><span>Klang-Gene</span></div>
+    <div class="fact"><b>4</b><span>Takes pro Klick</span></div>
+  </div>
+</section>
+
+<section id="describe" class="describe reveal">
+  <span class="eyebrow">Beschreiben · Live-Parser</span>
+  <h2 class="h2">Was das Plugin versteht.</h2>
+  <p class="sub">Hier laufen dieselben Regeln wie in <span class="mono">Words.h</span>: Wortstämme, Umlaute, Modifikatoren wie „sehr“, „etwas“ und „nicht zu“, dazu Toleranz für einen Tippfehler. Die Balken zeigen das Ziel, auf das die Seed-Suche zusteuert.</p>
+  <div class="field">
+    <input id="wish" type="text" autocomplete="off" spellcheck="false" aria-label="Klang beschreiben" placeholder="z. B. glasiger Pluck, nicht zu hell" value="dunkler, weicher Bass mit viel Raum">
+  </div>
+  <div class="chips" id="chips"></div>
+  <div class="tokens" id="tokens" aria-live="polite"></div>
+  <div class="legend"><span style="--c:#111">Wort</span><span style="--c:#F2F1ED">Modifikator</span><span style="--c:transparent">Ignoriert</span></div>
+  <div class="result">
+    <div class="panel">
+      <h4>Zielwerte</h4>
+      <div id="dbars"></div>
+    </div>
+    <div class="panel">
+      <h4>Wo die Seeds starten</h4>
+      <div id="genes" class="genes"></div>
+      <span class="note-pill" id="note"></span>
+    </div>
+  </div>
+</section>
+
+<section id="descriptors" class="reveal">
+  <span class="eyebrow">Unter der Haube</span>
+  <h2 class="h2">Wörter beschreiben den Klang,<br>nie die Regler.</h2>
+  <p class="sub">Jeder Kandidat wird 1,5 Sekunden lang gerendert und auf neun Werte gemessen, alle von 0 bis 1. Deine Wörter setzen Ziele und Gewichte, die Suche behält, was am nächsten landet.</p>
+  <div class="desc" id="desc"></div>
+  <div class="grid2">
+    <div class="card">
+      <h3>Wie oft jeder Wert angesteuert wird</h3>
+      <div class="bars" id="useBars"></div>
+      <p class="foot">Gezählt über alle Wortgruppen im Lexikon.</p>
+    </div>
+    <div class="card">
+      <h3>Wortstämme pro Gruppe</h3>
+      <div class="bars" id="secBars"></div>
+      <p class="foot">Gezählt aus Source/Words.h.</p>
+    </div>
+  </div>
+</section>
+
+<section id="lexicon" class="reveal">
+  <span class="eyebrow">Lexikon</span>
+  <h2 class="h2">Jedes Wort, das es kennt.</h2>
+  <p class="sub">Der komplette Wortschatz. Stämme decken auch Wortendungen ab, „warm“ erkennt also auch „wärmeres“. Umlaute stehen hier als ae, oe, ue.</p>
+  <div class="lexbar">
+    <input class="search" id="q" type="search" placeholder="Stämme suchen, z. B. holz, glassy, 303" aria-label="Lexikon durchsuchen">
+    <div class="seg" id="seg" role="tablist"></div>
+  </div>
+  <div class="lex" id="lex"></div>
+  <div class="count" id="count"></div>
+</section>
+
+<section id="workflow" class="reveal">
+  <span class="eyebrow">Drei Wege zum Klang</span>
+  <h2 class="h2">Beschreiben. Wachsen lassen. Sample mitbringen.</h2>
+  <div class="steps">
+    <div class="card step"><span class="n">01</span><h3>Beschreiben</h3><p>Tippe, was du willst. gensexuell zieht 240 Seeds, misst jeden, verfeinert die besten vier mit einer kurzen Evolution und sortiert sie nach Passung.</p></div>
+    <div class="card step"><span class="n">02</span><h3>Wachsen lassen</h3><p>Zwölf Äste um einen Seed: je länger der Ast, desto weiter vom Original. Säen, klonen, neu würfeln, rückgängig.</p></div>
+    <div class="card step"><span class="n">03</span><h3>Sample mitbringen</h3><p>Zieh einen One-Shot hinein. Ein neuronales Netz schätzt die Gene, dann verfeinern vier Stränge den Treffer, während du zuhörst.</p></div>
+  </div>
+</section>
+
+</main>
+
+<footer><div class="wrap">
+  <span>gensexuell by beatsexuell · VST3 · CLAP · AU · LV2 · AGPL v3</span>
+  <a href="https://github.com/Beatsex/gensexuell">Quellcode auf GitHub</a>
+</div></footer>
+
+<script>
+const LEX = [{"sec":"categories","stems":["pad","flaeche","teppich","strings"],"t":[["attack",0.7,1.0],["sustain",0.8,1.0],["length",0.9,1.0]],"g":[["attack",0.5,0.8],["sustain",0.6,0.95],["decay",0.6,0.95]],"note":60},{"sec":"categories","stems":["bass","bas"],"t":[["bass",0.8,1.5],["bright",0.3,0.7]],"g":[["sub",0.6,1.0],["cutoff",0.15,0.45],["attack",0.0,0.05]],"note":36},{"sec":"categories","stems":["sub","subbass","808"],"t":[["bass",1.0,2.0],["bright",0.1,1.0],["tonal",0.9,1.0]],"g":[["sub",0.75,1.0],["waveA",0.0,0.1],["cutoff",0.1,0.3],["noise",0.0,0.05]],"note":36},{"sec":"categories","stems":["pluck","zupf","gezupft","pizz"],"t":[["attack",0.0,1.0],["sustain",0.0,1.0],["length",0.25,1.0]],"g":[["attack",0.0,0.05],["sustain",0.0,0.07],["decay",0.3,0.55],["fltEnv",0.4,0.8]],"note":60},{"sec":"categories","stems":["lead","solo","melodie"],"t":[["sustain",0.7,1.0],["tonal",0.9,1.0],["bright",0.6,0.7]],"g":[["sustain",0.6,0.9],["attack",0.0,0.15]],"note":67},{"sec":"categories","stems":["glocke","bell","glockenspiel","chime"],"t":[["attack",0.0,1.0],["inharm",0.65,1.0],["length",0.7,1.0],["sustain",0.15,0.7]],"g":[["fm",0.25,0.6],["sustain",0.0,0.07],["decay",0.6,0.85],["attack",0.0,0.03]],"note":72},{"sec":"categories","stems":["mallet","marimba","xylophon","vibraphon"],"t":[["attack",0.0,1.0],["length",0.45,1.0],["tonal",0.85,0.7]],"g":[["sustain",0.0,0.07],["decay",0.4,0.65],["attack",0.0,0.02]],"note":64},{"sec":"categories","stems":["kick","bassdrum","bd"],"t":[["attack",0.0,1.0],["bass",1.0,2.0],["length",0.25,1.0]],"g":[["pitchMod",0.1,0.3],["modDecay",0.15,0.35],["sustain",0.0,0.07],["decay",0.3,0.5],["waveA",0.0,0.15]],"note":36},{"sec":"categories","stems":["snare","clap","rim"],"t":[["attack",0.0,1.0],["noise",0.7,1.5],["length",0.2,1.0]],"g":[["noise",0.6,1.0],["sustain",0.0,0.07],["decay",0.2,0.4]],"note":50},{"sec":"categories","stems":["hat","hihat","hi-hat","cymbal","becken"],"t":[["attack",0.0,1.0],["noise",0.9,1.5],["bright",0.95,1.5],["length",0.1,1.0]],"g":[["noise",0.75,1.0],["noiseColor",0.7,1.0],["sustain",0.0,0.07],["decay",0.05,0.3],["cutoff",0.8,1.0]],"note":72},{"sec":"categories","stems":["drone","brumm"],"t":[["sustain",0.95,1.0],["length",1.0,1.0],["motion",0.6,0.5]],"g":[["sustain",0.8,1.0],["attack",0.4,0.9],["lfoAmt",0.2,0.5]],"note":48},{"sec":"categories","stems":["fx","effekt","riser","sweep","whoosh"],"t":[["motion",0.8,1.0],["noise",0.6,0.7]],"g":[["pitchMod",0.6,0.9],["noise",0.3,0.8],["modDecay",0.6,0.9]],"note":60},{"sec":"categories","stems":["textur","texture","atmo","ambient","soundscape"],"t":[["motion",0.7,1.0],["length",0.9,0.7],["attack",0.6,0.6]],"g":[["attack",0.4,0.8],["sustain",0.5,0.9],["lfoAmt",0.15,0.5]],"note":60},{"sec":"categories","stems":["orgel","organ"],"t":[["attack",0.05,0.7],["sustain",1.0,1.0],["tonal",1.0,1.0]],"g":[["sustain",0.85,1.0],["attack",0.0,0.1],["waveA",0.0,0.3]],"note":60},{"sec":"categories","stems":["chord","akkord","stab"],"t":[["attack",0.0,0.8],["sustain",0.3,0.6],["bright",0.6,0.5]],"g":[["attack",0.0,0.05],["decay",0.35,0.6]],"note":60},{"sec":"properties","stems":["hell","bright","brillant","crisp","knackig","spitz","strahlend"],"t":[["bright",0.85,1.0]],"g":[],"note":0},{"sec":"properties","stems":["dunkel","dunkl","dark","dumpf","muffled","gedaempft","finster"],"t":[["bright",0.15,1.0]],"g":[],"note":0},{"sec":"properties","stems":["warm","waerm","weich","soft","sanft","smooth","rund","mellow"],"t":[["bright",0.35,0.8],["noise",0.1,0.6],["attack",0.35,0.4]],"g":[],"note":0},{"sec":"properties","stems":["hart","haert","hard","aggressiv","aggressive","harsh","scharf","schaerf"],"t":[["bright",0.8,0.8],["attack",0.0,0.7],["noise",0.5,0.4]],"g":[],"note":0},{"sec":"properties","stems":["glasig","glassy","glas","glass","kristall","crystal"],"t":[["bright",0.75,0.8],["tonal",0.9,0.8],["inharm",0.55,0.6],["noise",0.0,0.6]],"g":[],"note":0},{"sec":"properties","stems":["metallisch","metallic","metall","metal","blech"],"t":[["inharm",0.85,1.0],["bright",0.7,0.5]],"g":[],"note":0},{"sec":"properties","stems":["dreckig","dirty","schmutzig","gritty","kaputt","broken","lofi","lo-fi"],"t":[["noise",0.6,1.0],["inharm",0.6,0.6]],"g":[],"note":0},{"sec":"properties","stems":["verzerrt","distorted","distortion","crunch","zerre"],"t":[["noise",0.5,0.7],["bright",0.75,0.6]],"g":[["drive",0.75,1.0]],"note":0},{"sec":"properties","stems":["sauber","clean","pur","pure","rein"],"t":[["noise",0.0,1.0],["inharm",0.1,0.8],["tonal",1.0,0.7]],"g":[],"note":0},{"sec":"properties","stems":["kurz","kuerz","short","knapp","staccato","perkussiv","percussive","snappy","tight"],"t":[["length",0.15,1.0],["attack",0.0,0.6]],"g":[],"note":0},{"sec":"properties","stems":["lang","laeng","long","endlos","endless","ausklingend","sustained"],"t":[["length",0.95,1.0],["sustain",0.6,0.5]],"g":[],"note":0},{"sec":"properties","stems":["langsam","slow","schwellend","swell"],"t":[["attack",0.8,1.0]],"g":[],"note":0},{"sec":"properties","stems":["schnell","fast","direkt","immediate"],"t":[["attack",0.0,1.0]],"g":[],"note":0},{"sec":"properties","stems":["luftig","airy","hauchig","breathy","rauschig","noisy"],"t":[["noise",0.7,1.0],["bright",0.7,0.4]],"g":[],"note":0},{"sec":"properties","stems":["hohl","hollow","nasal"],"t":[["bright",0.5,0.4],["tonal",0.85,0.5]],"g":[["waveA",0.85,1.0],["fltType",0.0,0.25]],"note":0},{"sec":"properties","stems":["wobbel","wobble","wabern","wobbly","schwebend","wavy","vibrato"],"t":[["motion",0.8,1.0]],"g":[["lfoAmt",0.4,0.9]],"note":0},{"sec":"properties","stems":["bewegt","moving","lebendig","evolving","organisch","organic"],"t":[["motion",0.7,1.0]],"g":[],"note":0},{"sec":"properties","stems":["statisch","static","steady"],"t":[["motion",0.05,1.0]],"g":[],"note":0},{"sec":"properties","stems":["verstimmt","detuned","schief","schraeg","wonky","atonal"],"t":[["inharm",0.7,0.8],["tonal",0.5,0.6]],"g":[],"note":0},{"sec":"properties","stems":["tonal","melodisch","melodic","musikalisch"],"t":[["tonal",1.0,1.0],["inharm",0.15,0.6]],"g":[],"note":0},{"sec":"properties","stems":["fett","fat","dick","thick","voll","full","breit","wide"],"t":[["bass",0.6,0.7],["bright",0.5,0.3]],"g":[["sub",0.6,0.9],["chorus",0.6,0.9]],"note":0},{"sec":"properties","stems":["duenn","thin","schmal","schmael"],"t":[["bass",0.05,1.0],["bright",0.7,0.4]],"g":[],"note":0},{"sec":"properties","stems":["tief","low","deep","deeper"],"t":[["bass",0.8,1.0],["bright",0.25,0.5]],"g":[],"note":0},{"sec":"properties","stems":["hoch","hoh","hohe","hoeh","high"],"t":[["bright",0.8,0.6],["bass",0.05,0.6]],"g":[],"note":0},{"sec":"properties","stems":["raum","hall","reverb","spacey","spacig","weit","roomy"],"t":[],"g":[["space",0.6,1.0]],"note":0},{"sec":"properties","stems":["trocken","dry","nah","nahe","close"],"t":[],"g":[["space",0.0,0.2]],"note":0},{"sec":"properties","stems":["fm","digital","80er","80s"],"t":[["inharm",0.5,0.5]],"g":[["fm",0.3,0.7]],"note":0},{"sec":"properties","stems":["analog","vintage","retro","alt","alte","aelter","old"],"t":[["bright",0.45,0.5]],"g":[["waveA",0.55,0.75],["drive",0.55,0.7]],"note":0},{"sec":"properties","stems":["acid","303","squelch"],"t":[["motion",0.6,0.6]],"g":[["reso",0.65,0.9],["fltEnv",0.5,0.9],["waveA",0.6,0.75]],"note":0},{"sec":"properties","stems":["chorus","phaser","flanger"],"t":[["motion",0.6,0.7]],"g":[["chorus",0.6,0.95]],"note":0},{"sec":"synth archetypes","stems":["cs-80","cs80","vangelis","bladerunner"],"t":[["attack",0.55,0.8],["sustain",0.85,1.0],["bright",0.55,0.7],["motion",0.6,0.7]],"g":[["waveA",0.55,0.8],["chorus",0.5,0.85],["space",0.5,0.9],["fltEnv",0.35,0.7]],"note":0},{"sec":"synth archetypes","stems":["juno","juno-60","juno-106","jupiter","polysix"],"t":[["sustain",0.75,0.8],["bright",0.5,0.7],["motion",0.55,0.7]],"g":[["chorus",0.65,0.95],["sub",0.5,0.8],["waveA",0.5,0.75]],"note":0},{"sec":"synth archetypes","stems":["moog","minimoog","sub37","taurus","model-d"],"t":[["bass",0.85,1.2],["bright",0.4,0.7],["tonal",0.9,0.8]],"g":[["sub",0.65,0.95],["reso",0.35,0.65],["fltEnv",0.4,0.75],["drive",0.45,0.7]],"note":36},{"sec":"synth archetypes","stems":["prophet","oberheim","ob-xa","ob-8"],"t":[["bright",0.55,0.7],["sustain",0.7,0.7]],"g":[["waveA",0.55,0.85],["spread",0.55,0.85],["fltSpread",0.55,0.8]],"note":0},{"sec":"synth archetypes","stems":["dx7","tx81z","synclavier","operator","fm-piano","epiano","e-piano","rhodes","wurlitzer","wurli"],"t":[["attack",0.0,0.9],["sustain",0.35,0.7],["length",0.6,0.8],["tonal",0.9,0.9],["inharm",0.35,0.7]],"g":[["fm",0.2,0.5],["attack",0.0,0.04],["decay",0.45,0.75],["sustain",0.1,0.35]],"note":60},{"sec":"synth archetypes","stems":["ms-20","ms20","polivoks","screaming"],"t":[["bright",0.75,0.8],["noise",0.45,0.7]],"g":[["reso",0.7,0.95],["drive",0.75,1.0]],"note":0},{"sec":"synth archetypes","stems":["buchla","vactrol","lpg","west-coast","westcoast"],"t":[["attack",0.0,1.0],["sustain",0.0,1.0],["length",0.25,0.9],["inharm",0.45,0.7]],"g":[["fm",0.2,0.55],["drive",0.75,0.95],["fltEnv",0.6,0.9],["attack",0.0,0.03],["sustain",0.0,0.05],["decay",0.2,0.45]],"note":60},{"sec":"synth archetypes","stems":["mellotron","optigan"],"t":[["attack",0.45,0.8],["sustain",0.75,0.8],["bright",0.35,0.8],["noise",0.35,0.7],["motion",0.55,0.7]],"g":[["lfoAmt",0.2,0.45],["cutoff",0.25,0.5],["noise",0.15,0.35]],"note":0},{"sec":"synth archetypes","stems":["supersaw","hypersaw","virus","jp-8000","trance"],"t":[["bright",0.8,1.0],["sustain",0.8,0.8],["motion",0.65,0.8]],"g":[["waveA",0.65,0.9],["chorus",0.75,1.0],["spread",0.7,1.0],["cutoff",0.65,0.95]],"note":0},{"sec":"synth archetypes","stems":["chiptune","8-bit","8bit","sid","c64","gameboy","nes","arcade"],"t":[["attack",0.0,1.0],["bright",0.75,0.8],["tonal",0.9,0.8]],"g":[["waveA",0.8,1.0],["lfoShape",0.7,1.0],["space",0.0,0.15],["attack",0.0,0.02]],"note":0},{"sec":"acoustic instruments","stems":["kalimba","mbira","handpan","hang","tongue-drum"],"t":[["attack",0.0,1.0],["sustain",0.05,1.0],["length",0.45,0.9],["tonal",0.95,1.0],["bright",0.45,0.8]],"g":[["attack",0.0,0.02],["sustain",0.0,0.06],["decay",0.4,0.65],["waveA",0.0,0.25]],"note":64},{"sec":"acoustic instruments","stems":["harfe","harp","koto","guzheng","shamisen","sitar","zither","oud"],"t":[["attack",0.0,1.0],["sustain",0.1,0.9],["length",0.55,0.8],["bright",0.65,0.7],["tonal",0.9,0.8]],"g":[["attack",0.0,0.03],["sustain",0.0,0.08],["decay",0.45,0.75],["fltEnv",0.45,0.8]],"note":60},{"sec":"acoustic instruments","stems":["cello","violine","geige","violin","viola","bratsche","arco","bowed","gestrichen","gambe"],"t":[["attack",0.55,0.9],["sustain",0.85,1.0],["tonal",0.95,1.0],["motion",0.5,0.7]],"g":[["attack",0.35,0.7],["sustain",0.7,0.95],["waveA",0.55,0.8]],"note":60},{"sec":"acoustic instruments","stems":["floete","flute","shakuhachi","panfloete","ocarina","whistle","duduk","geblasen","blown"],"t":[["attack",0.3,0.8],["sustain",0.8,0.9],["noise",0.45,0.8],["tonal",0.85,0.8],["bright",0.45,0.7]],"g":[["noise",0.2,0.45],["waveA",0.0,0.3],["attack",0.15,0.4],["sustain",0.65,0.9]],"note":67},{"sec":"acoustic instruments","stems":["brass","blaeser","trompete","trumpet","horn","waldhorn","posaune","trombone","tuba","braaam"],"t":[["attack",0.2,0.8],["sustain",0.75,0.9],["bright",0.6,0.8],["tonal",0.95,0.9]],"g":[["waveA",0.55,0.8],["fltEnv",0.5,0.85],["modAttack",0.55,0.8],["attack",0.08,0.25]],"note":55},{"sec":"acoustic instruments","stems":["chor","choir","vocal","stimme","voice","formant","vowel","aah","ooh"],"t":[["attack",0.55,0.8],["sustain",0.85,0.9],["tonal",0.9,0.8],["bright",0.45,0.7]],"g":[["fltType",0.2,0.4],["fltSpread",0.65,0.9],["reso",0.5,0.8],["chorus",0.55,0.9],["attack",0.35,0.7]],"note":60},{"sec":"acoustic instruments","stems":["gong","gamelan","klangschale","singing-bowl","bowl","waterphone","cristal","baschet","crotales"],"t":[["attack",0.05,0.8],["length",0.9,1.0],["inharm",0.75,1.0],["sustain",0.45,0.7]],"g":[["fm",0.35,0.75],["sub",0.0,0.25],["decay",0.75,0.98],["space",0.55,0.95]],"note":64},{"sec":"materials and effects","stems":["holzig","holz","wood","wooden","bambus","bamboo"],"t":[["bright",0.35,0.8],["inharm",0.35,0.6],["length",0.3,0.6]],"g":[["cutoff",0.25,0.5],["reso",0.3,0.55]],"note":0},{"sec":"materials and effects","stems":["eisig","eis","icy","ice","frost","frostig","kalt","cold","kuehl","cool","glacial"],"t":[["bright",0.8,0.9],["inharm",0.5,0.6],["bass",0.1,0.7]],"g":[["fm",0.25,0.6],["treble",0.65,0.95],["cutoff",0.7,1.0]],"note":0},{"sec":"materials and effects","stems":["tape","band","cassette","kassette","vinyl","crackle","knistern","hiss","wow","flutter","leiern","nostalg"],"t":[["bright",0.3,0.8],["noise",0.35,0.7],["motion",0.6,0.7]],"g":[["cutoff",0.25,0.55],["lfoAmt",0.2,0.45],["drive",0.5,0.65],["damp",0.55,0.85]],"note":0},{"sec":"materials and effects","stems":["shimmer","kathedrale","cathedral","kirche","church","blackhole","haze"],"t":[["length",0.95,1.0],["sustain",0.8,0.8],["bright",0.65,0.6]],"g":[["space",0.8,1.0],["damp",0.1,0.4]],"note":0},{"sec":"materials and effects","stems":["laser","zap","blaster","scifi","sci-fi","sonar","ping"],"t":[["attack",0.0,1.0],["motion",0.85,1.0],["length",0.35,0.8]],"g":[["pitchMod",0.75,1.0],["modDecay",0.2,0.5],["reso",0.7,0.95]],"note":0}];
+
+const D = ["bright","attack","sustain","length","noise","tonal","inharm","motion","bass"];
+const DINFO = {
+  bright:["Helligkeit","Spektraler Schwerpunkt, 100 Hz → 0, 12,8 kHz → 1"],
+  attack:["Attack","Zeit bis 90 % des Spitzenpegels, 0 ms → 0, 1 s → 1"],
+  sustain:["Sustain","Pegel bei 600 ms relativ zur Spitze"],
+  length:["Länge","Wie lange es dauert, bis es unter 1 % fällt (von 1,5 s)"],
+  noise:["Rauschen","Spektrale Flachheit: Rauschen gegen klare Töne"],
+  tonal:["Tonal","Stärke einer erkennbaren Tonhöhe"],
+  inharm:["Inharmonisch","Energie abseits der Obertonreihe (Glocken, Metall)"],
+  motion:["Bewegung","Spektrale Änderung über die Zeit (Wobble, Sweeps)"],
+  bass:["Bass","Energieanteil unter 200 Hz"]
+};
+const SEC = {"categories":"Klangarten","properties":"Eigenschaften","synth archetypes":"Synth-Klassiker","acoustic instruments":"Akustisch","materials and effects":"Material & Effekte"};
+const NOTE = n => ["C","C♯","D","D♯","E","F","F♯","G","G♯","A","A♯","B"][n%12]+(Math.floor(n/12)-1);
+const $ = id => document.getElementById(id);
+
+// ---------- parser: port of Words.h ----------
+function stemMatch(token, list){
+  let best=0;
+  for(const stem of list.split("|")){
+    if(stem && token.startsWith(stem)){
+      const extra=token.length-stem.length;
+      const ok = stem.length>=4 ? extra<=5 && token.indexOf("-",stem.length)===-1
+                                : extra===0 || (stem.length===3 && extra===1 && token.endsWith("s"));
+      if(ok) best=Math.max(best,stem.length);
+    }
+  }
+  return best;
+}
+const STEMS = LEX.map(w=>w.stems.join("|"));
+function findWord(tok){ let hit=-1,len=0; STEMS.forEach((s,i)=>{const l=stemMatch(tok,s); if(l>len){len=l;hit=i;}}); return [hit,len]; }
+function edit(a,b){ const r=[...Array(b.length+1).keys()]; for(let i=1;i<=a.length;i++){let d=r[0];r[0]=i;for(let j=1;j<=b.length;j++){const u=r[j];r[j]=Math.min(r[j]+1,r[j-1]+1,d+(a[i-1]===b[j-1]?0:1));d=u;}} return r[b.length]; }
+function tokenize(s){
+  s=s.replace(/[äÄ]/g,"ae").replace(/[öÖ]/g,"oe").replace(/[üÜ]/g,"ue").replace(/ß/g,"ss").toLowerCase();
+  s=s.replace(/[,;]/g," , ").replace(/[^a-z0-9\-,]+/g," ");
+  return s.split(" ").filter(Boolean);
+}
+const NEG="nicht|kein|not|no|without|ohne|non|never|weder|nie";
+const MORE="sehr|very|super|extrem|extremely|mega|richtig|really|ganz|total|viel|viele|lots|much|more|mehr|ultra|hyper|krass|massiv|heavily|stark|strong";
+const LESS="etwas|slightly|bisschen|leicht|bit|little|kaum|somewhat|wenig|weniger|dezent|mild|mildly|subtly|less";
+const TOO="zu|too";
+const FILLER="ein|eine|einen|einem|einer|der|die|das|den|dem|und|mit|a|an|the|and|with|of|von|wie|like|sound|klang|ton|but|aber";
+const AMOUNT=new Set(["space","drive","fm","lfoAmt","chorus"]);
+
+function parse(text){
+  const sum={},wsum={},genes=[],shown=[]; let note=60, negate=false, mild=false, scale=1;
+  const tokens=[];
+  for(const t of tokenize(text)){
+    if(!t.includes("-")||findWord(t)[0]>=0){tokens.push(t);continue;}
+    t.split("-").filter(Boolean).forEach(p=>tokens.push(p));
+  }
+  for(const tok of tokens){
+    if(tok===","){negate=mild=false;scale=1;continue;}
+    let [hit,len]=findWord(tok);
+    if(stemMatch(tok,NEG)>len){negate=true;shown.push([tok,"mod"]);continue;}
+    if(stemMatch(tok,MORE)>len){scale=1.6;shown.push([tok,"mod"]);continue;}
+    if(stemMatch(tok,LESS)>len){scale=0.5;shown.push([tok,"mod"]);continue;}
+    if(stemMatch(tok,TOO)>len){ if(negate){negate=false;mild=true;scale=0.7;} else scale=1.4; shown.push([tok,"mod"]); continue; }
+    if(hit<0 && tok.length>=5){
+      outer: for(let i=0;i<LEX.length;i++) for(const st of LEX[i].stems.flatMap(tokenize)) if(st.length>=5 && edit(tok,st)<=1){hit=i;break outer;}
+    }
+    if(hit<0){ if(!stemMatch(tok,FILLER)) shown.push([tok,"unk"]); continue; }
+    shown.push([tok,"word"]);
+    const w=LEX[hit];
+    for(const [d,val,wt] of w.t){
+      let v=negate?1-val:val; if(mild) v=.5+(v-.5)*.25;
+      const k=wt*scale; sum[d]=(sum[d]||0)+v*k; wsum[d]=(wsum[d]||0)+k;
+    }
+    for(let [g,lo,hi] of w.g){
+      if(!AMOUNT.has(g)){ if(!negate&&!mild) genes.push([g,lo,hi]); continue; }
+      if(negate){ if(w.note) continue; [lo,hi]=[1-hi,1-lo]; }
+      else if(mild){ lo=.5+(lo-.5)*.25; hi=.5+(hi-.5)*.25; }
+      else if(scale>1.2) lo+=.4*(hi-lo);
+      else if(scale<.8){ hi=lo; lo=lo*.5; }
+      genes.push([g,lo,hi]);
+    }
+    if(!negate && w.note) note=w.note;
+    negate=mild=false; scale=1;
+  }
+  const target={};
+  for(const d of D) if(wsum[d]>0) target[d]={v:Math.min(1,Math.max(0,sum[d]/wsum[d])),w:wsum[d]};
+  return {target,genes,note,shown};
+}
+
+// ---------- describe UI ----------
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+$("dbars").innerHTML=D.map(d=>`<div class="dbar" id="r_${d}"><span>${DINFO[d][0]}</span><span class="track"><i id="b_${d}"></i></span><b id="v_${d}">–</b></div>`).join("");
+["dunkler, weicher Bass mit viel Raum","glassy pluck, not too bright","wärmeres Pad mit viel Raum","acid 303, sehr dreckig","Juno pad, slightly detuned","metallische Glocke ohne Hall","kurzer 808 kick","eisige Flöte, lang"].forEach(t=>{
+  const b=document.createElement("button");b.className="chip";b.textContent=t;
+  b.addEventListener("pointerdown",()=>{$("wish").value=t;run();});
+  b.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();$("wish").value=t;run();}});
+  $("chips").appendChild(b);
+});
+function run(){
+  const r=parse($("wish").value);
+  $("tokens").innerHTML=r.shown.length?r.shown.map(([t,k])=>`<span class="tok ${k}">${esc(t)}</span>`).join(""):`<span class="empty">Einfach lostippen…</span>`;
+  for(const d of D){
+    const t=r.target[d];
+    $("r_"+d).classList.toggle("off",!t);
+    $("b_"+d).style.transform=`scaleX(${t?t.v:0})`;
+    $("v_"+d).textContent=t?t.v.toFixed(2):"–";
+  }
+  const g=new Map(); r.genes.forEach(([k,lo,hi])=>g.set(k,[lo,hi]));
+  $("genes").innerHTML=g.size?[...g].map(([k,[lo,hi]])=>`<div><code class="mono">${k}</code><span>${lo.toFixed(2)} – ${hi.toFixed(2)}</span></div>`).join(""):`<span class="empty">Keine Gen-Vorlagen. Die Seeds starten rein zufällig und werden nur nach den Messwerten beurteilt.</span>`;
+  $("note").textContent=`Gerendert auf ${NOTE(r.note)} (MIDI ${r.note})`;
+}
+$("wish").addEventListener("input",run);
+run();
+
+// ---------- facts & charts ----------
+const stemCount=LEX.reduce((a,w)=>a+w.stems.length,0);
+function countUp(el,to){
+  if(matchMedia("(prefers-reduced-motion: reduce)").matches){el.textContent=to;return;}
+  const t0=performance.now();
+  (function f(t){const p=Math.min(1,(t-t0)/900);el.textContent=Math.round(to*(1-Math.pow(1-p,3)));if(p<1)requestAnimationFrame(f);})(t0);
+}
+countUp($("fStems"),stemCount); countUp($("fWords"),LEX.length);
+
+$("desc").innerHTML=D.map(d=>`<div><b>${DINFO[d][0]}</b><code class="mono">${d}</code><p>${DINFO[d][1]}</p></div>`).join("");
+function bars(el,entries){
+  const max=Math.max(...entries.map(e=>e[1]));
+  el.innerHTML=entries.map(([l,v])=>`<div class="row"><span>${l}</span><span class="track"><i style="width:${v/max*100}%"></i></span><b>${v}</b></div>`).join("");
+}
+const use={}; LEX.forEach(w=>w.t.forEach(([d])=>use[d]=(use[d]||0)+1));
+bars($("useBars"),D.map(d=>[DINFO[d][0],use[d]||0]).sort((a,b)=>b[1]-a[1]));
+const secs=[...new Set(LEX.map(w=>w.sec))];
+bars($("secBars"),secs.map(s=>[SEC[s]||s,LEX.filter(w=>w.sec===s).reduce((a,w)=>a+w.stems.length,0)]).sort((a,b)=>b[1]-a[1]));
+
+// ---------- lexicon ----------
+let cat="all";
+const seg=$("seg");
+[["all","Alle"],...secs.map(s=>[s,SEC[s]||s])].forEach(([k,l])=>{
+  const b=document.createElement("button");b.textContent=l;b.setAttribute("role","tab");
+  if(k==="all")b.className="on";
+  b.addEventListener("pointerdown",()=>{cat=k;[...seg.children].forEach(x=>x.classList.toggle("on",x===b));renderLex();});
+  b.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();b.dispatchEvent(new Event("pointerdown"));}});
+  seg.appendChild(b);
+});
+function renderLex(){
+  const q=tokenize($("q").value).join(" ").trim();
+  const list=LEX.filter(w=>(cat==="all"||w.sec===cat)&&(!q||w.stems.some(s=>s.includes(q)||stemMatch(q,s))));
+  $("lex").innerHTML=list.map(w=>{
+    const stems=w.stems.map(s=>q&&(s.includes(q)||stemMatch(q,s))?`<mark>${esc(s)}</mark>`:esc(s)).join(" · ");
+    const meta=w.t.map(([d,v])=>`<span>${DINFO[d][0]} ${v.toFixed(2)}</span>`).join("")+w.g.map(([g])=>`<span class="g">${g}</span>`).join("")+(w.note?`<span>${NOTE(w.note)}</span>`:"");
+    return `<article class="entry"><div class="sec">${esc(SEC[w.sec]||w.sec)}</div><div class="stems">${stems}</div><div class="meta">${meta}</div></article>`;
+  }).join("")||`<p class="empty">Kein Stamm passt zu „${esc($("q").value)}“.</p>`;
+  $("count").textContent=`${list.length} von ${LEX.length} Wortgruppen`;
+}
+$("q").addEventListener("input",renderLex);
+renderLex();
+
+// ---------- chrome & reveal ----------
+const hdr=$("hdr"); addEventListener("scroll",()=>hdr.classList.toggle("scrolled",scrollY>8),{passive:true});
+</script>
+</body>
+</html>

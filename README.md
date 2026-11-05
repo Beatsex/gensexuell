@@ -45,7 +45,7 @@ Then restart your DAW (or rescan plugins) and insert it as an instrument: *beats
 4. Or type *"dark soft bass"* on the left and click **GROW**.
 5. Or drop a one-shot on **Sound → Seed**.
 
-Writing good descriptions: the [Describe guide](docs/DESCRIBE.md).
+Writing good descriptions: the [Describe guide](docs/DESCRIBE.md), or try the parser and browse every word in the [interactive guide](https://beatsex.github.io/gensexuell/).
 
 The full user manual ([`installer/USER_MANUAL.html`](installer/USER_MANUAL.html)) comes with every download.
 
