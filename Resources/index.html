@@ -635,6 +635,7 @@ if(HOST){
     else if(m.type==='learned'){S.cc[m.id]=m.cc;learningId=null;renderCc();hud()}
     else if(m.type==='note'){
       if(m.on){
+        hostNoteSeen();
         const brs=[...Array(12).keys()].filter(i=>m.mask>>i&1);
         if(brs.length&&S.midi.selectBranches!==false){S.sel=brs[0];hud(false)}
         voices.set('h'+m.n,{i:brs[0]??m.n%12,all:brs});brs.forEach(i=>drops.push({i,t:0}));
@@ -1262,12 +1263,23 @@ const KEYBOARD_LOW=48;
   }
   $('keyboard').append(...[...KBD.values()].sort((a,b)=>(a.className==='b')-(b.className==='b')));
 }
-function keyPress(n,on,v){KBD.get(n)?.classList.toggle('on',on);HOST?.emitEvent('ui',{type:'key',n,on,v})}
+function keyPress(n,on,v){if(on)pointerKeyAt=performance.now();KBD.get(n)?.classList.toggle('on',on);HOST?.emitEvent('ui',{type:'key',n,on,v})}
 
 // ================================================================ wiring
 $('bSow').onclick=sow;$('bNew').onclick=newSeed;$('bClone').onclick=clone;$('bReroll').onclick=()=>reroll();
 $('bGenes').onclick=()=>{openDlg('dlgGenes');renderGenes()};$('bUndo').onclick=doUndo;$('bRedo').onclick=doRedo;
 const KB='awsedftgyhuj';
+// does the DAW forward computer-keyboard keys as MIDI? learned from the first key press and remembered
+let hostTypes=false,qwertyAt=-1e9,qwertyTimer=0,pointerKeyAt=-1e9;const qwertyDown=new Set();
+try{hostTypes=localStorage.getItem('seedling.hostTypes')==='1'}catch{}
+function setHostTypes(on){hostTypes=on;try{localStorage.setItem('seedling.hostTypes',on?'1':'0')}catch{}}
+function hostNoteSeen(){
+  // a MIDI note right after a computer-key press (and not from the on-screen keys) is the DAW's copy of it
+  const t=performance.now();
+  if(t-qwertyAt>250||t-pointerKeyAt<250)return;
+  clearTimeout(qwertyTimer);
+  if(!hostTypes){setHostTypes(true);for(const id of [...voices.keys()])if(id.startsWith('k'))noteOff(id)}
+}
 addEventListener('keydown',e=>{
   if(e.target.matches('input[type=number],input[type=text],select'))return;
   if(e.ctrlKey||e.metaKey){
@@ -1279,9 +1291,15 @@ addEventListener('keydown',e=>{
   if(e.repeat||e.altKey||document.querySelector('dialog[open]'))return;
   const i=KB.indexOf(e.key.toLowerCase());
   if(i<0)return;
-  S.sel=i;hud(false);noteOn('k'+i,i);
+  S.sel=i;hud(false);
+  if(!HOST){noteOn('k'+i,i);return}
+  // many DAWs turn the same keys into MIDI notes (computer MIDI keyboard): if the host does, it plays and we only select
+  qwertyAt=performance.now();
+  if(hostTypes){clearTimeout(qwertyTimer);qwertyTimer=setTimeout(()=>{setHostTypes(false);if(qwertyDown.has(i))noteOn('k'+i,i)},250)}
+  else noteOn('k'+i,i);
+  qwertyDown.add(i);
 });
-addEventListener('keyup',e=>{const i=KB.indexOf(e.key.toLowerCase());if(i>=0)noteOff('k'+i)});
+addEventListener('keyup',e=>{const i=KB.indexOf(e.key.toLowerCase());if(i>=0){qwertyDown.delete(i);noteOff('k'+i)}});
 
 function selfTest(){
   console.assert(JSON.stringify(seedParams(42))===JSON.stringify(seedParams(42)),'seed is deterministic');

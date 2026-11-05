@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Computer-keyboard notes no longer play twice in DAWs that also turn those keys into MIDI (e.g. Ableton's computer MIDI keyboard). The plugin notices the DAW's copy and lets the DAW play; the keys then only select the branch.
+
 ## 0.3.0
 
 - The genome grows from 35 to 54 genes.
