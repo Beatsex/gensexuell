@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Releases get their title and notes automatically: the install notes plus that version's section of this changelog.
 - Both manuals are on the website: https://beatsex.github.io/gensexuell/manual.html and https://beatsex.github.io/gensexuell/handbuch.html.
 
 ## 0.3.1

@@ -96,12 +96,36 @@ jobs:
             cp build/installer/*-setup.exe build/installer/*-source.zip .
           fi
           echo "PACKAGE=$OUT" >> "$GITHUB_ENV"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Release notes
+        if: github.ref_type == 'tag' || inputs.release_tag != ''
+        run: |
+          # the fixed install notes, then this version's section of CHANGELOG.md
+          {
+            echo "A synthesizer you grow from a seed. Runs fully local: no cloud, no account, no internet connection."
+            echo
+            echo "**Windows:** run \`gensexuell-beta-${VERSION}-win64-setup.exe\`. The beta is not code-signed yet: if SmartScreen appears, click *More info*, then *Run anyway*."
+            echo "**macOS:** \`gensexuell-beta-${VERSION}-macos-universal.zip\`, see the README. The macOS build has not been tested by hand yet."
+            echo
+            echo "User manual: https://beatsex.github.io/gensexuell/manual.html · Handbuch: https://beatsex.github.io/gensexuell/handbuch.html"
+            echo
+            echo "## What's new"
+            echo
+            awk -v head="## ${VERSION}" '{ sub(/\r$/, "") } $0 == head { on = 1; next } /^## / { on = 0 } on && NF' CHANGELOG.md
+            echo
+            echo "Free software under the GNU AGPL v3. The source is in \`gensexuell-${VERSION}-source.zip\`; JUCE and clap-juce-extensions are fetched at the versions pinned in \`.github/workflows/build.yml\`."
+          } > release-notes.md
+          grep -q '^- ' release-notes.md || { echo "CHANGELOG.md has no section for ${VERSION}"; exit 1; }
+          cat release-notes.md
 
       - name: Attach to release
         if: github.ref_type == 'tag' || inputs.release_tag != ''
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ inputs.release_tag || github.ref_name }}
+          name: gensexuell beta ${{ env.VERSION }}
+          body_path: release-notes.md
           # a tag push creates a draft; a manual run with release_tag leaves an existing release as it is (published stays published)
           draft: ${{ inputs.release_tag == '' }}
           fail_on_unmatched_files: false
