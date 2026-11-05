@@ -19,7 +19,7 @@ VST3, CLAP y LV2 en Windows y macOS, AU en macOS, además de una aplicación ind
   - **Trae una muestra**: suelta un one-shot. Una red neuronal estima los genes y cuatro hebras afinan el resultado mientras escuchas.
 - **Interpretación → semilla**: suelta una grabación monofónica (voz, tarareo, bajo). Detecta notas, tiempos, dinámica y bends y los toca con la semilla actual. Arrastra el resultado a tu DAW como WAV o MIDI.
 - **Entrada en directo**: envía audio al sidechain y toca el sintetizador con tu voz o un instrumento en tiempo real.
-- **35 genes** en un editor, con modulación en anillo, wavefolding y tono aleatorio escalonado en sus extremos
+- **54 genes** en un editor, con modulación en anillo, wavefolding y tono aleatorio escalonado en sus extremos
 - **Modos de bulbo** (estándar, velocidad, rangos, capas), poly / mono / legato con glide, volumen por rama
 - **Anillo de rueda de modulación** con diez destinos, sincronización de tempo, MPE básico
 - **Efectos granulares** de [grainsexuell](https://github.com/Beatsex/grainsexuell): Mosaic, Cloud, Shard, Tap, además de la reverb Haze y el paso bajo Dusk

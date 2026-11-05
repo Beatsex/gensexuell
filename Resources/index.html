@@ -734,7 +734,7 @@ const pct=v=>Math.round(v)+' %',unit=v=>v.toFixed(2);
 [{key:'tuning',name:'TUNING',min:-12,max:12,step:.1,fmt:v=>v.toFixed(1)+' st'},{key:'effect',name:'EFFECT',min:0,max:100,step:1,fmt:pct},
  {key:'volume',name:'VOLUME',min:-24,max:6,step:.5,fmt:v=>v.toFixed(1)+' dB'},{key:'release',name:'RELEASE',min:0,max:100,step:1,fmt:pct},
  {key:'atonality',name:'ATONALITY',min:0,max:100,step:1,fmt:pct}].forEach(c=>mkSlider($('ctls'),c,true));
-{const b=document.createElement('button');b.id='bGenes';b.className='geneCell';b.title='Edit the genes of the seed';b.textContent='ALL 35 GENES';$('ctls').append(b)}
+{const b=document.createElement('button');b.id='bGenes';b.className='geneCell';b.title='Edit the genes of the seed';b.textContent='ALL '+KEYS.length+' GENES';$('ctls').append(b)}
 mkSlider($('lower'),{key:'glide',name:'GLIDE',min:0,max:10,step:.01,fmt:v=>v.toFixed(2)+' s'});
 mkSlider($('lower'),{key:'wheelScale',name:'WHEEL',min:0,max:100,step:1,fmt:pct});
 mkSlider($('lower'),{key:'velSens',name:'VELOCITY',min:0,max:100,step:1,fmt:pct});

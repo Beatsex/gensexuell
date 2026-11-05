@@ -321,7 +321,7 @@ footer .end { width: 64px; height: 64px; margin: 0 auto 18px; border: 1.5px soli
   <h2>A synthesizer you grow.</h2>
   <p class="lead">Drag branches out of a seed. Each branch is the same sound, a little further away. Keep the one you like and grow on from there.</p>
   <ul class="clean">
-    <li>A <b>seed</b> is a complete sound: 35 genes for envelopes, oscillators, filter and effect.</li>
+    <li>A <b>seed</b> is a complete sound: 54 genes for envelopes, oscillators, filter and effect.</li>
     <li>Twelve <b>branches</b> grow around it, one per key of the octave. The longer a branch, the further its sound has wandered from the seed.</li>
     <li><b>Sow</b> a branch and it becomes the new seed, with twelve fresh branches around it. Repeat until the sound is yours.</li>
     <li>Three more ways to a seed: <b>describe</b> it in words, <b>bring a sample</b> and let it be rebuilt, or play the seed with your own <b>performance</b>.</li>
@@ -357,7 +357,7 @@ footer .end { width: 64px; height: 64px; margin: 0 auto 18px; border: 1.5px soli
         <div class="try"><input type="range" id="atonality" min="0" max="100" value="20" aria-label="Atonality"><output for="atonality" id="atonalityOut">20 %</output></div>
         <div class="try"><input type="range" id="release" min="0" max="100" value="40" aria-label="Release"><output for="release" id="releaseOut">167 ms</output></div>
         <small>Atonality above 50 %: oscillator ratios are free, no longer snapped to harmonics · Release: 20 ms … 4 s</small></div></div>
-    <div class="row"><span class="n">⧉</span><span class="k">Actions</span><p class="d">NEW SEED, REROLL, CLONE (<a href="#s04">04</a>), VOLUMES for each branch's level, and ALL 35 GENES (<a href="#s10">10</a>).</p></div>
+    <div class="row"><span class="n">⧉</span><span class="k">Actions</span><p class="d">NEW SEED, REROLL, CLONE (<a href="#s04">04</a>), VOLUMES for each branch's level, and ALL 54 GENES (<a href="#s10">10</a>).</p></div>
     <div class="row"><span class="n">—</span><span class="k">Modes</span><p class="d">Bulb, voice, wheel target, tempo sync. See <a href="#s05">05</a>.</p></div>
     <div class="row"><span class="n">—</span><span class="k">Glide · Wheel · Velocity</span><p class="d">Portamento time, how far the mod wheel reaches, how much velocity matters.</p></div>
     <div class="row"><span class="n">—</span><span class="k">Grain FX</span><p class="d">Effects from grainsexuell, plus Haze (reverb) and Dusk (low-pass). See <a href="#s10">10</a>.</p></div>
@@ -371,7 +371,7 @@ footer .end { width: 64px; height: 64px; margin: 0 auto 18px; border: 1.5px soli
   <span class="kicker"><b>04</b>Growing</span>
   <h2>From a seed to your sound.</h2>
   <ul class="flow">
-    <li>A seed <small>35 genes, one complete sound</small></li>
+    <li>A seed <small>54 genes, one complete sound</small></li>
     <li class="fx">Twelve branches <small>each one wanders off in its own direction</small></li>
     <li class="fx">Drag a branch out <small>longer = further from the seed</small></li>
     <li class="fx">Listen <small>play its key, or the branch on the ring</small></li>
@@ -503,7 +503,7 @@ footer .end { width: 64px; height: 64px; margin: 0 auto 18px; border: 1.5px soli
   <span class="kicker"><b>10</b>Genes &amp; FX</span>
   <h2>Under the hood, if you want it.</h2>
   <h3>Genes</h3>
-  <p>ALL 35 GENES opens the seed's 35 genes in three tabs: <b>Envelope &amp; LFO</b>, <b>Oscillators</b>, <b>Filter &amp; Effect</b>, each with a small graph of what it does. Changing a gene changes the seed, and every branch with it. Ctrl+click a slider to reset it.</p>
+  <p>ALL 54 GENES opens the seed's 54 genes in four tabs: <b>Envelope &amp; LFO</b>, <b>Oscillators</b>, <b>Filter &amp; Effect</b>, <b>Extra</b>, each with a small graph of what it does. Changing a gene changes the seed, and every branch with it. Ctrl+click a slider to reset it.</p>
   <div class="layers">
     <div><i class="shape"></i><b>1</b><span>Envelope &amp; LFO</span><p>Attack, decay, sustain, loop, the mod envelope, vibrato or tremolo.</p></div>
     <div><i class="shape"></i><b>2</b><span>Oscillators</span><p>Two waves, their ratio, FM, noise, a sub, a pitch sweep.</p></div>
