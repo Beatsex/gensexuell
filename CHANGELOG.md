@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Computer-keyboard notes no longer play twice in DAWs that also turn those keys into MIDI (e.g. Ableton's computer MIDI keyboard). The plugin notices the DAW's copy and lets the DAW play; the keys then only select the branch.
+- The computer-keyboard keys A W S E D F T G Y H U J no longer play notes. In a DAW they sounded twice, because many DAWs turn the same keys into MIDI. Use the DAW's computer MIDI keyboard or the on-screen keys instead.
 
 ## 0.3.0
 

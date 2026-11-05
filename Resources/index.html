@@ -470,7 +470,7 @@ footer{display:grid;grid-template-columns:260px minmax(0,1fr) 340px;border-top:1
   <div class="dlgHead"><h2 id="hAbout">GENSEXUELL</h2><button data-close>CLOSE ✕</button></div>
   <div class="dlgBody mono" style="font-size:12px;line-height:1.8">
     Grow sounds from a seed: drag branches out, sow the one you like, repeat.<br>
-    Keys A–J play · Ctrl+click seed: new seed · Alt+click seed: clone · Ctrl+click branch: retract · Shift: fine<br>
+    Ctrl+click seed: new seed · Alt+click seed: clone · Ctrl+click branch: retract · Shift: fine<br>
     Ctrl+click a key: new random branch · drag the inner ring: mod wheel · drag the small circle: rotate keys<br>
     Three ways to a sound: grow it, describe it (German or English), or bring a sample.<br>
     Performance → seed plays your recording with gensexuell's sound · Live input follows a sidechain in real time.<br>
@@ -635,7 +635,6 @@ if(HOST){
     else if(m.type==='learned'){S.cc[m.id]=m.cc;learningId=null;renderCc();hud()}
     else if(m.type==='note'){
       if(m.on){
-        hostNoteSeen();
         const brs=[...Array(12).keys()].filter(i=>m.mask>>i&1);
         if(brs.length&&S.midi.selectBranches!==false){S.sel=brs[0];hud(false)}
         voices.set('h'+m.n,{i:brs[0]??m.n%12,all:brs});brs.forEach(i=>drops.push({i,t:0}));
@@ -1263,43 +1262,18 @@ const KEYBOARD_LOW=48;
   }
   $('keyboard').append(...[...KBD.values()].sort((a,b)=>(a.className==='b')-(b.className==='b')));
 }
-function keyPress(n,on,v){if(on)pointerKeyAt=performance.now();KBD.get(n)?.classList.toggle('on',on);HOST?.emitEvent('ui',{type:'key',n,on,v})}
+function keyPress(n,on,v){KBD.get(n)?.classList.toggle('on',on);HOST?.emitEvent('ui',{type:'key',n,on,v})}
 
 // ================================================================ wiring
 $('bSow').onclick=sow;$('bNew').onclick=newSeed;$('bClone').onclick=clone;$('bReroll').onclick=()=>reroll();
 $('bGenes').onclick=()=>{openDlg('dlgGenes');renderGenes()};$('bUndo').onclick=doUndo;$('bRedo').onclick=doRedo;
-const KB='awsedftgyhuj';
-// does the DAW forward computer-keyboard keys as MIDI? learned from the first key press and remembered
-let hostTypes=false,qwertyAt=-1e9,qwertyTimer=0,pointerKeyAt=-1e9;const qwertyDown=new Set();
-try{hostTypes=localStorage.getItem('seedling.hostTypes')==='1'}catch{}
-function setHostTypes(on){hostTypes=on;try{localStorage.setItem('seedling.hostTypes',on?'1':'0')}catch{}}
-function hostNoteSeen(){
-  // a MIDI note right after a computer-key press (and not from the on-screen keys) is the DAW's copy of it
-  const t=performance.now();
-  if(t-qwertyAt>250||t-pointerKeyAt<250)return;
-  clearTimeout(qwertyTimer);
-  if(!hostTypes){setHostTypes(true);for(const id of [...voices.keys()])if(id.startsWith('k'))noteOff(id)}
-}
 addEventListener('keydown',e=>{
-  if(e.target.matches('input[type=number],input[type=text],select'))return;
-  if(e.ctrlKey||e.metaKey){
-    const k=e.key.toLowerCase();
-    if(k==='z'){e.preventDefault();e.shiftKey?doRedo():doUndo()}else if(k==='y'){e.preventDefault();doRedo()}
-    else if(k==='s'){e.preventDefault();savePatch()}else if(k==='o'){e.preventDefault();openPatch()}
-    return;
-  }
-  if(e.repeat||e.altKey||document.querySelector('dialog[open]'))return;
-  const i=KB.indexOf(e.key.toLowerCase());
-  if(i<0)return;
-  S.sel=i;hud(false);
-  if(!HOST){noteOn('k'+i,i);return}
-  // many DAWs turn the same keys into MIDI notes (computer MIDI keyboard): if the host does, it plays and we only select
-  qwertyAt=performance.now();
-  if(hostTypes){clearTimeout(qwertyTimer);qwertyTimer=setTimeout(()=>{setHostTypes(false);if(qwertyDown.has(i))noteOn('k'+i,i)},250)}
-  else noteOn('k'+i,i);
-  qwertyDown.add(i);
+  // letter keys play nothing: in a DAW they sounded twice next to the DAW's own computer MIDI keyboard
+  if(e.target.matches('input[type=number],input[type=text],select')||!(e.ctrlKey||e.metaKey))return;
+  const k=e.key.toLowerCase();
+  if(k==='z'){e.preventDefault();e.shiftKey?doRedo():doUndo()}else if(k==='y'){e.preventDefault();doRedo()}
+  else if(k==='s'){e.preventDefault();savePatch()}else if(k==='o'){e.preventDefault();openPatch()}
 });
-addEventListener('keyup',e=>{const i=KB.indexOf(e.key.toLowerCase());if(i>=0){qwertyDown.delete(i);noteOff('k'+i)}});
 
 function selfTest(){
   console.assert(JSON.stringify(seedParams(42))===JSON.stringify(seedParams(42)),'seed is deterministic');
