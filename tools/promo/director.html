@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>gensexuell Produktvideo</title>
+<style>
+@font-face{font-family:Inter;src:url(../../Resources/fonts/inter.woff2) format('woff2');font-weight:100 900}
+@font-face{font-family:'JetBrains Mono';src:url(../../Resources/fonts/jetbrainsmono.woff2) format('woff2');font-weight:100 800}
+:root{--pink:#F2B8C6;--cream:#F2F1ED;--ink:#111}
+*{box-sizing:border-box;margin:0}
+html,body{width:1920px;height:1080px;overflow:hidden;background:var(--pink);font:500 20px Inter,sans-serif;color:var(--ink)}
+.blob{position:absolute;border-radius:50%;background:var(--cream);filter:blur(90px);opacity:.85}
+.b1{width:900px;height:900px;left:-250px;top:-300px;animation:d1 14s ease-in-out infinite alternate}
+.b2{width:800px;height:800px;right:-260px;bottom:-320px;animation:d1 17s ease-in-out infinite alternate-reverse}
+@keyframes d1{to{transform:translate(120px,90px) scale(1.12)}}
+
+#stage{position:absolute;left:0;top:0;width:1920px;height:1080px;transform-origin:0 0;transition:transform 1.4s cubic-bezier(.6,0,.2,1)}
+#wrap{position:absolute;left:290px;top:100px;width:1340px;height:837.5px;box-shadow:0 40px 120px #0003;opacity:0;transform:translateY(60px) scale(.96);transition:opacity 1s,transform 1.2s cubic-bezier(.2,.8,.2,1)}
+#wrap.on{opacity:1;transform:none}
+iframe{width:1340px;height:837.5px;border:0;display:block}
+
+#cap{position:absolute;left:60px;bottom:56px;z-index:30;display:flex;align-items:baseline;gap:24px;background:#F2F1EDee;border:2px solid var(--ink);padding:18px 28px 18px 18px;box-shadow:0 18px 50px #0002;opacity:0;transform:translateY(16px);transition:opacity .5s,transform .5s}
+#cap.on{opacity:1;transform:none}
+#cap .n{font:400 18px 'JetBrains Mono',monospace;letter-spacing:.12em;background:var(--ink);color:var(--pink);padding:8px 12px}
+#cap .t{font-weight:700;font-size:40px;letter-spacing:.16em;text-transform:uppercase}
+#cap .s{font:400 20px 'JetBrains Mono',monospace;letter-spacing:.06em;color:#222}
+
+#cursor{position:absolute;left:0;top:0;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;border:2.5px solid var(--ink);background:#fff6;z-index:50;opacity:0;transition:opacity .3s,width .12s,height .12s,margin .12s;pointer-events:none}
+#cursor.on{opacity:1}
+#cursor.down{width:24px;height:24px;margin:-12px 0 0 -12px;background:var(--ink)}
+
+.card{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:30px;opacity:0;transition:opacity .8s;z-index:40;pointer-events:none}
+.card.on{opacity:1}
+.card.dark{background:var(--ink);color:var(--pink)}
+.card.light{background:var(--pink)}
+.logo{font-weight:700;font-size:120px;letter-spacing:.32em;margin-right:-.32em}
+.tag{font:400 30px 'JetBrains Mono',monospace;letter-spacing:.08em}
+.small{font:400 22px 'JetBrains Mono',monospace;letter-spacing:.14em;opacity:.8}
+.rise>*{opacity:0;transform:translateY(24px);transition:opacity .7s,transform .9s cubic-bezier(.2,.8,.2,1)}
+.on.rise>*{opacity:1;transform:none}
+.on.rise>*:nth-child(2){transition-delay:.35s}
+.on.rise>*:nth-child(3){transition-delay:.7s}
+.on.rise>*:nth-child(4){transition-delay:1.05s}
+.grid{display:grid;grid-template-columns:repeat(3,420px);gap:18px}
+.grid div{border:2px solid var(--ink);background:#F2F1EDaa;padding:28px 30px;font-weight:700;font-size:30px;letter-spacing:.08em}
+.grid div span{display:block;font:400 18px 'JetBrains Mono',monospace;letter-spacing:.06em;margin-top:10px;font-weight:400;color:#333}
+.grid div{opacity:0;transform:scale(.94);transition:opacity .5s,transform .6s cubic-bezier(.2,.8,.2,1)}
+.on .grid div{opacity:1;transform:none}
+.pill{border:2px solid currentColor;padding:12px 22px;font:400 24px 'JetBrains Mono',monospace;letter-spacing:.12em}
+.row{display:flex;gap:18px}
+.seedDot{width:120px;height:120px;background:var(--pink);border-radius:46% 54% 50% 50%/55% 45% 55% 45%;animation:wob 3s ease-in-out infinite}
+@keyframes wob{50%{border-radius:55% 45% 42% 58%/45% 55% 45% 55%;transform:rotate(8deg) scale(1.05)}}
+</style>
+</head>
+<body>
+<div class="blob b1"></div><div class="blob b2"></div>
+<div id="stage">
+  <div id="wrap"><iframe id="ui" src="../../Resources/index.html"></iframe></div>
+</div>
+<div id="cap"><span class="n" id="capN"></span><span class="t" id="capT"></span><span class="s" id="capS"></span></div>
+
+<div class="card dark rise" id="intro">
+  <div class="seedDot"></div>
+  <div class="logo">GENSEXUELL</div>
+  <div class="tag">Ein Synthesizer, den du aus einem Samen wachsen lässt.</div>
+</div>
+
+<div class="card light rise" id="feat">
+  <div class="tag" style="font-weight:700">UND NOCH MEHR</div>
+  <div class="grid">
+    <div>54 Gene<span>Ringmod · Wavefolding · Random Pitch</span></div>
+    <div>Grain FX<span>Mosaic · Cloud · Shard · Tap</span></div>
+    <div>Performance → Seed<span>Summen rein, WAV/MIDI raus</span></div>
+    <div>Live-Eingang<span>Mit der Stimme spielen</span></div>
+    <div>MIDI Learn · MPE<span>Mod-Wheel-Ring, 10 Ziele</span></div>
+    <div>Poly · Mono · Legato<span>Glide, Bulb-Modi, Layer</span></div>
+  </div>
+</div>
+
+<div class="card dark rise" id="outro">
+  <div class="logo" style="font-size:96px">GENSEXUELL</div>
+  <div class="tag">Klänge wachsen lassen, keine Songs generieren.</div>
+  <div class="row"><span class="pill">VST3</span><span class="pill">CLAP</span><span class="pill">AU</span><span class="pill">LV2</span><span class="pill">STANDALONE</span></div>
+  <div class="small">LOKAL · KEINE CLOUD · KEIN KONTO · OPEN SOURCE (AGPL v3)<br><br>github.com/Beatsex/gensexuell · von beatsexuell</div>
+</div>
+
+<div id="cursor"></div>
+<script>
+const $=id=>document.getElementById(id);
+window.cap=(n,t,s)=>{const c=$('cap');if(!t){c.classList.remove('on');return}
+  c.classList.remove('on');setTimeout(()=>{$('capN').textContent=n;$('capT').textContent=t;$('capS').textContent=s||'';c.classList.add('on')},n?250:0)};
+window.card=(id,on)=>$(id).classList.toggle('on',on);
+window.showUI=on=>$('wrap').classList.toggle('on',on);
+window.cur=(x,y,vis=true)=>{const c=$('cursor');c.style.transform=`translate(${x}px,${y}px)`;c.classList.toggle('on',vis)};
+window.curDown=d=>$('cursor').classList.toggle('down',d);
+// camera: zoom by z around page point (x,y)
+window.cam=(z=1,x=960,y=540)=>{$('stage').style.transform=z===1?'none':`translate(960px,500px) scale(${z}) translate(${-x}px,${-y}px)`};
+</script>
+</body>
+</html>
