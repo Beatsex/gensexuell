@@ -470,7 +470,7 @@ footer{display:grid;grid-template-columns:260px minmax(0,1fr) 340px;border-top:1
   <div class="dlgHead"><h2 id="hAbout">GENSEXUELL</h2><button data-close>CLOSE ✕</button></div>
   <div class="dlgBody mono" style="font-size:12px;line-height:1.8">
     Grow sounds from a seed: drag branches out, sow the one you like, repeat.<br>
-    Keys A–J play · Ctrl+click seed: new seed · Alt+click seed: clone · Ctrl+click branch: retract · Shift: fine<br>
+    Ctrl+click seed: new seed · Alt+click seed: clone · Ctrl+click branch: retract · Shift: fine<br>
     Ctrl+click a key: new random branch · drag the inner ring: mod wheel · drag the small circle: rotate keys<br>
     Three ways to a sound: grow it, describe it (German or English), or bring a sample.<br>
     Performance → seed plays your recording with gensexuell's sound · Live input follows a sidechain in real time.<br>
@@ -577,7 +577,7 @@ function branchParams(i){
 }
 
 // ================================================================ state
-const MIDI_DEFAULT={inChannel:0,velCurve:1,pressure:3,minPoly:16,maxPoly:32,pbRange:2,masterTune:440,pbHeldOnly:false,selectBranches:true,programChange:true};
+const MIDI_DEFAULT={inChannel:0,velCurve:1,pressure:3,minPoly:16,maxPoly:32,pbRange:2,masterTune:440,pbHeldOnly:false,selectBranches:true,programChange:true,computerKeys:false};
 let S={seed:0x5EED1E55,name:'',sel:2,tuning:0,effect:35,volume:-8,release:40,atonality:20,velSens:100,glide:0,wheel:0,wheelScale:100,rotation:0,
   bulbMode:0,voiceMode:0,wheelTarget:0,tempoSync:0,fxType:0,fxVariant:0,fxSwarm:.5,fxTail:.5,fxSpan:.5,fxScatter:0,fxMix:.35,
   liveOn:0,liveGate:-45,liveGlide:.03,liveFollow:0,liveOctave:0,
@@ -897,7 +897,8 @@ function renderBranches(){
 const MIDI_FIELDS=[['inChannel','INPUT CHANNEL',['OMNI',...Array.from({length:16},(_,i)=>String(i+1))]],['velCurve','VELOCITY',['LOW','NORMAL','HIGH','FIXED']],
   ['pressure','PRESSURE → WHEEL',['SOFT','NORMAL','HARD','OFF']],['minPoly','MIN POLYPHONY',[1,32]],['maxPoly','MAX POLYPHONY',[1,32]],
   ['pbRange','PITCH WHEEL RANGE (ST)',[0,48]],['masterTune','MASTER TUNING (HZ)',[340,540]],['pbHeldOnly','PITCH WHEEL ONLY HELD NOTES',null],
-  ['selectBranches','SELECT BRANCHES WITH MIDI NOTES',null],['programChange','MIDI PROGRAM CHANGE',null]];
+  ['selectBranches','SELECT BRANCHES WITH MIDI NOTES',null],['programChange','MIDI PROGRAM CHANGE',null],
+  ['computerKeys','PLAY BRANCHES WITH COMPUTER KEYS (A W S E D…)',null]];
 function renderMidi(){
   $('midiForm').replaceChildren(...MIDI_FIELDS.flatMap(([k,label,opt])=>{
     const l=document.createElement('label');l.textContent=label;l.htmlFor='m_'+k;
@@ -1267,6 +1268,7 @@ function keyPress(n,on,v){KBD.get(n)?.classList.toggle('on',on);HOST?.emitEvent(
 // ================================================================ wiring
 $('bSow').onclick=sow;$('bNew').onclick=newSeed;$('bClone').onclick=clone;$('bReroll').onclick=()=>reroll();
 $('bGenes').onclick=()=>{openDlg('dlgGenes');renderGenes()};$('bUndo').onclick=doUndo;$('bRedo').onclick=doRedo;
+// letter keys play branches only when switched on in MIDI settings: in a DAW with its own computer MIDI keyboard they would sound twice
 const KB='awsedftgyhuj';
 addEventListener('keydown',e=>{
   if(e.target.matches('input[type=number],input[type=text],select'))return;
@@ -1276,7 +1278,7 @@ addEventListener('keydown',e=>{
     else if(k==='s'){e.preventDefault();savePatch()}else if(k==='o'){e.preventDefault();openPatch()}
     return;
   }
-  if(e.repeat||e.altKey||document.querySelector('dialog[open]'))return;
+  if(!S.midi.computerKeys||e.repeat||e.altKey||document.querySelector('dialog[open]'))return;
   const i=KB.indexOf(e.key.toLowerCase());
   if(i<0)return;
   S.sel=i;hud(false);noteOn('k'+i,i);
