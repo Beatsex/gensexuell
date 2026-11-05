@@ -1,4 +1,4 @@
-﻿gensexuell - Beta 0.3.0 (Windows 10 / 11, 64 Bit)
+﻿gensexuell - Beta 0.3.1 (Windows 10 / 11, 64 Bit)
 von beatsexuell
 Klänge wachsen lassen, keine Songs generieren. Läuft komplett auf deinem Rechner.
 
@@ -22,19 +22,19 @@ SO GEHT'S LOS
   - Tasten spielen, einen Ast aus dem Seed ziehen, mit SOW zum neuen Seed machen.
   - Oder links einen Klang beschreiben ("dunkler weicher Bass") und GROW klicken.
   - Oder einen One-Shot auf "Sound -> Seed" ziehen.
-  Das ausführliche Handbuch (englisch) liegt im Startmenü unter gensexuell.
+  Das ausführliche Handbuch (deutsch) liegt im Startmenü unter gensexuell.
 
 FREIE SOFTWARE
   gensexuell steht unter der GNU AGPL v3 (LICENSE.txt). Du darfst es benutzen,
   ändern und weitergeben, gibst dabei aber auch den Quellcode weiter. Der liegt im
-  Installationsordner: gensexuell-0.3.0-source.zip.
+  Installationsordner: gensexuell-0.3.1-source.zip.
 
 FEEDBACK
   Am besten in einfachen Worten: was du gemacht hast, was passiert ist, welche
   DAW, welches Windows.
 
 -------------------------------------------------------------------------------
-gensexuell - beta 0.3.0 (Windows 10 / 11, 64-bit)
+gensexuell - beta 0.3.1 (Windows 10 / 11, 64-bit)
 by beatsexuell
 Grow sounds, don't generate songs. Runs entirely on your computer.
 
@@ -49,7 +49,7 @@ INSTALL
   If it is missing, the setup tells you at the end.
 
 Free software under the GNU AGPL v3 (LICENSE.txt). The source is in the install
-folder: gensexuell-0.3.0-source.zip. Uses JUCE 8 (AGPLv3), clap-juce-extensions (MIT),
+folder: gensexuell-0.3.1-source.zip. Uses JUCE 8 (AGPLv3), clap-juce-extensions (MIT),
 the grainsexuell effects (MIT) and the fonts Inter and JetBrains Mono (SIL OFL 1.1),
 see THIRD-PARTY-LICENSES.txt.
 Patches and renders stay in Documents\Seedling when you uninstall.

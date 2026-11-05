@@ -2,7 +2,7 @@
 ;   "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\gensexuell.iss
 ; The setup lands in build\installer. Run installer\make-source.py first: the source zip ships inside.
 
-#define AppVersion "0.3.0"
+#define AppVersion "0.3.1"
 #define Artefacts "..\build\Seedling_artefacts\Release"
 
 [Setup]
@@ -81,13 +81,15 @@ Source: "{#Artefacts}\CLAP\gensexuell.clap"; DestDir: "{commoncf64}\CLAP"; Compo
 Source: "{#Artefacts}\LV2\gensexuell.lv2\*"; DestDir: "{commoncf64}\LV2\gensexuell.lv2"; Components: lv2; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "*.exp,*.lib"
 Source: "README.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "USER_MANUAL.html"; DestDir: "{app}"; Flags: ignoreversion
+Source: "BENUTZERHANDBUCH.html"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\LICENSE"; DestDir: "{app}"; DestName: "LICENSE.txt"; Flags: ignoreversion
 Source: "..\THIRD-PARTY-LICENSES.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\build\installer\gensexuell-{#AppVersion}-source.zip"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\gensexuell"; Filename: "{app}\gensexuell.exe"; Components: standalone
-Name: "{group}\gensexuell {cm:Manual}"; Filename: "{app}\USER_MANUAL.html"
+Name: "{group}\gensexuell {cm:Manual}"; Filename: "{app}\USER_MANUAL.html"; Languages: en
+Name: "{group}\gensexuell {cm:Manual}"; Filename: "{app}\BENUTZERHANDBUCH.html"; Languages: de
 Name: "{group}\gensexuell Source + License"; Filename: "{app}"
 Name: "{group}\{cm:UninstallProgram,gensexuell}"; Filename: "{uninstallexe}"
 
