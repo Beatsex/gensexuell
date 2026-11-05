@@ -11,21 +11,6 @@ VST3, CLAP und LV2 für Windows und macOS, AU für macOS, dazu eine eigenständi
 
 ![gensexuell](docs/gensexuell.png)
 
-## Funktionen
-
-- **Drei Wege zum Klang**
-  - **Wachsen lassen**: 12 Äste um einen Samen, je länger, desto weiter vom Original. Säen, klonen, neu würfeln, rückgängig.
-  - **Beschreiben**: Auf Deutsch oder Englisch eintippen (*„dunkler, weicher Bass“*, *„glassy pluck, not too bright“*). gensexuell sucht Samen, die wirklich so klingen. Vier Takes pro Klick.
-  - **Sample mitbringen**: One-Shot reinziehen. Ein neuronales Netz schätzt die Gene, vier Stränge verfeinern den Treffer, während du zuhörst.
-- **Performance → Seed**: Eine einstimmige Aufnahme reinziehen (Gesang, Summen, Bass). Noten, Timing, Dynamik und Bends werden erkannt und mit dem aktuellen Samen gespielt. Das Ergebnis als WAV oder MIDI in die DAW ziehen.
-- **Live-Eingang**: Audio auf den Sidechain routen und den Synth in Echtzeit mit Stimme oder Instrument spielen.
-- **54 Gene** im Gen-Editor, an ihren Enden mit Ringmodulation, Wavefolding und gestufter Zufallstonhöhe
-- **Bulb-Modi** (Standard, Velocity, Bereiche, Layer), Poly / Mono / Legato mit Glide, Ast-Lautstärken
-- **Mod-Wheel-Ring** mit zehn Zielen, Tempo-Sync, MPE-Grundlagen
-- **Grain-Effekte** aus [grainsexuell](https://github.com/Beatsex/grainsexuell): Mosaic, Cloud, Shard, Tap, dazu Haze-Hall und Dusk-Tiefpass
-- **Patches**: 12 Werksklänge, Patch-Dateien, Programme, **MIDI Learn**
-- Bildschirmtastatur, Ausgangsanzeige, skalierbares Fenster
-
 ## Installation
 
 Den neuesten Build gibt es unter [Releases](https://github.com/Beatsex/gensexuell/releases).
@@ -45,9 +30,30 @@ Dann die DAW neu starten (oder Plugins neu scannen) und als Instrument einfügen
 4. Oder links *„dunkler weicher Bass“* eintippen und **GROW** klicken.
 5. Oder einen One-Shot auf **Sound → Seed** ziehen.
 
-Gute Beschreibungen schreiben: der [Describe-Leitfaden](docs/DESCRIBE.de.md). Den Parser ausprobieren und alle Wörter durchsuchen: der [interaktive Leitfaden](https://beatsex.github.io/gensexuell/de.html).
+## Dokumentation
 
-Das ausführliche [Handbuch](https://beatsex.github.io/gensexuell/handbuch.html) ist online und liegt jedem Download bei ([englisch](https://beatsex.github.io/gensexuell/manual.html)).
+- **Handbuch**: [online](https://beatsex.github.io/gensexuell/handbuch.html), englisch: [User manual](https://beatsex.github.io/gensexuell/manual.html). Beide liegen auch jedem Download bei.
+- **Klänge beschreiben**: der [Describe-Leitfaden](docs/DESCRIBE.de.md), und der [interaktive Leitfaden](https://beatsex.github.io/gensexuell/de.html) zum Ausprobieren des Parsers und Durchsuchen aller Wörter.
+- **Was sich geändert hat**: [CHANGELOG.md](CHANGELOG.md) (englisch).
+
+## Funktionen
+
+- **Drei Wege zum Klang**
+  - **Wachsen lassen**: 12 Äste um einen Samen, je länger, desto weiter vom Original. Säen, klonen, neu würfeln, rückgängig.
+  - **Beschreiben**: Auf Deutsch oder Englisch eintippen (*„dunkler, weicher Bass“*, *„glassy pluck, not too bright“*). gensexuell sucht Samen, die wirklich so klingen. Vier Takes pro Klick.
+  - **Sample mitbringen**: One-Shot reinziehen. Ein neuronales Netz schätzt die Gene, vier Stränge verfeinern den Treffer, während du zuhörst.
+- **Performance → Seed**: Eine einstimmige Aufnahme reinziehen (Gesang, Summen, Bass). Noten, Timing, Dynamik und Bends werden erkannt und mit dem aktuellen Samen gespielt. Das Ergebnis als WAV oder MIDI in die DAW ziehen.
+- **Live-Eingang**: Audio auf den Sidechain routen und den Synth in Echtzeit mit Stimme oder Instrument spielen.
+- **54 Gene** im Gen-Editor, an ihren Enden mit Ringmodulation, Wavefolding und gestufter Zufallstonhöhe
+- **Bulb-Modi** (Standard, Velocity, Bereiche, Layer), Poly / Mono / Legato mit Glide, Ast-Lautstärken
+- **Mod-Wheel-Ring** mit zehn Zielen, Tempo-Sync, MPE-Grundlagen
+- **Grain-Effekte** aus [grainsexuell](https://github.com/Beatsex/grainsexuell): Mosaic, Cloud, Shard, Tap, dazu Haze-Hall und Dusk-Tiefpass
+- **Patches**: 12 Werksklänge, Patch-Dateien, Programme, **MIDI Learn**
+- Bildschirmtastatur, Ausgangsanzeige, skalierbares Fenster
+
+## Feedback
+
+Ein [Issue](https://github.com/Beatsex/gensexuell/issues) aufmachen, mit Patch oder Seed, was du gespielt und was du gehört hast, DAW und Samplerate. Bei einem Absturz: welche DAW und was du zuletzt geklickt hast.
 
 ## Aus dem Quellcode bauen
 
@@ -64,10 +70,6 @@ Das Plugin landet in `build/Seedling_artefacts/Release/`. Unter Windows erledigt
 Windows-Installer: `py installer\make-source.py`, dann `"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\gensexuell.iss`. Das Setup landet in `build\installer`.
 
 Das Sound → Seed-Netz wird an der Engine selbst trainiert: `tools\dataset.cmd 150000`, dann `py tools/train/train.py`. Neu trainieren, wenn sich die Gene oder die Stimmen-DSP ändern.
-
-## Feedback
-
-Ein [Issue](https://github.com/Beatsex/gensexuell/issues) aufmachen, mit Patch oder Seed, was du gespielt und was du gehört hast, DAW und Samplerate. Bei einem Absturz: welche DAW und was du zuletzt geklickt hast.
 
 ## Lizenz
 
