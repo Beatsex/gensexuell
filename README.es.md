@@ -11,21 +11,6 @@ VST3, CLAP y LV2 en Windows y macOS, AU en macOS, además de una aplicación ind
 
 ![gensexuell](docs/gensexuell.png)
 
-## Funciones
-
-- **Tres caminos hacia un sonido**
-  - **Hazlo crecer**: 12 ramas alrededor de una semilla; cuanto más larga la rama, más lejos del original. Sembrar, clonar, volver a tirar, deshacer.
-  - **Descríbelo**: escribe lo que quieres en alemán o inglés (*"dark, soft bass"*, *"wärmeres Pad mit viel Raum"*). gensexuell busca semillas que suenen realmente así. Cuatro tomas por clic.
-  - **Trae una muestra**: suelta un one-shot. Una red neuronal estima los genes y cuatro hebras afinan el resultado mientras escuchas.
-- **Interpretación → semilla**: suelta una grabación monofónica (voz, tarareo, bajo). Detecta notas, tiempos, dinámica y bends y los toca con la semilla actual. Arrastra el resultado a tu DAW como WAV o MIDI.
-- **Entrada en directo**: envía audio al sidechain y toca el sintetizador con tu voz o un instrumento en tiempo real.
-- **54 genes** en un editor, con modulación en anillo, wavefolding y tono aleatorio escalonado en sus extremos
-- **Modos de bulbo** (estándar, velocidad, rangos, capas), poly / mono / legato con glide, volumen por rama
-- **Anillo de rueda de modulación** con diez destinos, sincronización de tempo, MPE básico
-- **Efectos granulares** de [grainsexuell](https://github.com/Beatsex/grainsexuell): Mosaic, Cloud, Shard, Tap, además de la reverb Haze y el paso bajo Dusk
-- **Patches**: 12 sonidos de fábrica, archivos de patch, programas, **MIDI learn**
-- Teclado en pantalla, medidor de salida, ventana redimensionable
-
 ## Instalación
 
 Descarga la última versión en [Releases](https://github.com/Beatsex/gensexuell/releases).
@@ -45,9 +30,30 @@ Después reinicia tu DAW (o vuelve a escanear los plugins) e insértalo como ins
 4. O escribe *"dark soft bass"* a la izquierda y haz clic en **GROW**.
 5. O suelta un one-shot en **Sound → Seed**.
 
-Cómo escribir buenas descripciones: la [guía de Describe](docs/DESCRIBE.md) (en inglés).
+## Documentación
 
-El manual completo ([`installer/USER_MANUAL.html`](installer/USER_MANUAL.html), en inglés) viene con cada descarga.
+- **Manual**: [en línea](https://beatsex.github.io/gensexuell/manual.html) (en inglés; en alemán: [Handbuch](https://beatsex.github.io/gensexuell/handbuch.html)). Ambos vienen también con cada descarga.
+- **Describir sonidos**: la [guía de Describe](docs/DESCRIBE.md) y la [guía interactiva](https://beatsex.github.io/gensexuell/) para probar el analizador y ver todas las palabras (en inglés).
+- **Qué cambió**: [CHANGELOG.md](CHANGELOG.md) (en inglés).
+
+## Funciones
+
+- **Tres caminos hacia un sonido**
+  - **Hazlo crecer**: 12 ramas alrededor de una semilla; cuanto más larga la rama, más lejos del original. Sembrar, clonar, volver a tirar, deshacer.
+  - **Descríbelo**: escribe lo que quieres en alemán o inglés (*"dark, soft bass"*, *"wärmeres Pad mit viel Raum"*). gensexuell busca semillas que suenen realmente así. Cuatro tomas por clic.
+  - **Trae una muestra**: suelta un one-shot. Una red neuronal estima los genes y cuatro hebras afinan el resultado mientras escuchas.
+- **Interpretación → semilla**: suelta una grabación monofónica (voz, tarareo, bajo). Detecta notas, tiempos, dinámica y bends y los toca con la semilla actual. Arrastra el resultado a tu DAW como WAV o MIDI.
+- **Entrada en directo**: envía audio al sidechain y toca el sintetizador con tu voz o un instrumento en tiempo real.
+- **54 genes** en un editor, con modulación en anillo, wavefolding y tono aleatorio escalonado en sus extremos
+- **Modos de bulbo** (estándar, velocidad, rangos, capas), poly / mono / legato con glide, volumen por rama
+- **Anillo de rueda de modulación** con diez destinos, sincronización de tempo, MPE básico
+- **Efectos granulares** de [grainsexuell](https://github.com/Beatsex/grainsexuell): Mosaic, Cloud, Shard, Tap, además de la reverb Haze y el paso bajo Dusk
+- **Patches**: 12 sonidos de fábrica, archivos de patch, programas, **MIDI learn**
+- Teclado en pantalla, medidor de salida, ventana redimensionable
+
+## Comentarios
+
+Abre un [issue](https://github.com/Beatsex/gensexuell/issues) con el patch o la semilla, lo que tocaste, lo que oíste, tu DAW y la frecuencia de muestreo. Si hay un fallo: qué DAW y qué pulsaste por última vez.
 
 ## Compilar desde el código
 
@@ -60,10 +66,6 @@ ctest --test-dir build -C Release --output-on-failure
 ```
 
 El plugin queda en `build/Seedling_artefacts/Release/`. En Windows, `build.cmd` hace todo esto con las Visual Studio Build Tools.
-
-## Comentarios
-
-Abre un [issue](https://github.com/Beatsex/gensexuell/issues) con el patch o la semilla, lo que tocaste, lo que oíste, tu DAW y la frecuencia de muestreo. Si hay un fallo: qué DAW y qué pulsaste por última vez.
 
 ## Licencia
 
