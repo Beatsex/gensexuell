@@ -22,7 +22,7 @@ SO GEHT'S LOS
   - Tasten spielen, einen Ast aus dem Seed ziehen, mit SOW zum neuen Seed machen.
   - Oder links einen Klang beschreiben ("dunkler weicher Bass") und GROW klicken.
   - Oder einen One-Shot auf "Sound -> Seed" ziehen.
-  Das ausführliche Handbuch (englisch) liegt im Startmenü unter gensexuell.
+  Das ausführliche Handbuch (deutsch) liegt im Startmenü unter gensexuell.
 
 FREIE SOFTWARE
   gensexuell steht unter der GNU AGPL v3 (LICENSE.txt). Du darfst es benutzen,

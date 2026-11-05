@@ -78,6 +78,7 @@ jobs:
           mkdir -p "$OUT"
           cp installer/README.txt LICENSE THIRD-PARTY-LICENSES.txt "$OUT/"
           cp installer/USER_MANUAL.html "$OUT/User Manual.html"
+          cp installer/BENUTZERHANDBUCH.html "$OUT/Benutzerhandbuch.html"
           cp -R "$A/VST3/gensexuell.vst3" "$A/CLAP/gensexuell.clap" "$A/LV2/gensexuell.lv2" "$OUT/"
           if [ "$RUNNER_OS" = "macOS" ]; then
             cp -R "$A/AU/gensexuell.component" "$A/Standalone/gensexuell.app" "$OUT/"
