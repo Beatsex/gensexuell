@@ -47,7 +47,7 @@ Windows と macOS の VST3・CLAP・LV2、macOS の AU、スタンドアロン�
 
 説明文の書き方は [Describe ガイド](docs/DESCRIBE.md)（英語）をご覧ください。
 
-詳しいユーザーマニュアル（[`installer/USER_MANUAL.html`](installer/USER_MANUAL.html)、英語）は各ダウンロードに含まれています。
+詳しい[ユーザーマニュアル](https://beatsex.github.io/gensexuell/manual.html)（英語）はオンラインで読めるほか、各ダウンロードにも含まれています。
 
 ## ソースからビルド
 

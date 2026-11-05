@@ -47,7 +47,7 @@ Dann die DAW neu starten (oder Plugins neu scannen) und als Instrument einfügen
 
 Gute Beschreibungen schreiben: der [Describe-Leitfaden](docs/DESCRIBE.de.md). Den Parser ausprobieren und alle Wörter durchsuchen: der [interaktive Leitfaden](https://beatsex.github.io/gensexuell/de.html).
 
-Das ausführliche Handbuch ([`installer/BENUTZERHANDBUCH.html`](installer/BENUTZERHANDBUCH.html), auf Englisch: [`installer/USER_MANUAL.html`](installer/USER_MANUAL.html)) liegt jedem Download bei.
+Das ausführliche [Handbuch](https://beatsex.github.io/gensexuell/handbuch.html) ist online und liegt jedem Download bei ([englisch](https://beatsex.github.io/gensexuell/manual.html)).
 
 ## Aus dem Quellcode bauen
 

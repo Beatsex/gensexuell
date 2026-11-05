@@ -47,7 +47,7 @@ Después reinicia tu DAW (o vuelve a escanear los plugins) e insértalo como ins
 
 Cómo escribir buenas descripciones: la [guía de Describe](docs/DESCRIBE.md) (en inglés).
 
-El manual completo ([`installer/USER_MANUAL.html`](installer/USER_MANUAL.html), en inglés) viene con cada descarga.
+El [manual completo](https://beatsex.github.io/gensexuell/manual.html) (en inglés) está en línea y viene con cada descarga.
 
 ## Compilar desde el código
 

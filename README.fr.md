@@ -47,7 +47,7 @@ Redémarrez ensuite votre DAW (ou relancez le scan des plugins) et insérez-le c
 
 Bien écrire ses descriptions : le [guide Describe](docs/DESCRIBE.md) (en anglais).
 
-Le manuel complet ([`installer/USER_MANUAL.html`](installer/USER_MANUAL.html), en anglais) accompagne chaque téléchargement.
+Le [manuel complet](https://beatsex.github.io/gensexuell/manual.html) (en anglais) est en ligne et accompagne chaque téléchargement.
 
 ## Compiler depuis les sources
 

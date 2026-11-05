@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Both manuals are on the website: https://beatsex.github.io/gensexuell/manual.html and https://beatsex.github.io/gensexuell/handbuch.html.
+
 ## 0.3.1
 
 - The user manual has screenshots of the window, the menus and every dialog, and there is now a German manual (BENUTZERHANDBUCH.html). The German installer puts it in the Start menu.

@@ -47,7 +47,7 @@ Then restart your DAW (or rescan plugins) and insert it as an instrument: *beats
 
 Writing good descriptions: the [Describe guide](docs/DESCRIBE.md), or try the parser and browse every word in the [interactive guide](https://beatsex.github.io/gensexuell/).
 
-The full user manual ([`installer/USER_MANUAL.html`](installer/USER_MANUAL.html)) comes with every download.
+The full [user manual](https://beatsex.github.io/gensexuell/manual.html) is online and comes with every download.
 
 ## Build from source
 
