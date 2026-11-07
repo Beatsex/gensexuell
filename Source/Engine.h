@@ -259,6 +259,8 @@ private:
     {
         std::array<float, SIZE> sine;
         for (int s = 0; s < SIZE; ++s) sine[size_t (s)] = std::sin (2 * PI * s / SIZE);
+        const int squareM = int (std::lround (SQUARE * (MORPHS - 1)));
+        std::array<float, BANDS> squareRms {};
         for (int m = 0; m < MORPHS; ++m)
         {
             float sn[HARMS[0] + 1], cs[HARMS[0] + 1];
@@ -276,6 +278,13 @@ private:
                     peak = std::max (peak, std::abs (v));
                 }
                 for (auto& v : t) v /= std::max (peak, 1e-6f);
+                // a narrowing pulse keeps the square's loudness (peak-normalised it would fall ~8 dB);
+                // the price is a higher peak (about 2x the square's at 12.5 %), caught by the master soft clipper
+                float sum = 0;
+                for (float v : t) sum += v * v;
+                const float rms = std::sqrt (sum / SIZE);
+                if (m == squareM) squareRms[size_t (b)] = rms;
+                else if (m > squareM) for (auto& v : t) v *= squareRms[size_t (b)] / std::max (rms, 1e-6f);
             }
         }
     }

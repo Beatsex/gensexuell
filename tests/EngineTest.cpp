@@ -67,6 +67,14 @@ int main()
         };
         check (near (high (Tables::SQUARE), 0.5f, 0.02f), "square is 50 % high");
         check (near (high (1), Tables::PULSE_MIN, 0.02f), "morph 1 is a 12.5 % pulse");
+        const auto rms = [] (float morph)
+        {
+            const float* t = Tables::get().table (morph, 20, 48000);
+            float s = 0;
+            for (int i = 0; i < Tables::SIZE; ++i) s += t[i] * t[i];
+            return std::sqrt (s / Tables::SIZE);
+        };
+        check (near (rms (1), rms (Tables::SQUARE), 0.01f) && near (rms (0.9f), rms (Tables::SQUARE), 0.01f), "the pulse keeps the square's level");
     }
 
     Controls c = defaults();

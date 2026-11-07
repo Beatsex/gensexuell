@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- The oscillator wave morphs sine (0) → saw (0.57) → square (0.81) → pulse (1.0); over the last stretch the pulse narrows from 50 % to 12.5 %. The triangle stage is gone. Factory patches and the describe words were moved to the new positions so they keep their sound; saved patches with a wave above 0.81 now play a pulse.
+- The oscillator wave morphs sine (0) → saw (0.57) → square (0.81) → pulse (1.0); over the last stretch the pulse narrows from 50 % to 12.5 % and keeps the square's loudness. The triangle stage is gone. Factory patches and the describe words were moved to the new positions so they keep their sound; saved patches with a wave above 0.81 now play a pulse.
 - Both manuals are on the website: https://beatsex.github.io/gensexuell/manual.html and https://beatsex.github.io/gensexuell/handbuch.html.
 
 ## 0.3.1
