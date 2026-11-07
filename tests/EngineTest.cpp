@@ -48,6 +48,27 @@ int main()
     check (near (g.off[11], -0.1063488f), "branch offsets match JS");
     check (near (freshLens (0x5EED1E55u)[1], 0.2702775f), "freshLens matches JS");
 
+    // ---- wave morph: sine 0, saw 0.57, square 0.81, pulse 1 (width 12.5 %)
+    {
+        float sn, cs;
+        Tables::harmonic (0, 1, sn, cs);                check (near (sn, 1) && near (cs, 0), "morph 0 is a sine");
+        Tables::harmonic (0, 2, sn, cs);                check (near (sn, 0), "sine has no 2nd harmonic");
+        Tables::harmonic (Tables::SAW, 2, sn, cs);      check (near (sn, -1 / PI) && near (cs, 0), "morph 0.57 is a saw");
+        Tables::harmonic (Tables::SQUARE, 2, sn, cs);   check (near (sn, 0) && near (cs, 0), "square has no even harmonics");
+        Tables::harmonic (Tables::SQUARE, 3, sn, cs);   check (near (sn, 4 / (3 * PI)), "morph 0.81 is a square");
+        Tables::harmonic (Tables::SQUARE + 1e-4f, 3, sn, cs);
+        check (near (sn, 4 / (3 * PI), 1e-3f) && near (cs, 0, 1e-2f), "pulse starts where the square ends");
+        const auto high = [] (float morph) // fraction of the cycle above zero (= pulse width)
+        {
+            const float* t = Tables::get().table (morph, 20, 48000);
+            int n = 0;
+            for (int s = 0; s < Tables::SIZE; ++s) n += t[s] > 0;
+            return n / float (Tables::SIZE);
+        };
+        check (near (high (Tables::SQUARE), 0.5f, 0.02f), "square is 50 % high");
+        check (near (high (1), Tables::PULSE_MIN, 0.02f), "morph 1 is a 12.5 % pulse");
+    }
+
     Controls c = defaults();
     c.len.fill (0);
     check (branchParams (g, c, 3) == c.base, "length 0 equals seed");

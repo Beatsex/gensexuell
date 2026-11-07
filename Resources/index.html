@@ -498,7 +498,7 @@ const GENE_INFO={
   volFade:['FADE','Extra fade after the attack (above 0.75)'],envLoop:['LOOP','Envelope loop time (top = no loop)'],envKey:['ENV KEY','Above 0.5: shorter on high keys'],
   modAttack:['MOD ATTACK','Attack of the mod envelope (above 0.5)'],modDecay:['MOD DECAY','Decay of the mod envelope (filter, FM, pitch sweep)'],modVel:['MOD VEL','How much velocity scales the mod envelope'],
   lfoRate:['LFO RATE','LFO speed'],lfoAmt:['LFO DEPTH','Vibrato or tremolo depth'],lfoShape:['LFO TARGET','Vibrato → tremolo (above 0.5) → stepped random pitch (above 0.85)'],lfoDelay:['LFO DELAY','LFO fade-in time (above 0.5)'],
-  waveA:['WAVE A','Oscillator A: sine → triangle → saw → square'],waveB:['WAVE B','Oscillator B: sine → triangle → saw → square'],ratioB:['RATIO B','Pitch of B against A (½× … 4×)'],
+  waveA:['WAVE A','Oscillator A: sine → saw → square → narrow pulse'],waveB:['WAVE B','Oscillator B: sine → saw → square → narrow pulse'],ratioB:['RATIO B','Pitch of B against A (½× … 4×)'],
   fm:['FM','How much B bends the frequency of A'],mix:['MIX','Balance between A and B'],noise:['NOISE','Noise level'],noiseColor:['NOISE COLOR','Dark → white → bright'],
   sub:['SUB','Ring modulation (below 0.3) · sub oscillator an octave down (above 0.5)'],pitchMod:['SWEEP','Pitch sweep from the mod envelope (0.5 = none)'],
   cutoff:['CUTOFF','Filter cutoff, relative to the note'],reso:['RESONANCE','Filter resonance'],fltEnv:['FILTER ENV','How far the mod envelope opens the filter'],
@@ -521,18 +521,18 @@ const PATCH_FIELDS=['name','seed','base','br','len','gain','layers','tuning','ef
   'bulbMode','voiceMode','wheelTarget','wheelScale','tempoSync','glide','velSens','rotation'];
 // presets drafted by DeepSeek v4.1 Flash, checked and adjusted by hand; genes they don't name stay neutral (0.5)
 const PRESETS=[
-{name:"WARM PAD",params:{waveA:0,waveB:.33,ratioB:.5,fm:.05,mix:.35,noise:.03,cutoff:.45,reso:.2,fltEnv:.4,attack:.6,decay:.7,sustain:.75,modDecay:.6,pitchMod:.5,lfoRate:.2,lfoAmt:.15,space:.6,chorus:.7},atonality:.1},
-{name:"GLASS PAD",params:{waveA:.66,waveB:0,ratioB:.75,fm:.1,mix:.4,noise:.05,cutoff:.6,reso:.35,fltEnv:.3,attack:.5,decay:.8,sustain:.7,modDecay:.55,pitchMod:.5,lfoRate:.35,lfoAmt:.2,space:.8},atonality:.2},
+{name:"WARM PAD",params:{waveA:0,waveB:.28,ratioB:.5,fm:.05,mix:.35,noise:.03,cutoff:.45,reso:.2,fltEnv:.4,attack:.6,decay:.7,sustain:.75,modDecay:.6,pitchMod:.5,lfoRate:.2,lfoAmt:.15,space:.6,chorus:.7},atonality:.1},
+{name:"GLASS PAD",params:{waveA:.57,waveB:0,ratioB:.75,fm:.1,mix:.4,noise:.05,cutoff:.6,reso:.35,fltEnv:.3,attack:.5,decay:.8,sustain:.7,modDecay:.55,pitchMod:.5,lfoRate:.35,lfoAmt:.2,space:.8},atonality:.2},
 {name:"SUB BASS",params:{waveA:0,waveB:0,ratioB:.5,fm:0,mix:.2,noise:0,cutoff:.25,reso:.1,fltEnv:.2,attack:0,decay:.4,sustain:.8,modDecay:.3,pitchMod:.5,lfoRate:.1,lfoAmt:0,sub:.8,space:.05},atonality:0},
-{name:"ACID BASS",params:{waveA:.66,waveB:1,ratioB:.5,fm:0,mix:.25,noise:0,cutoff:.3,reso:.7,fltEnv:.6,attack:0,decay:.35,sustain:.5,modDecay:.3,pitchMod:.5,lfoRate:.5,lfoAmt:.1,drive:.7,space:.1},atonality:.05},
-{name:"SOFT PLUCK",params:{waveA:.33,waveB:.66,ratioB:.5,fm:.05,mix:.3,noise:.02,cutoff:.5,reso:.25,fltEnv:.5,attack:0,decay:.5,sustain:0,modDecay:.3,pitchMod:.5,lfoRate:.2,lfoAmt:.05,space:.3},atonality:.1},
-{name:"SYNTH PLUCK",params:{waveA:.66,waveB:.66,ratioB:.75,fm:0,mix:.4,noise:0,cutoff:.55,reso:.4,fltEnv:.65,attack:0,decay:.45,sustain:0,modDecay:.25,pitchMod:.5,lfoRate:.3,lfoAmt:.1,space:.4},atonality:.15},
+{name:"ACID BASS",params:{waveA:.57,waveB:.81,ratioB:.5,fm:0,mix:.25,noise:0,cutoff:.3,reso:.7,fltEnv:.6,attack:0,decay:.35,sustain:.5,modDecay:.3,pitchMod:.5,lfoRate:.5,lfoAmt:.1,drive:.7,space:.1},atonality:.05},
+{name:"SOFT PLUCK",params:{waveA:.28,waveB:.57,ratioB:.5,fm:.05,mix:.3,noise:.02,cutoff:.5,reso:.25,fltEnv:.5,attack:0,decay:.5,sustain:0,modDecay:.3,pitchMod:.5,lfoRate:.2,lfoAmt:.05,space:.3},atonality:.1},
+{name:"SYNTH PLUCK",params:{waveA:.57,waveB:.57,ratioB:.75,fm:0,mix:.4,noise:0,cutoff:.55,reso:.4,fltEnv:.65,attack:0,decay:.45,sustain:0,modDecay:.25,pitchMod:.5,lfoRate:.3,lfoAmt:.1,space:.4},atonality:.15},
 {name:"BELL",params:{waveA:0,waveB:0,ratioB:.8,fm:.35,mix:.5,noise:0,cutoff:.6,reso:.2,fltEnv:.4,attack:0,decay:.7,sustain:0,modDecay:.5,pitchMod:.5,lfoRate:.15,lfoAmt:.05,space:.55},atonality:.2},
-{name:"MARIMBA",params:{waveA:.33,waveB:0,ratioB:1,fm:.15,mix:.35,noise:0,cutoff:.5,reso:.15,fltEnv:.3,attack:0,decay:.5,sustain:0,modDecay:.4,pitchMod:.5,lfoRate:.1,lfoAmt:.05,space:.3},atonality:.1},
-{name:"SOLO LEAD",params:{waveA:.66,waveB:.66,ratioB:.5,fm:0,mix:.3,noise:0,cutoff:.6,reso:.3,fltEnv:.3,attack:.05,decay:.4,sustain:.8,modDecay:.5,pitchMod:.5,lfoRate:.4,lfoAmt:.25,lfoDelay:.75,space:.3},atonality:.1},
-{name:"DARK DRONE",params:{waveA:.66,waveB:1,ratioB:0,fm:.15,mix:.5,noise:.1,cutoff:.3,reso:.5,fltEnv:.2,attack:.7,decay:.9,sustain:.9,modDecay:.8,pitchMod:.4,lfoRate:.1,lfoAmt:.3,space:.95,damp:.7},atonality:.4},
+{name:"MARIMBA",params:{waveA:.28,waveB:0,ratioB:1,fm:.15,mix:.35,noise:0,cutoff:.5,reso:.15,fltEnv:.3,attack:0,decay:.5,sustain:0,modDecay:.4,pitchMod:.5,lfoRate:.1,lfoAmt:.05,space:.3},atonality:.1},
+{name:"SOLO LEAD",params:{waveA:.57,waveB:.57,ratioB:.5,fm:0,mix:.3,noise:0,cutoff:.6,reso:.3,fltEnv:.3,attack:.05,decay:.4,sustain:.8,modDecay:.5,pitchMod:.5,lfoRate:.4,lfoAmt:.25,lfoDelay:.75,space:.3},atonality:.1},
+{name:"DARK DRONE",params:{waveA:.57,waveB:.81,ratioB:0,fm:.15,mix:.5,noise:.1,cutoff:.3,reso:.5,fltEnv:.2,attack:.7,decay:.9,sustain:.9,modDecay:.8,pitchMod:.4,lfoRate:.1,lfoAmt:.3,space:.95,damp:.7},atonality:.4},
 {name:"NOISE SWEEP",params:{waveA:0,waveB:0,ratioB:.5,fm:0,mix:0,noise:.8,cutoff:.4,reso:.6,fltEnv:.8,attack:.2,decay:.6,sustain:0,modDecay:.7,pitchMod:.7,lfoRate:.6,lfoAmt:.2,space:.7},atonality:.5},
-{name:"METAL HIT",params:{waveA:1,waveB:.66,ratioB:.75,fm:.5,mix:.5,noise:.2,cutoff:.7,reso:.5,fltEnv:.5,attack:0,decay:.4,sustain:0,modDecay:.2,pitchMod:.6,lfoRate:.7,lfoAmt:.1,space:.4},atonality:.6}];
+{name:"METAL HIT",params:{waveA:.81,waveB:.57,ratioB:.75,fm:.5,mix:.5,noise:.2,cutoff:.7,reso:.5,fltEnv:.5,attack:0,decay:.4,sustain:0,modDecay:.2,pitchMod:.6,lfoRate:.7,lfoAmt:.1,space:.4},atonality:.6}];
 
 const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
 function mulberry32(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
@@ -872,9 +872,13 @@ function drawGraph(){
     const mp=[];for(let i=0;i<=200;i++){const t=i/200*4;mp.push(`${i*4},${H-8-Math.exp(-t/(md/3))*(H-16)}`)}
     line('M'+mp.join('L'),'4 4');
   }else if(geneTab===1){ // one cycle of A (solid) and B (dashed)
-    const shape=[n=>n===1?1:0,n=>n%2?8/(Math.PI**2*n*n)*((n-1)/2%2?-1:1):0,n=>2/(Math.PI*n)*(n%2?1:-1),n=>n%2?4/(Math.PI*n):0];
-    const wave=(x,ratio)=>{const pos=Math.round(x*24)/8,seg=Math.min(2,Math.floor(pos)),f=pos-seg,ys=[];
-      for(let i=0;i<=200;i++){let y=0;for(let n=1;n<24;n++)y+=(shape[seg](n)*(1-f)+shape[seg+1](n)*f)*Math.sin(2*Math.PI*n*i/200*ratio);ys.push(y)}
+    // mirrors Tables::harmonic in Engine.h: sine 0 > saw .57 > square .81 > pulse 1 (width 50 % > 12.5 %)
+    const harm=(x,n)=>{const P=Math.PI,saw=2/(P*n)*(n%2?1:-1),sq=n%2?4/(P*n):0;
+      if(x<=.57){const f=x/.57;return [(n===1?1-f:0)+saw*f,0]}
+      if(x<=.81){const f=(x-.57)/.24;return [saw*(1-f)+sq*f,0]}
+      const d=.5-.375*(x-.81)/.19;return [2/(P*n)*(1-Math.cos(2*P*n*d)),2/(P*n)*Math.sin(2*P*n*d)]};
+    const wave=(x,ratio)=>{x=Math.round(x*100)/100;const ys=[];
+      for(let i=0;i<=200;i++){let y=0;for(let n=1;n<24;n++){const [s,c]=harm(x,n),a=2*Math.PI*n*i/200*ratio;y+=s*Math.sin(a)+c*Math.cos(a)}ys.push(y)}
       const m=Math.max(...ys.map(Math.abs))||1;return 'M'+ys.map((y,i)=>`${i*4},${H/2-y/m*(H/2-8)}`).join('L')};
     line(wave(b.waveA,1));line(wave(b.waveB,b.ratioB<.5?2**(2*(b.ratioB-.5)):2**(4*(b.ratioB-.5))),'4 4');
   }else{ // filter response, cutoff as if played at C4

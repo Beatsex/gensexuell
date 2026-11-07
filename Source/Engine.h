@@ -205,12 +205,14 @@ inline float syncSeconds (float seconds, const Controls& c)
 }
 
 // ---------------------------------------------------------------- wavetables
-// band-limited morph tables (sine > triangle > saw > square), 25 morph steps
+// band-limited morph tables: sine 0 > saw 0.57 > square 0.81 > pulse 1 (the width narrows from
+// 50 % to 12.5 % over the last segment), 101 morph steps so every break point has its own table
 // ponytail: FM sidebands are not band-limited and alias at extreme fm/high notes; oversample if that matters
 class Tables
 {
 public:
-    static constexpr int SIZE = 2048, MORPHS = 25;
+    static constexpr int SIZE = 2048, MORPHS = 101;
+    static constexpr float SAW = 0.57f, SQUARE = 0.81f, PULSE_MIN = 0.125f;
     static constexpr int HARMS[] = { 40, 28, 20, 14, 10, 7, 5, 3, 2, 1 };
     static constexpr int BANDS = int (std::size (HARMS));
 
@@ -228,24 +230,39 @@ public:
 private:
     std::vector<std::array<float, SIZE>> data;
 
-    static float shape (int s, int n)
+public:
+    // sine / cosine amplitude of harmonic n at a morph position (mirrored in index.html's wave preview)
+    static void harmonic (float morph, int n, float& sn, float& cs)
     {
-        switch (s)
+        const float saw = 2.0f / (PI * n) * (n % 2 ? 1.0f : -1.0f), square = n % 2 ? 4.0f / (PI * n) : 0.0f;
+        cs = 0;
+        if (morph <= SAW)
         {
-            case 0: return n == 1 ? 1.0f : 0.0f;
-            case 1: return n % 2 ? 8.0f / (PI * PI * n * n) * (((n - 1) / 2) % 2 ? -1.0f : 1.0f) : 0.0f;
-            case 2: return 2.0f / (PI * n) * (n % 2 ? 1.0f : -1.0f);
-            default: return n % 2 ? 4.0f / (PI * n) : 0.0f;
+            const float f = morph / SAW;
+            sn = (n == 1 ? 1 - f : 0.0f) + saw * f;
+        }
+        else if (morph <= SQUARE)
+        {
+            const float f = (morph - SAW) / (SQUARE - SAW);
+            sn = saw * (1 - f) + square * f;
+        }
+        else // pulse of width d, aligned so that d = 0.5 is the square above
+        {
+            const float d = 0.5f - (0.5f - PULSE_MIN) * (morph - SQUARE) / (1 - SQUARE);
+            sn = 2.0f / (PI * n) * (1 - std::cos (2 * PI * n * d));
+            cs = 2.0f / (PI * n) * std::sin (2 * PI * n * d);
         }
     }
 
+private:
     Tables() : data (size_t (MORPHS * BANDS))
     {
+        std::array<float, SIZE> sine;
+        for (int s = 0; s < SIZE; ++s) sine[size_t (s)] = std::sin (2 * PI * s / SIZE);
         for (int m = 0; m < MORPHS; ++m)
         {
-            const float pos = m / 8.0f;
-            const int seg = std::min (2, int (pos));
-            const float f = pos - seg;
+            float sn[HARMS[0] + 1], cs[HARMS[0] + 1];
+            for (int n = 1; n <= HARMS[0]; ++n) harmonic (m / float (MORPHS - 1), n, sn[n], cs[n]);
             for (int b = 0; b < BANDS; ++b)
             {
                 auto& t = data[size_t (m * BANDS + b)];
@@ -254,7 +271,7 @@ private:
                 {
                     float v = 0;
                     for (int n = 1; n <= HARMS[b]; ++n)
-                        v += (shape (seg, n) * (1 - f) + shape (seg + 1, n) * f) * std::sin (2 * PI * n * s / SIZE);
+                        v += sn[n] * sine[size_t ((n * s) & (SIZE - 1))] + cs[n] * sine[size_t ((n * s + SIZE / 4) & (SIZE - 1))];
                     t[size_t (s)] = v;
                     peak = std::max (peak, std::abs (v));
                 }
@@ -534,7 +551,11 @@ private:
 class Engine
 {
 public:
-    void prepare (float sampleRate) { sr = sampleRate; for (auto& v : voices) v.active = false; stack.clear(); }
+    void prepare (float sampleRate)
+    {
+        Tables::get(); // build the wavetables here, not on the audio thread at the first note
+        sr = sampleRate; for (auto& v : voices) v.active = false; stack.clear();
+    }
 
     // forcedBranch >= 0: a note played on the UI, which names its branch directly
     void noteOn (int ch, int midi, float vel, int forcedBranch, const Genome& g, const Controls& c, const Settings& s)
