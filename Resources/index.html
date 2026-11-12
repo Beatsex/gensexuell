@@ -71,6 +71,11 @@ main{display:grid;grid-template-columns:260px minmax(0,1fr) 340px;min-height:0}
 .genesView .dlgBody{flex:1;max-height:none}
 .genesView .tabs button{white-space:nowrap;padding:12px 14px}
 .genesView .geneFind{width:auto;flex:1;min-width:110px}
+.fxCards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.fxCard{border:1.5px solid var(--ink);padding:10px 12px;background:#ffffff40}
+.fxHead{display:flex;align-items:center;justify-content:space-between;gap:8px;font:600 12px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.14em}
+.fxCard .selects{grid-template-columns:minmax(0,1fr);padding:8px 0 4px}
+.fxCard .minis{grid-template-columns:minmax(0,1fr);padding:4px 0 0;gap:6px}
 .bulbHead{display:flex;justify-content:space-between;gap:12px;font:400 11px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.1em}
 #wheelLabel{position:absolute;right:20px;bottom:12px;font:400 11px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.1em;pointer-events:none}
 #bulbSvg{display:block;flex:1;width:100%;min-height:0;cursor:grab;touch-action:none}
@@ -284,7 +289,7 @@ footer{display:grid;grid-template-columns:260px minmax(0,1fr) 340px;border-top:1
       <div class="localLine" title="gensexuell runs entirely on this computer: no cloud, no internet connection, nothing you load leaves your machine. It makes sounds, never songs.">LOCAL · NOTHING LEAVES THIS COMPUTER</div>
     </aside>
     <section class="bulb" id="bulb">
-      <div class="viewTabs" role="tablist" aria-label="Centre view"><button role="tab" id="vSeed" aria-selected="true" title="The seed and its twelve branches (Ctrl+G switches)">SEED</button><button role="tab" id="vGenes" aria-selected="false" title="Edit every gene of the seed (Ctrl+G)">GENES <small id="vGenesN"></small></button></div>
+      <div class="viewTabs" role="tablist" aria-label="Centre view"><button role="tab" id="vSeed" aria-selected="true" title="The seed and its twelve branches (Ctrl+G switches)">SEED</button><button role="tab" id="vGenes" aria-selected="false" title="Edit every gene of the seed (Ctrl+G)">GENES <small id="vGenesN"></small></button><button role="tab" id="vFx" aria-selected="false" title="Drive, tape and reverb after the sound, saved with the patch">FX</button></div>
       <div class="bulbHead"><span><span id="label"></span> · LENGTH <span id="big">0.00</span></span><span id="hint">DRAG A BRANCH OUT</span></div>
       <svg id="bulbSvg" viewBox="-292 -292 584 584" role="application" aria-label="Seed and branches">
         <defs>
@@ -306,6 +311,9 @@ footer{display:grid;grid-template-columns:260px minmax(0,1fr) 340px;border-top:1
       <div id="wheelLabel"></div>
       <div class="helpLine" id="helpLine" aria-live="polite"></div>
       <div class="preview mono" id="previewNote" hidden>UI PREVIEW · SOUND COMES FROM THE GENSEXUELL PLUGIN OR STANDALONE</div>
+      <div class="genesView" id="fxView" role="tabpanel" aria-labelledby="vFx" hidden>
+        <div class="dlgBody"><div class="fxCards" id="fxCards"></div><div class="foot mono">DRIVE → TAPE → VERB, AFTER THE GRAIN FX AND HAZE · SAVED WITH THE PATCH · FROM DRIVESEXUELL, TAPESEXUELL AND VERBSEXUELL</div></div>
+      </div>
       <div class="genesView" id="genesView" role="tabpanel" aria-labelledby="vGenes" hidden>
         <div class="tabs" role="tablist" id="geneTabs"></div>
         <div class="dlgBody"><svg class="graph" id="geneGraph" viewBox="0 0 800 120" preserveAspectRatio="none"></svg><div class="geneGrid" id="geneGrid"></div><div class="foot mono" id="geneFoot">DOUBLE-CLICK A GENE TO RESET IT · GENES SET THE SEED, BRANCHES STILL GROW AT RANDOM</div></div>
@@ -565,6 +573,7 @@ const SECTIONS=[['ENVELOPE & LFO',['attack','decay','sustain','volFade','envLoop
 const NOTE=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 const HARM=[0,.5,.75,.5+Math.log2(3)/4,1]; // ratio positions for 0.5x 1x 2x 3x 4x
 const PATCH_FIELDS=['name','seed','base','br','len','gain','layers','tuning','effect','volume','release','atonality','fxType','fxVariant','fxSwarm','fxTail','fxSpan','fxScatter','fxMix',
+  'drvOn','drvStyle','drvAmt','drvTone','drvMix','tapeOn','tapeSpeed','tapeDrive','tapeWow','tapeHiss','tapeMix','verbOn','verbMode','verbDecay','verbSize','verbPre','verbDamp','verbMix',
   'bulbMode','voiceMode','wheelTarget','wheelScale','tempoSync','glide','velSens','rotation'];
 // presets drafted by DeepSeek v4.1 Flash, checked and adjusted by hand; genes they don't name stay neutral (0.5)
 const PRESETS=[
@@ -630,6 +639,8 @@ function branchParams(i){
 const MIDI_DEFAULT={inChannel:0,velCurve:1,pressure:3,minPoly:16,maxPoly:32,pbRange:2,masterTune:440,pbHeldOnly:false,selectBranches:true,programChange:true,computerKeys:false};
 let S={seed:0x5EED1E55,name:'',sel:2,tuning:0,effect:35,volume:-8,release:40,atonality:20,velSens:100,glide:0,wheel:0,wheelScale:100,rotation:0,
   bulbMode:0,voiceMode:0,wheelTarget:0,tempoSync:0,fxType:0,fxVariant:0,fxSwarm:.5,fxTail:.5,fxSpan:.5,fxScatter:0,fxMix:.35,
+  drvOn:0,drvStyle:0,drvAmt:.35,drvTone:.5,drvMix:1,tapeOn:0,tapeSpeed:1,tapeDrive:.35,tapeWow:.25,tapeHiss:.1,tapeMix:1,
+  verbOn:0,verbMode:0,verbDecay:.5,verbSize:.55,verbPre:10,verbDamp:.45,verbMix:.3,
   liveOn:0,liveGate:-45,liveGlide:.03,liveFollow:0,liveOctave:0,
   gain:Array(12).fill(1),layers:Array(12).fill(true),midi:{...MIDI_DEFAULT},cc:{},programs:Array(16).fill(null),patchPath:'',zoom:1};
 S.base=seedParams(S.seed);S.br=dirsFor(S.seed);S.len=freshLens(S.seed);S.len[2]=.75;
@@ -776,7 +787,10 @@ const HELP={tuning:'Tunes the whole sound, ±12 semitones',effect:'How much reve
   liveOn:'Live input: gensexuell plays along with one voice or instrument on its sidechain input',liveFollow:'Own envelope: the seed shapes each note. Follow level: the loudness of your input shapes it',
   bulbMode:'Which branch a key plays: Standard (one per note), Velocity (by how hard), Ranges (keyboard split), Layered (all switched-on branches)',
   voiceMode:'Poly (up to 32 voices), Mono, or Legato (notes slide without a new attack)',wheelTarget:'What the mod wheel does: grow branches, open or close the filter, change envelope times, FM, LFO, effect or volume',
-  tempoSync:'Locks the LFO and looping envelopes to the song tempo',fxType:'Grain effect on the whole sound: Mosaic, Cloud, Shard or Tap',fxVariant:'Variant of the grain effect'};
+  tempoSync:'Locks the LFO and looping envelopes to the song tempo',fxType:'Grain effect on the whole sound: Mosaic, Cloud, Shard or Tap',
+  drvOn:'Drive (from drivesexuell): distortion and saturation after the sound',drvStyle:'Distortion character: five styles from soft to hard',drvAmt:'How hard the drive pushes (1 … 25×)',drvTone:'Brighter or darker after the drive, ±12 dB above 800 Hz',drvMix:'Dry against driven sound',
+  tapeOn:'Tape (from tapesexuell): tape colour, head bump, wow and flutter, hiss',tapeSpeed:'Tape speed: slower has more low end and less top',tapeDrive:'How hard the tape saturates',tapeWow:'Pitch wobble of the tape',tapeHiss:'Tape noise',tapeMix:'Dry against taped sound',
+  verbOn:'Verb (from verbsexuell): a second, bigger reverb at the end of the chain',verbMode:'Reverb type: halls, plates, chambers, rooms and special spaces',verbDecay:'How long the reverb rings',verbSize:'Size of the space',verbPre:'Time before the reverb starts',verbDamp:'Darker reverb tail',verbMix:'Dry against reverb',fxVariant:'Variant of the grain effect'};
 const TILE_WAIT='Drop a recording on Perform and RENDER it first, then drag the result into your DAW',TILE_READY='Drag into your DAW (click: show file)';
 function mkSlider(parent,{key,name,min,max,step,fmt,get,set,n},big=false){
   const d=document.createElement('div');d.className=big?'ctl':'mini';if(HELP[key]??HELP[name])d.title=HELP[key]??HELP[name];
@@ -823,6 +837,18 @@ function mkSelect(parent,key,label,options){
   const s={key,btn,opts};SELECTS.push(s);return s;
 }
 const FX_VARIANTS=[['A','B','C','D'],['STACK','LOW','HIGH','TUMBLE'],['MIST','SHIMMER','MURK','BACKWASH'],['SHUFFLE','CRUSH','ARP','STUTTER'],['ECHO','PING-PONG','REVERSE','CASCADE']];
+function fxCard(title,onKey,selects,sliders){
+  const c=document.createElement('div');c.className='fxCard';c.innerHTML=`<div class="fxHead"><span>${title}</span></div><div class="selects"></div><div class="minis"></div>`;$('fxCards').append(c);
+  mkSelect(c.querySelector('.fxHead'),onKey,'',['OFF','ON']);
+  for(const [k,l,o] of selects)mkSelect(c.querySelector('.selects'),k,l,o);
+  for(const s of sliders)mkSlider(c.querySelector('.minis'),{min:0,max:1,step:.001,fmt:v=>Math.round(v*100)+' %',...s});
+}
+fxCard('DRIVE','drvOn',[['drvStyle','STYLE',['A','E','N','T','P']]],
+  [{key:'drvAmt',name:'DRIVE',fmt:v=>'×'+(1+v*24).toFixed(1)},{key:'drvTone',name:'TONE',fmt:v=>sgn(+((v-.5)*24).toFixed(1))+' dB'},{key:'drvMix',name:'MIX'}]);
+fxCard('TAPE','tapeOn',[['tapeSpeed','SPEED',['7.5 IPS','15 IPS','30 IPS']]],
+  [{key:'tapeDrive',name:'DRIVE'},{key:'tapeWow',name:'WOW'},{key:'tapeHiss',name:'HISS'},{key:'tapeMix',name:'MIX'}]);
+fxCard('VERB','verbOn',[['verbMode','MODE',['CONCERT HALL','BRIGHT HALL','DIRTY HALL','CHAOTIC HALL','VINTAGE HALL','CATHEDRAL','PALACE','PLATE','SMOOTH PLATE','DIRTY PLATE','CHAMBER','VINTAGE CHAMBER','CHAOTIC CHAMBER','ROOM','SMOOTH ROOM','AMBIENCE','SANCTUARY','NONLIN','RANDOM SPACE','CHORUS SPACE','CHAOTIC NEUTRAL']]],
+  [{key:'verbDecay',name:'DECAY',fmt:v=>sec(.5*40**v)},{key:'verbSize',name:'SIZE'},{key:'verbPre',name:'PRE-DELAY',min:0,max:200,step:.1,fmt:v=>Math.round(v)+' ms'},{key:'verbDamp',name:'DAMPING'},{key:'verbMix',name:'MIX'}]);
 mkSelect($('liveSelects'),'liveOn','',['OFF','ON']);
 mkSelect($('liveSelects'),'liveFollow','',['OWN ENVELOPE','FOLLOW LEVEL']);
 mkSlider($('liveMinis'),{key:'liveGate',name:'GATE',min:-70,max:-10,step:1,fmt:v=>Math.round(v)+' dB'});
@@ -914,9 +940,12 @@ function openDlg(id){const d=$(id);if(!d.open)d.showModal()}
 let geneTab=0;
 SECTIONS.forEach(([name],i)=>{const b=document.createElement('button');b.role='tab';b.textContent=name;b.onclick=()=>{geneTab=i;$('geneFind').value='';renderGenes()};$('geneTabs').append(b)});
 {const f=Object.assign(document.createElement('input'),{id:'geneFind',className:'geneFind',type:'search',placeholder:'FIND A GENE…',ariaLabel:'Find a gene by name or what it does'});f.oninput=renderGenes;$('geneTabs').append(f)}
-function showView(genes){$('genesView').hidden=!genes;$('vSeed').setAttribute('aria-selected',!genes);$('vGenes').setAttribute('aria-selected',genes);if(genes)renderGenes()}
-const openGenes=()=>showView($('genesView').hidden); // Ctrl+G and EDIT GENES toggle between the seed and its genes
-$('vSeed').onclick=()=>showView(false);$('vGenes').onclick=()=>showView(true);$('vGenesN').textContent=SECTIONS.flatMap(s=>s[1]).length;
+function showView(v){ // 'seed', 'genes' or 'fx'
+  $('genesView').hidden=v!=='genes';$('fxView').hidden=v!=='fx';
+  for(const [id,n] of [['vSeed','seed'],['vGenes','genes'],['vFx','fx']])$(id).setAttribute('aria-selected',v===n);
+  if(v==='genes')renderGenes()}
+const openGenes=()=>showView($('genesView').hidden?'genes':'seed'); // Ctrl+G and EDIT GENES toggle between the seed and its genes
+$('vSeed').onclick=()=>showView('seed');$('vGenes').onclick=()=>showView('genes');$('vFx').onclick=()=>showView('fx');$('vGenesN').textContent=SECTIONS.flatMap(s=>s[1]).length;
 function renderGenes(){
   const q=$('geneFind').value.trim().toLowerCase();
   [...$('geneTabs').querySelectorAll('[role=tab]')].forEach((b,i)=>b.setAttribute('aria-selected',!q&&i===geneTab));
@@ -1074,7 +1103,7 @@ function fitWindow(){if(!HOST)return;const r=document.documentElement,z=Math.min
 addEventListener('resize',fitWindow);fitWindow();
 const MAIN=[['UNDO',doUndo,'Ctrl+Z'],['REDO',doRedo,'Ctrl+Shift+Z'],null,['OPEN PATCH…',openPatch,'Ctrl+O'],['SAVE PATCH…',savePatch,'Ctrl+S'],['COPY PATCH',copyPatch],['PASTE PATCH',pastePatch],null,
   ['SOW',sow],['NEW RANDOM SEED',newSeed],['CLONE BRANCH TO ALL',clone],['GROW NEW RANDOM BRANCH',()=>reroll()],null,
-  ['GENES',()=>showView(true),'Ctrl+G'],['SOUND → SEED…',()=>openDlg('dlgSound')],['TEXT → SEED',()=>$('desc').focus()],['HOW TO DESCRIBE…',()=>openDlg('dlgDescribe')],['PERFORMANCE → SEED…',()=>openDlg('dlgPerf')],null,
+  ['GENES',()=>showView('genes'),'Ctrl+G'],['EFFECTS',()=>showView('fx')],['SOUND → SEED…',()=>openDlg('dlgSound')],['TEXT → SEED',()=>$('desc').focus()],['HOW TO DESCRIBE…',()=>openDlg('dlgDescribe')],['PERFORMANCE → SEED…',()=>openDlg('dlgPerf')],null,
   ['CORRECT TUNING',correctTuning],['NORMALIZE VOLUME',normalizeVolume],['NORMALIZE BRANCH VOLUMES',normalizeBranches],['BRANCH VOLUMES…',()=>{openDlg('dlgBranches');renderBranches()}],null,
   ['MIDI CONTROLLERS…',()=>{openDlg('dlgCc');renderCc()}],['MIDI SETTINGS…',()=>{openDlg('dlgMidi');renderMidi()}],['PROGRAM LIST…',()=>{openDlg('dlgPrograms');renderPrograms()}],null,
   ['ZOOM',null],['ABOUT',()=>openDlg('dlgAbout')]];
@@ -1352,7 +1381,7 @@ const idleHelp=()=>started?'':START_HINT;
 function markStarted(){if(started)return;started=true;try{localStorage.setItem('gs.started','1')}catch{}if($('helpLine').textContent===START_HINT)$('helpLine').textContent=''}
 $('keyboard').addEventListener('pointerdown',markStarted);$('bulbSvg').addEventListener('pointerdown',markStarted);
 $('helpLine').textContent=idleHelp();
-addEventListener('pointerover',e=>{const t=e.target.closest?.('[title]');$('helpLine').textContent=t&&!t.closest('dialog,#genesView')?t.getAttribute('title'):idleHelp()});
+addEventListener('pointerover',e=>{const t=e.target.closest?.('[title]');$('helpLine').textContent=t&&!t.closest('dialog,#genesView,#fxView')?t.getAttribute('title'):idleHelp()});
 addEventListener('keydown',e=>{
   if(e.target.matches('input[type=number],input[type=text],input[type=search],select'))return;
   if(e.ctrlKey||e.metaKey){
