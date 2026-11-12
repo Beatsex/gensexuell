@@ -220,7 +220,7 @@ inline float syncSeconds (float seconds, const Controls& c)
 // ---------------------------------------------------------------- wavetables
 // band-limited morph tables: sine 0 > saw 0.57 > square 0.81 > pulse 1 (the width narrows from
 // 50 % to 12.5 % over the last segment), 101 morph steps so every break point has its own table
-// ponytail: FM sidebands are not band-limited and alias at extreme fm/high notes; oversample if that matters
+// ponytail: FM sidebands are not band-limited; the 2x oversampled voice helps, extreme fm on high notes still aliases
 class Tables
 {
 public:
@@ -335,6 +335,37 @@ struct Live
     float filterMul = 1, fmAdd = 0, lfoAdd = 0, bendSemis = 0;
 };
 
+// ---------------------------------------------------------------- oversampling
+// the voice runs at 2^OS_STAGES times the host rate; each half-band stage halves it again
+inline constexpr int OS_STAGES = 1, OS = 1 << OS_STAGES;
+// 63-tap half-band low-pass (Blackman-windowed sinc): flat to ~0.2, stops from ~0.3 of the rate it runs at
+inline const std::array<float, 63> halfBandTaps = [] {
+    std::array<float, 63> t {};
+    double sum = 0;
+    for (int i = 0; i < 63; ++i)
+    {
+        const int m = i - 31;
+        const double w = 0.42 - 0.5 * std::cos (2 * PI * i / 62) + 0.08 * std::cos (4 * PI * i / 62);
+        t[size_t (i)] = float ((m == 0 ? 0.5 : std::sin (PI * m / 2) / (PI * m)) * w);
+        sum += t[size_t (i)];
+    }
+    for (auto& x : t) x = float (x / sum);
+    return t;
+}();
+struct HalfBand
+{
+    float buf[126] {};
+    int pos = 0;
+    void push (float v) { buf[pos] = buf[pos + 63] = v; pos = pos == 62 ? 0 : pos + 1; }
+    float out() const
+    {
+        const float* x = buf + pos;
+        float y = halfBandTaps[31] * x[31];
+        for (int i = 0; i < 63; i += 2) y += halfBandTaps[size_t (i)] * x[i]; // the other odd taps are zero
+        return y;
+    }
+};
+
 // ---------------------------------------------------------------- voice
 class Voice
 {
@@ -347,7 +378,8 @@ public:
     void start (int midi, int ch, int br, float vel, const Genome& g, const Controls& c, const Settings& s, float sampleRate,
                 uint32_t& rng, float glideFrom, float layerCents)
     {
-        sr = sampleRate;
+        sr = sampleRate * OS;
+        for (auto& h : down) h = {};
         note = midi;
         channel = ch;
         branch = br;
@@ -382,7 +414,8 @@ public:
         trem = p[lfoShape] > 0.5f ? (std::min (p[lfoShape], 0.85f) - 0.5f) * 2 * (1 - shMix) : 0.0f;
         lfoDelayS = p[lfoDelay] > 0.5f ? (p[lfoDelay] - 0.5f) * 2 * 2 * sr : 0.0f;
         noiseAmt = std::pow (p[noise], 1.5f) * 0.8f;
-        noiseLp = p[noiseColor] < 0.5f ? 0.02f + 1.96f * p[noiseColor] : 1.0f;
+        noiseLp = 1 - std::pow (1 - (p[noiseColor] < 0.5f ? 0.02f + 1.96f * p[noiseColor] : 1.0f), 1.0f / OS); // same colour at the oversampled rate
+        noiseSlow = 1 - std::pow (0.95f, 1.0f / OS);
         noiseHp = p[noiseColor] > 0.5f ? (p[noiseColor] - 0.5f) * 2 : 0.0f;
         subAmt = p[sub] > 0.5f ? (p[sub] - 0.5f) * 1.4f : 0.0f;
         ringAmt = p[sub] < 0.3f ? (0.3f - p[sub]) / 0.3f : 0.0f; // below every seed's range: ring modulation, 0.3 .. 0.5 is neither
@@ -465,7 +498,7 @@ public:
         const float lfoA = clamp01 (p[lfoAmt] + live.lfoAdd), lfoCents = lfoA * lfoA * 100 * (1 - trem) * (1 - 0.5f * lfoBal), tremDepth = lfoA * trem * 0.5f * (1 + 0.5f * lfoBal);
         const float fltT = p[fltType];
 
-        for (int s = 0; s < n; ++s)
+        for (int s = 0; s < n * OS; ++s)
         {
             if (loopS > 0 && t >= loopS && ! releasing)
             {
@@ -511,8 +544,8 @@ public:
 
             const float w = rand (rng) * 2 - 1;
             nLp += (w - nLp) * noiseLp;
-            nSlow += (w - nSlow) * 0.05f;
-            const float nz = nLp - noiseHp * nSlow;
+            nSlow += (w - nSlow) * noiseSlow;
+            const float nz = (nLp - noiseHp * nSlow) * std::sqrt (float (OS)); // decimation keeps 1/OS of the white noise power
 
             const float a = lookup (ta, phA);
             const float mixB = clamp01 (p[mix] + mixModAmt * mod * 0.5f), mixA = 1 - mixB; // expansion gene: mix can follow the mod envelope
@@ -540,7 +573,7 @@ public:
             }
             if (driveGain > 1)
             {
-                // ponytail: the fold isn't oversampled, so it aliases on high notes; oversample the voice if that gets audible
+                // ponytail: oversampled by OS only; at full fold on very high notes some aliasing is left, raise OS_STAGES if audible
                 const float sat = std::tanh (y * driveGain);
                 y = (foldAmt > 0 ? sat + foldAmt * (std::sin (y * driveGain * 1.5f) - sat) : sat) / std::sqrt (driveGain);
             }
@@ -548,10 +581,22 @@ public:
                 y = std::tanh (y * (1 + shaperAmt * 3)); // expansion gene: extra wave shaping
 
             const float out = y * amp * fade * (1 - tremDepth * (1 + std::sin (2 * PI * phL)));
-            L[s] += out * gl;
-            R[s] += out * gr;
             ++t;
             ++tAll;
+            // decimate back to the host rate: every stage keeps every second sample
+            float d = out;
+            bool ready = true;
+            for (int st = 0, m = s; st < OS_STAGES && ready; ++st, m >>= 1)
+            {
+                down[size_t (st)].push (d);
+                ready = (m & 1) != 0;
+                if (ready) d = down[size_t (st)].out();
+            }
+            if (ready)
+            {
+                L[s >> OS_STAGES] += d * gl;
+                R[s >> OS_STAGES] += d * gr;
+            }
         }
 
         if ((releasing && amp < 1e-5f) || (oneShotEnd > 0 && t > oneShotEnd) || (fade < 1e-4f) || ! std::isfinite (f1.ic1 + f1.ic2 + f2.ic1 + f3.ic1 + f4.ic1))
@@ -569,8 +614,9 @@ private:
 
     Params p {};
     Svf f1, f2, f3, f4;
+    std::array<HalfBand, OS_STAGES> down;
     float sr = 48000, masterTune = 440, tune = 0, semi = 60, targetSemi = 60, glideCoef = 1, ratio = 1, sweep = 0;
-    float lfoHz = 1, trem = 0, lfoDelayS = 0, noiseAmt = 0, noiseLp = 1, noiseHp = 0, nLp = 0, nSlow = 0, subAmt = 0;
+    float lfoHz = 1, trem = 0, lfoDelayS = 0, noiseAmt = 0, noiseLp = 1, noiseSlow = 0.05f, noiseHp = 0, nLp = 0, nSlow = 0, subAmt = 0;
     float spreadAmt = 0, spreadMul = 1, driveGain = 1, k = 1, modCoef = 0, modAtkS = 0, mod = 1, modEnv = 1, modShS = 0, modShT = 0, modScale = 1;
     float decCoef = 0, relCoef = 0, sus = 0, peak = 0, amp = 0, ampStart = 0, fade = 1, fadeCoef = 1, loopS = 0;
     float atkS = 1, oneShotEnd = -1, gl = 0.7f, gr = 0.7f, phA = 0, phB = 0, phL = 0, phS = 0, t = 0, tAll = 0;

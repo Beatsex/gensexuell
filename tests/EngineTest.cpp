@@ -370,6 +370,34 @@ int main()
         check (closest > 0.02f, "the four filter types sound different");
     }
 
+    {
+        // anti-aliasing: a driven saw at A6 (1760 Hz) should keep its energy on the harmonics
+        Params p = neutralGenes();
+        p[waveA] = 0.57f; p[mix] = 0; p[noise] = 0; p[fm] = 0; p[cutoff] = 1; p[fltEnv] = 0; p[attack] = 0; p[sustain] = 1;
+        p[lfoAmt] = 0; p[drive] = 0.8f; // 1x: 23.5 dB, 2x: 31.8 dB
+        Controls cs = defaults();
+        cs.base = p;
+        cs.len.fill (0);
+        Voice v;
+        uint32_t rng = 1;
+        v.start (93, 0, 0, 0.9f, g, cs, s, 48000, rng, -1, 0);
+        const int N = 4800; // 10 Hz bins: every harmonic of 1760 Hz sits on a bin
+        std::vector<float> L (N * 2), R (N * 2);
+        v.render (L.data(), R.data(), N * 2, rng, Live {});
+        const float* x = L.data() + N;
+        double all = 0, harm = 0;
+        for (int i = 0; i < N; ++i) all += double (x[i]) * x[i];
+        for (int k = 0; k * 1760 < 24000; ++k)
+        {
+            double re = 0, im = 0;
+            for (int i = 0; i < N; ++i) { const double a = 2 * PI * k * 176.0 * i / N; re += x[i] * std::cos (a); im -= x[i] * std::sin (a); }
+            harm += (k == 0 ? 1.0 : 2.0) * (re * re + im * im) / N;
+        }
+        const double aliasDb = 10 * std::log10 (std::max (all - harm, 1e-12) / all);
+        std::printf ("aliasing: %.1f dB below the harmonics (driven saw at 1760 Hz)\n", -aliasDb);
+        check (aliasDb < -28, "a driven saw on a high note keeps its aliases low (oversampled voice)");
+    }
+
     // ---- sound -> seed
     {
         const auto f1 = patchFeatures (base, 60), f2 = patchFeatures (base, 60);
