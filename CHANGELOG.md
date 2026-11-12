@@ -12,6 +12,8 @@
 - Every control explains itself: hover it for a tooltip, and a line at the bottom of the seed view says what it does. Greyed-out WAV and MIDI tiles say what to do first.
 - Easier to read: labels are larger and darker, and the mode selectors (BULB, VOICE, WHEEL, SYNC, live input, grain FX) look like buttons.
 - No more double names: the live input slider is now LIVE GLIDE and the mod wheel amount is WHEEL DEPTH.
+- The gene editor shows real values: ms and s, Hz and kHz, dB, octaves, wave and filter names, ON/OFF where a gene only acts above a point. Times and cutoff are shown as played at C4.
+- SOW, NEW SEED, REROLL and CLONE say how they differ, and a first-start hint in the seed view says what to do first until you play a key or drag a branch.
 - Both manuals are on the website: https://beatsex.github.io/gensexuell/manual.html and https://beatsex.github.io/gensexuell/handbuch.html.
 
 ## 0.3.1

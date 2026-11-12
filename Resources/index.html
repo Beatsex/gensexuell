@@ -252,7 +252,7 @@ footer{display:grid;grid-template-columns:260px minmax(0,1fr) 340px;border-top:1
     <div class="topActions">
       <button id="bUndo" title="Undo (Ctrl+Z)" aria-label="Undo">↶</button>
       <button id="bRedo" title="Redo (Ctrl+Shift+Z)" aria-label="Redo">↷</button>
-      <button id="bSow" title="Sow the selected branch as the new seed">SOW</button>
+      <button id="bSow" title="Keep the selected branch: it becomes the new seed, with twelve new branches around it">SOW</button>
     </div>
   </header>
   <main>
@@ -296,7 +296,7 @@ footer{display:grid;grid-template-columns:260px minmax(0,1fr) 340px;border-top:1
         <circle r="248" fill="none" stroke="var(--line)"/>
         <g id="wheelRing"><circle id="wheelCircle" r="192" fill="none" stroke="var(--line)"/><circle id="wheelHit" r="192" fill="none" stroke="transparent" stroke-width="16"/></g>
         <g id="stems" fill="none" stroke="var(--ink)" stroke-linecap="round"></g>
-        <g id="drops" filter="url(#goo)" fill="var(--ink)"><circle id="seedBlob" r="38"/></g>
+        <g id="drops" filter="url(#goo)" fill="var(--ink)"><circle id="seedBlob" r="38" title="Click the seed to SOW the selected branch"/></g>
         <text y="5" text-anchor="middle" fill="var(--pink)" font-size="14" font-weight="600" letter-spacing="1" pointer-events="none">SOW</text>
         <g id="nodes"></g>
         <g id="keys" class="mono" font-size="12"></g>
@@ -314,10 +314,10 @@ footer{display:grid;grid-template-columns:260px minmax(0,1fr) 340px;border-top:1
     <aside class="panel right">
       <div class="ctlGrid" id="ctls"></div>
       <div class="actions">
-        <button id="bNew" title="New random seed">NEW SEED</button>
-        <button id="bReroll" title="Grow a new random branch here">REROLL</button>
-        <button id="bClone" title="Clone the selected branch to all">CLONE</button>
-        <button id="bVolumes" title="Branch volumes">VOLUMES</button>
+        <button id="bNew" title="Start over with a completely new random seed">NEW SEED</button>
+        <button id="bReroll" title="Send the selected branch in a new random direction (the seed stays)">REROLL</button>
+        <button id="bClone" title="Copy the selected branch to all twelve keys, so every key plays it">CLONE</button>
+        <button id="bVolumes" title="Set the level of each branch">VOLUMES</button>
       </div>
       <div class="card selects" id="modes"></div>
       <div class="card minis" id="lower"></div>
@@ -515,26 +515,46 @@ const BASE=KEYS.slice(0,35); // genes seeded/streamed before the expansion (keep
 const PITCH=['octA','semiA','centA','semiB','centB'];
 const pitchSteps=(p,range)=>Math.floor((p-.5)*range+.5); // same rounding as Engine.h pitchSteps()
 const sgn=v=>(v>0?'+':v<0?'−':'')+Math.abs(v);
-const GENE_FMT={modSH:v=>v>.6?Math.round(64**((v-.6)/.4))+' /s':'OFF',octA:v=>sgn(pitchSteps(v,4))+' oct',semiA:v=>sgn(pitchSteps(v,24))+' st',centA:v=>sgn(Math.round((v-.5)*100))+' ct',semiB:v=>sgn(pitchSteps(v,24))+' st',centB:v=>sgn(Math.round((v-.5)*100))+' ct'};
+const sec=s=>s<1?Math.round(s*1000)+' ms':s.toFixed(s<10?2:1)+' s',hz=f=>f<1000?Math.round(f)+' Hz':(f/1000).toFixed(f<1e4?2:1)+' kHz';
+const above=(v,from)=>v>from?Math.round((v-from)/(1-from)*100)+' %':'OFF',bip=v=>sgn(Math.round((v-.5)*200))+' %',times=v=>'×'+(2**((v-.5)*2)).toFixed(2);
+const nearest=(v,pos,names)=>{let i=0;for(let j=1;j<pos.length;j++)if(Math.abs(v-pos[j])<Math.abs(v-pos[i]))i=j;return(Math.abs(v-pos[i])>.02?'~':'')+names[i]};
+const waveName=v=>v>.81?'PULSE '+Math.round(50-37.5*(v-.81)/.19)+' %':nearest(v,[0,.57,.81],['SINE','SAW','SQUARE']);
+const GENE_FMT={
+  attack:v=>sec(.002*2000**v),decay:v=>sec(.01*800**v),sustain:v=>v<.08?'NONE':Math.round(v*100)+' %',volFade:v=>v>.75?sec(10-(v-.75)*38):'OFF',
+  envLoop:v=>v<.98?sec(.05*160**v):'OFF',envKey:v=>'×'+(2**(-(v-.5)*2)).toFixed(2)+'/oct',modAttack:v=>v>.5?sec(.001*2000**((v-.5)*2)):'NONE',
+  modDecay:v=>sec(.01*800**v),modVel:v=>Math.round(clamp((v-.1)/.9)*100)+' %',lfoRate:v=>(.05*400**v).toFixed(v<.5?2:1)+' Hz',lfoAmt:v=>Math.round(v*100)+' %',
+  lfoShape:v=>v>.85?'STEPS':v>.5?'TREMOLO':'VIBRATO',lfoDelay:v=>v>.5?sec((v-.5)*4):'NONE',
+  waveA:waveName,waveB:waveName,ratioB:v=>'×'+(v<.5?2**(2*(v-.5)):2**(4*(v-.5))).toFixed(2),fm:v=>(v*v*10).toFixed(1),mix:v=>'B '+Math.round(v*100)+' %',
+  noise:v=>Math.round(v**1.5*80)+' %',noiseColor:v=>Math.abs(v-.5)<.02?'WHITE':v<.5?'DARK':'BRIGHT',
+  sub:v=>v<.3?'RING '+Math.round((.3-v)/.3*100)+' %':v>.5?'SUB '+Math.round(Math.min(1,(v-.5)*1.4)*100)+' %':'OFF',pitchMod:v=>sgn(+((v-.5)*48).toFixed(1))+' st',
+  cutoff:v=>hz(130.8*40**v),reso:v=>'+'+(.5*30**v).toFixed(1)+' dB',fltEnv:v=>'+'+(v*6).toFixed(1)+' oct',fltType:v=>nearest(v,[0,1/3,2/3,1],['BAND-PASS','STEEP LP','TWO PEAKS','NOTCH']),
+  fltSpread:v=>Math.abs(v-.5)<.01?'OFF':sgn(+((v-.5)*6).toFixed(1))+' oct',fltKey:v=>Math.round(Math.min(1,v*2)*100)+' %',
+  drive:v=>v<=.5?'CLEAN':'+'+Math.round(20*Math.log10(1+(v-.5)*16))+' dB'+(v>.8?' FOLD':''),
+  space:v=>['ROOM','PLATE','HALL','SWELL'][Math.min(3,Math.floor(v*4))],damp:v=>v<=.5?'OFF':hz(19900*2**(-(v-.5)*14)),chorus:v=>v>.5?Math.round(Math.min(1,(v-.5)*1.6)*100)+' %':'OFF',
+  bass:v=>sgn(+((v-.5)*24).toFixed(1))+' dB',treble:v=>sgn(+((v-.5)*24).toFixed(1))+' dB',spread:v=>Math.round(v*100)+' %',
+  envTime:times,envTilt:bip,modHold:v=>above(v,.5),lfoBalance:bip,noiseB:v=>above(v,.5),modB:bip,holdB:v=>above(v,.5),fmMod:v=>above(v,.5),mixMod:bip,shaper:v=>above(v,.5),
+  rvbSize:times,fxDamp:times,fxMix:v=>sgn(Math.round((v-.5)*100)),fxSize:v=>sgn(Math.round((v-.5)*100)),fxLength:v=>sgn(Math.round((v-.5)*100)),
+  rvbAttack:()=>'NOT USED',rvbLength:()=>'NOT USED',fxChorus:()=>'NOT USED',
+  modSH:v=>v>.6?Math.round(64**((v-.6)/.4))+' /s':'OFF',octA:v=>sgn(pitchSteps(v,4))+' oct',semiA:v=>sgn(pitchSteps(v,24))+' st',centA:v=>sgn(Math.round((v-.5)*100))+' ct',semiB:v=>sgn(pitchSteps(v,24))+' st',centB:v=>sgn(Math.round((v-.5)*100))+' ct'};
 const MASTER=new Set(['space','damp','chorus','bass','treble','rvbSize','rvbAttack','rvbLength','fxMix','fxSize','fxLength','fxDamp','fxChorus']);
 const GENE_INFO={
-  attack:['ATTACK','Volume attack time'],decay:['DECAY','Volume decay time'],sustain:['SUSTAIN','Level held while the key is down (below 0.08: none)'],
+  attack:['ATTACK','Volume attack time (shown at C4, before ENV TIME)'],decay:['DECAY','Volume decay time (shown at C4, before ENV TIME)'],sustain:['SUSTAIN','Level held while the key is down (below 0.08: none)'],
   volFade:['FADE','Extra fade after the attack (above 0.75)'],envLoop:['LOOP','Envelope loop time (top = no loop)'],envKey:['ENV KEY','Above 0.5: shorter on high keys'],
   modAttack:['MOD ATTACK','Attack of the mod envelope (above 0.5)'],modDecay:['MOD DECAY','Decay of the mod envelope (filter, FM, pitch sweep)'],modVel:['MOD VEL','How much velocity scales the mod envelope'],
   lfoRate:['LFO RATE','LFO speed'],lfoAmt:['LFO DEPTH','Vibrato or tremolo depth'],lfoShape:['LFO TARGET','Vibrato → tremolo (above 0.5) → stepped random pitch (above 0.85)'],lfoDelay:['LFO DELAY','LFO fade-in time (above 0.5)'],
   waveA:['WAVE A','Oscillator A: sine → saw → square → narrow pulse'],waveB:['WAVE B','Oscillator B: sine → saw → square → narrow pulse'],ratioB:['RATIO B','Pitch of B against A (½× … 4×)'],
   fm:['FM','How much B bends the frequency of A'],mix:['MIX','Balance between A and B'],noise:['NOISE','Noise level'],noiseColor:['NOISE COLOR','Dark → white → bright'],
   sub:['SUB','Ring modulation (below 0.3) · sub oscillator an octave down (above 0.5)'],pitchMod:['SWEEP','Pitch sweep from the mod envelope (0.5 = none)'],
-  cutoff:['CUTOFF','Filter cutoff, relative to the note'],reso:['RESONANCE','Filter resonance'],fltEnv:['FILTER ENV','How far the mod envelope opens the filter'],
+  cutoff:['CUTOFF','Filter cutoff, relative to the note (shown as played at C4)'],reso:['RESONANCE','Filter resonance'],fltEnv:['FILTER ENV','How far the mod envelope opens the filter'],
   fltType:['FILTER TYPE','Band-pass (0) → steep low-pass (0.33) → two low-pass peaks an octave apart (0.67) → notch (1)'],fltSpread:['SPREAD','A second filter stage below or above the first'],fltKey:['KEY TRACK','Cutoff follows the key (0.5 = exactly)'],
   drive:['DRIVE','Saturation inside the voice (above 0.5) · wavefolding (above 0.8)'],space:['ROOM','Haze reverb: room / plate / hall / swell'],damp:['DUSK','Low-pass on the output (above 0.5)'],
   chorus:['CHORUS','Chorus (above 0.5)'],bass:['BASS','Low shelf ±12 dB'],treble:['TREBLE','High shelf ±12 dB'],spread:['PAN','How wide branches pan around the seed'],
   envTime:['ENV TIME','Overall envelope time scale'],envTilt:['ENV TILT','Envelope tilt'],modHold:['MOD HOLD','Mod envelope hold'],
   lfoBalance:['LFO BALANCE','LFO balance'],pitchA:['PITCH A','Oscillator A pitch'],noiseB:['NOISE B','Noise into B'],
   modB:['MOD B','Modulation of oscillator B'],holdB:['HOLD B','Sample & hold on B'],fmMod:['FM MOD','FM depth from the mod envelope'],
-  mixMod:['MIX MOD','Mix follows the mod envelope'],shaper:['SHAPER','Wave shaper'],rvbSize:['ROOM SIZE','Reverb size'],
-  rvbAttack:['ROOM ATTACK','Reverb attack'],rvbLength:['ROOM LENGTH','Reverb length'],fxMix:['FX MIX GENE','Extra FX mix'],
-  fxSize:['FX SIZE','Extra FX size'],fxLength:['FX LENGTH','Extra FX length'],fxDamp:['FX DAMP','Extra FX damping'],fxChorus:['FX CHORUS','Extra FX chorus'],
+  mixMod:['MIX MOD','Mix follows the mod envelope'],shaper:['SHAPER','Wave shaper'],rvbSize:['ROOM SIZE','How much reverb, on top of EFFECT'],
+  rvbAttack:['ROOM ATTACK','Not used yet: changing it does nothing'],rvbLength:['ROOM LENGTH','Not used yet: changing it does nothing'],fxMix:['FX MIX GENE','Adds to or takes from the grain FX mix'],
+  fxSize:['FX SIZE','Adds to or takes from the grain length (SPAN)'],fxLength:['FX LENGTH','Adds to or takes from the grain feedback (TAIL)'],fxDamp:['FX DAMP','Moves the DUSK low-pass up or down'],fxChorus:['FX CHORUS','Not used yet: changing it does nothing'],
   octA:['OCT A','Pitch of oscillator A in octaves, −2 to +2 (B, FM and sub follow A)'],semiA:['SEMI A','Pitch of oscillator A in semitones, ±12'],centA:['CENT A','Fine pitch (detune) of oscillator A, ±50 cents'],
   modSH:['MOD S&H','Above 0.6: the mod envelope moves in steps, 1 to 64 per second'],
   semiB:['SEMI B','Pitch of oscillator B in semitones on top of RATIO B, ±12'],centB:['CENT B','Fine pitch (detune) of oscillator B on top of RATIO B, ±50 cents']};
@@ -752,7 +772,7 @@ const HELP={tuning:'Tunes the whole sound, ±12 semitones',effect:'How much reve
   glide:'Portamento: how long the pitch slides from one note to the next',wheelScale:'How far the mod wheel reaches',velSens:'How much playing harder makes it louder',
   liveGate:'Live input quieter than this counts as silence: raise it if breaths or room noise trigger notes',liveGlide:'How smoothly the live pitch follows you between notes',liveOctave:'Plays the live input up to two octaves higher or lower',
   fxSwarm:'Grain density: how many grains per second',fxTail:'Feedback: how long the grain effect keeps going',fxSpan:'Grain length',fxScatter:'Randomness: where grains start, their pitch and their place in the stereo field',fxMix:'How much of the grain effect you hear',
-  HAZE:'Reverb amount (the space gene of the seed)',DUSK:'Darkens the reverb (the damp gene of the seed)',
+  HAZE:'Reverb type: Room, Plate, Hall or Swell (EFFECT sets how much)',DUSK:'Low-pass on the whole sound: off up to 50, darker above',
   liveOn:'Live input: gensexuell plays along with one voice or instrument on its sidechain input',liveFollow:'Own envelope: the seed shapes each note. Follow level: the loudness of your input shapes it',
   bulbMode:'Which branch a key plays: Standard (one per note), Velocity (by how hard), Ranges (keyboard split), Layered (all switched-on branches)',
   voiceMode:'Poly (up to 32 voices), Mono, or Legato (notes slide without a new attack)',wheelTarget:'What the mod wheel does: grow branches, open or close the filter, change envelope times, FM, LFO, effect or volume',
@@ -1326,7 +1346,13 @@ $('bSow').onclick=sow;$('bNew').onclick=newSeed;$('bClone').onclick=clone;$('bRe
 $('bGenes').onclick=openGenes;$('bUndo').onclick=doUndo;$('bRedo').onclick=doRedo;
 // letter keys play branches only when switched on in MIDI settings: in a DAW with its own computer MIDI keyboard they would sound twice
 const KB='awsedftgyhuj';
-addEventListener('pointerover',e=>{const t=e.target.closest?.('[title]');$('helpLine').textContent=t&&!t.closest('dialog,#genesView')?t.title:''});
+const START_HINT='START HERE: play the keys below, drag a branch out of the seed, and SOW the one you like. Or describe a sound on the left.';
+let started=false;try{started=localStorage.getItem('gs.started')==='1'}catch{}
+const idleHelp=()=>started?'':START_HINT;
+function markStarted(){if(started)return;started=true;try{localStorage.setItem('gs.started','1')}catch{}if($('helpLine').textContent===START_HINT)$('helpLine').textContent=''}
+$('keyboard').addEventListener('pointerdown',markStarted);$('bulbSvg').addEventListener('pointerdown',markStarted);
+$('helpLine').textContent=idleHelp();
+addEventListener('pointerover',e=>{const t=e.target.closest?.('[title]');$('helpLine').textContent=t&&!t.closest('dialog,#genesView')?t.getAttribute('title'):idleHelp()});
 addEventListener('keydown',e=>{
   if(e.target.matches('input[type=number],input[type=text],input[type=search],select'))return;
   if(e.ctrlKey||e.metaKey){
