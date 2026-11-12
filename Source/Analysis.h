@@ -23,8 +23,7 @@ inline const std::vector<int>& netGenes()
     static const std::vector<int> g = [] {
         std::vector<int> v;
         for (int k = 0; k < NP; ++k) // every non-master gene (the expansion genes are wired now)
-            // ponytail: octA..centB and modSH left out so the current net.bin still fits; add them (and drop pitchA) at the E5 retrain
-            if (! isMasterGene (k) && k != spread && k < octA) v.push_back (k);
+            if (! isMasterGene (k) && k != spread && k != pitchA) v.push_back (k); // pitchA is retired (silent)
         return v;
     }();
     return g;
