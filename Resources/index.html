@@ -8,7 +8,7 @@
 /* fonts ship with gensexuell (OFL 1.1), nothing loads from the internet */
 @font-face{font-family:Inter;src:url(fonts/inter.woff2) format('woff2');font-weight:100 900;font-display:swap}
 @font-face{font-family:'JetBrains Mono';src:url(fonts/jetbrainsmono.woff2) format('woff2');font-weight:100 800;font-display:swap}
-:root{--pink:#F2B8C6;--cream:#F2F1ED;--ink:#111;--line:#0004;--mute:#0008;--glass:rgba(242,241,237,.55)}
+:root{--pink:#F2B8C6;--cream:#F2F1ED;--ink:#111;--line:#0004;--mute:#000b;--glass:rgba(242,241,237,.55)}
 *{box-sizing:border-box;margin:0}
 html,body{background:var(--pink);color:var(--ink);font:500 15px/1.2 Inter,system-ui,sans-serif;letter-spacing:.08em}
 .frame{position:relative;overflow:hidden;width:min(1280px,100%);height:800px;margin:0 auto;background:var(--pink);border:1.5px solid var(--ink);display:grid;grid-template-rows:56px minmax(0,1fr) 96px}
@@ -16,7 +16,7 @@ html,body{background:var(--pink);color:var(--ink);font:500 15px/1.2 Inter,system
 .liquid{position:absolute;z-index:0;left:0;top:0;width:440px;height:440px;margin:-220px 0 0 -220px;border-radius:50%;background:var(--cream);filter:blur(46px);pointer-events:none;will-change:transform}
 .liquid.two{left:1040px;top:560px;animation:drift 19s ease-in-out infinite alternate}
 @keyframes drift{to{transform:translate(-70px,-60px) scale(1.15)}}
-.lab{font:400 11px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.1em;color:#333}
+.lab{font:400 12px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.1em;color:var(--ink)}
 .mono{font-family:'JetBrains Mono',ui-monospace,monospace;font-weight:400}
 button{font:inherit;letter-spacing:inherit;color:inherit;background:none;border:0;cursor:pointer}
 button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--ink);outline-offset:-4px}
@@ -61,6 +61,22 @@ main{display:grid;grid-template-columns:260px minmax(0,1fr) 340px;min-height:0}
 .panel.right{border-left:1.5px solid var(--ink)}
 .sec{display:flex;flex-direction:column;gap:8px;padding:12px 16px;border-bottom:1.5px solid var(--ink)}
 .bulb{position:relative;display:flex;flex-direction:column;min-width:0;min-height:0;padding:14px 20px;touch-action:none;user-select:none;-webkit-user-select:none;overflow:hidden}
+.viewTabs{display:flex;height:44px;margin:-14px -20px 12px;border-bottom:1.5px solid var(--ink);flex-shrink:0}
+.viewTabs button{padding:0 22px;font-size:11px;font-weight:600;letter-spacing:.16em;border-right:1.5px solid var(--ink);transition:background .2s}
+.viewTabs button:hover{background:#0000000d}
+.viewTabs button[aria-selected=true]{background:var(--ink);color:var(--cream)}
+.viewTabs small{font-weight:400;opacity:.65}
+.genesView{position:absolute;inset:45.5px 0 0;z-index:2;display:flex;flex-direction:column;background:rgba(242,241,237,.82);-webkit-backdrop-filter:blur(26px) saturate(1.5);backdrop-filter:blur(26px) saturate(1.5);user-select:text;-webkit-user-select:text;touch-action:auto}
+.genesView[hidden]{display:none}
+.genesView .dlgBody{flex:1;max-height:none}
+.genesView .tabs button{white-space:nowrap;padding:12px 14px}
+.genesView .geneFind{width:auto;flex:1;min-width:110px}
+.fxCards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.fxFlow{padding:0 0 12px;grid-template-columns:auto auto;justify-content:start;gap:4px 28px}
+.fxCard{border:1.5px solid var(--ink);padding:10px 12px;background:#ffffff40}
+.fxHead{display:flex;align-items:center;justify-content:space-between;gap:8px;font:600 12px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.14em}
+.fxCard .selects{grid-template-columns:minmax(0,1fr);padding:8px 0 4px}
+.fxCard .minis{grid-template-columns:minmax(0,1fr);padding:4px 0 0;gap:6px}
 .bulbHead{display:flex;justify-content:space-between;gap:12px;font:400 11px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.1em}
 #wheelLabel{position:absolute;right:20px;bottom:12px;font:400 11px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.1em;pointer-events:none}
 #bulbSvg{display:block;flex:1;width:100%;min-height:0;cursor:grab;touch-action:none}
@@ -75,17 +91,23 @@ main{display:grid;grid-template-columns:260px minmax(0,1fr) 340px;min-height:0}
   background:radial-gradient(circle at 32% 26%,#ffffffb0 0 5%,transparent 20%),radial-gradient(circle at 68% 82%,#ffffff38,transparent 52%);
   box-shadow:inset 0 1px 1px #fffd,inset 0 -8px 14px #ffffff40,inset 0 0 0 1px #ffffff90,0 8px 20px #0000001c}
 .preview{position:absolute;left:20px;bottom:12px;max-width:50%;font-size:10px;color:var(--mute)}
+.helpLine{position:absolute;left:14px;right:230px;bottom:12px;z-index:1;font:400 11.5px/1.4 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.04em;pointer-events:none}
+.helpLine:not(:empty){padding:6px 10px;background:rgba(242,241,237,.9);border:1px solid var(--line)}
+.helpLine:not(:empty)~.preview{visibility:hidden}
 
 .ctlGrid{flex:1 0 auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:minmax(64px,1fr);border-bottom:1.5px solid var(--ink)}
 .ctl{display:flex;flex-direction:column;justify-content:center;padding:6px 16px;border-bottom:1.5px solid var(--ink)}
 .ctl:nth-child(odd){border-right:1.5px solid var(--ink)}
 .ctl:nth-last-child(-n+2){border-bottom:0}
 .row{display:flex;align-items:baseline;gap:8px}
-.ctl .name{font:400 11px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.08em;color:#333}
+.ctl .name{font:400 12px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.08em;color:var(--ink)}
 .ctl .v{margin-left:auto;font:600 14px Inter,sans-serif;letter-spacing:0}
 .name{font-weight:600}
-.geneCell{font-size:11px;letter-spacing:.12em;transition:background .2s}
-.geneCell:hover{background:#0000000d}
+.geneCell{display:flex;align-items:center;justify-content:center;gap:8px;margin:10px 16px;border:1.5px solid var(--ink);font-size:11px;font-weight:600;letter-spacing:.14em;transition:background .2s,color .2s}
+.geneCell:hover,.geneCell:focus-visible{background:var(--ink);color:var(--cream)}
+.geneCell small{font-weight:400;opacity:.65}
+.geneFind{margin-left:auto;align-self:stretch;width:200px;border:0;border-left:1.5px solid var(--ink);padding:0 14px;background:transparent;font:11px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.08em;color:var(--ink)}
+.geneFind:focus{outline:none;background:#ffffff40}
 .actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;padding:8px 16px;border-bottom:1.5px solid var(--ink)}
 .actions button{height:36px;border:1.5px solid var(--ink);font-size:11px;letter-spacing:.12em;transition:background .2s}
 .actions button:hover{background:#0000000d}
@@ -99,15 +121,17 @@ main{display:grid;grid-template-columns:260px minmax(0,1fr) 340px;min-height:0}
 .track input::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px}
 .track input:focus-visible~.thumb{outline:2px solid var(--ink);outline-offset:3px}
 .minis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px 14px;padding:8px 16px}
-.mini{font-size:10px;letter-spacing:.02em}
+.mini{font-size:11.5px;letter-spacing:.02em}
 #liveMinis{grid-template-columns:minmax(0,1fr)}
+#liveSelects{grid-template-columns:auto auto;justify-content:space-between}
+.minis{align-items:end}
 .mini .row{gap:6px}
 .mini .v{margin-left:auto;white-space:nowrap}
-.selects{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 14px;padding:8px 16px;font-size:10px}
+.selects{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 14px;padding:8px 16px;font-size:11.5px}
 .sel{display:flex;align-items:baseline;gap:6px}
-.sel>span{color:var(--mute)}
-.selBtn{font:400 11px 'JetBrains Mono',monospace;letter-spacing:.06em;padding:3px 0;white-space:nowrap}
-.selBtn:hover{text-decoration:underline}
+.sel>span{color:var(--ink)}
+.selBtn{font:400 11.5px 'JetBrains Mono',monospace;letter-spacing:.06em;padding:2px 7px;border:1px solid var(--line);background:#ffffff40;white-space:nowrap;transition:background .2s,border-color .2s}
+.selBtn:hover{background:#ffffff99;border-color:var(--ink)}
 .cardTitle{display:flex;align-items:baseline;gap:12px;padding:8px 16px 0;font-size:11px}
 .cardTitle .selects{display:flex;gap:10px;padding:0}
 .card{border-bottom:1.5px solid var(--ink)}
@@ -160,8 +184,8 @@ td input{font:400 12px 'JetBrains Mono',monospace;width:5em;background:#fff8;bor
 .dropZone{height:52px;border:1.5px dashed var(--ink);font-size:13px;font-weight:500;letter-spacing:.02em;transition:background .2s}
 .dropZone:hover,.dropZone.over{background:#0000000d}
 .tiles{display:grid;grid-template-columns:1fr 1fr;gap:4px}
-.tiles .dragTile{justify-content:center;padding:8px 4px;border-style:solid;font-size:10px}
-.localLine{margin-top:auto;padding:10px 16px;font:400 10px 'JetBrains Mono',monospace;letter-spacing:.08em;color:#333;cursor:help}
+.tiles .dragTile{justify-content:center;padding:8px 4px;border-style:solid;font-size:11px}
+.localLine{margin-top:auto;padding:10px 16px;font:400 11px 'JetBrains Mono',monospace;letter-spacing:.08em;color:var(--ink);cursor:help}
 .chip{border:1.5px solid var(--ink);padding:5px 9px;font:400 11px 'JetBrains Mono',monospace;transition:background .2s}
 .chip:hover{background:#0000000d}
 .chip[aria-current=true]{background:var(--ink);color:var(--cream)}
@@ -199,7 +223,7 @@ footer{display:grid;grid-template-columns:260px minmax(0,1fr) 340px;border-top:1
 .keyboard .b{position:absolute;top:0;width:4.2%;height:58%;background:var(--ink)}
 .keyboard .w.on{background:var(--pink)}
 .keyboard .b.on{background:#a8697b}
-.status{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 16px;border-left:1.5px solid var(--ink);font:400 11px 'JetBrains Mono',monospace;letter-spacing:.04em;color:#333}
+.status{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 16px;border-left:1.5px solid var(--ink);font:400 12px 'JetBrains Mono',monospace;letter-spacing:.04em;color:var(--ink)}
 
 /* inside the plugin window: the 1280 x 800 layout scales to fill the editor */
 .host{background:var(--pink)}
@@ -220,28 +244,28 @@ footer{display:grid;grid-template-columns:260px minmax(0,1fr) 340px;border-top:1
   <i class="liquid" id="blob" aria-hidden="true"></i><i class="liquid two" aria-hidden="true"></i>
   <header>
     <div class="brand">
-      <button class="burger" id="burger" popovertarget="mainMenu" aria-haspopup="menu" aria-label="Main menu">☰</button>
+      <button class="burger" id="burger" popovertarget="mainMenu" aria-haspopup="menu" aria-label="Main menu" title="Main menu: patches, seed actions, helpers, MIDI, zoom">☰</button>
       <div class="menu" id="mainMenu" popover role="menu"></div>
       <b>GENSEXUELL</b>
     </div>
     <div class="patchNav">
-      <button id="prevPatch" aria-label="Previous patch">‹</button>
+      <button id="prevPatch" aria-label="Previous patch" title="Previous patch in the folder">‹</button>
       <button id="patchName" popovertarget="patchMenu" aria-haspopup="menu" title="Patches (Ctrl+click: random)"></button>
       <span class="seedhex mono">SEED <span id="hex"></span></span>
-      <button id="nextPatch" aria-label="Next patch">›</button>
+      <button id="nextPatch" aria-label="Next patch" title="Next patch in the folder">›</button>
       <div class="menu" id="patchMenu" popover role="menu" aria-label="Patches"></div>
     </div>
     <div class="topActions">
       <button id="bUndo" title="Undo (Ctrl+Z)" aria-label="Undo">↶</button>
       <button id="bRedo" title="Redo (Ctrl+Shift+Z)" aria-label="Redo">↷</button>
-      <button id="bSow" title="Sow the selected branch as the new seed">SOW</button>
+      <button id="bSow" title="Keep the selected branch: it becomes the new seed, with twelve new branches around it">SOW</button>
     </div>
   </header>
   <main>
     <aside class="panel left">
       <div class="sec">
         <div class="labRow"><label class="lab" for="desc">DESCRIBE</label><button class="lab howTo" id="bGuide" title="How to describe a sound, with examples to try">HOW TO ?</button></div>
-        <input id="desc" type="text" placeholder="z. B. dunkler, weicher Bass" autocomplete="off" spellcheck="false">
+        <input id="desc" type="text" title="Describe a sound in German or English, e.g. dark soft bass, then Enter or GROW" placeholder="z. B. dunkler, weicher Bass" autocomplete="off" spellcheck="false">
         <div class="growRow"><button id="bGrow" title="Grow seeds from the description (again: new takes)">GROW</button><span id="takes" style="display:contents"></span></div>
         <div class="words" id="wordLine" hidden></div>
       </div>
@@ -253,8 +277,8 @@ footer{display:grid;grid-template-columns:260px minmax(0,1fr) 340px;border-top:1
         <span class="lab">PERFORM</span>
         <button class="dropZone" id="bPerf" title="Drop a recording here, or click to open">Drop a recording</button>
         <div class="tiles">
-          <div class="dragTile" data-tile="wav" aria-disabled="true" title="Drag into your DAW (click: show file)">DRAG WAV</div>
-          <div class="dragTile" data-tile="mid" aria-disabled="true" title="Drag into your DAW (click: show file)">DRAG MIDI</div>
+          <div class="dragTile" data-tile="wav" aria-disabled="true" title="Drop a recording on Perform and RENDER it first, then drag the result into your DAW">DRAG WAV</div>
+          <div class="dragTile" data-tile="mid" aria-disabled="true" title="Drop a recording on Perform and RENDER it first, then drag the result into your DAW">DRAG MIDI</div>
         </div>
       </div>
       <div class="sec" id="liveCard" style="border-bottom:0">
@@ -266,6 +290,7 @@ footer{display:grid;grid-template-columns:260px minmax(0,1fr) 340px;border-top:1
       <div class="localLine" title="gensexuell runs entirely on this computer: no cloud, no internet connection, nothing you load leaves your machine. It makes sounds, never songs.">LOCAL · NOTHING LEAVES THIS COMPUTER</div>
     </aside>
     <section class="bulb" id="bulb">
+      <div class="viewTabs" role="tablist" aria-label="Centre view"><button role="tab" id="vSeed" aria-selected="true" title="The seed and its twelve branches (Ctrl+G switches)">SEED</button><button role="tab" id="vGenes" aria-selected="false" title="Edit every gene of the seed (Ctrl+G)">GENES <small id="vGenesN"></small></button><button role="tab" id="vFx" aria-selected="false" title="Drive, tape and reverb after the sound, saved with the patch">FX</button></div>
       <div class="bulbHead"><span><span id="label"></span> · LENGTH <span id="big">0.00</span></span><span id="hint">DRAG A BRANCH OUT</span></div>
       <svg id="bulbSvg" viewBox="-292 -292 584 584" role="application" aria-label="Seed and branches">
         <defs>
@@ -277,7 +302,7 @@ footer{display:grid;grid-template-columns:260px minmax(0,1fr) 340px;border-top:1
         <circle r="248" fill="none" stroke="var(--line)"/>
         <g id="wheelRing"><circle id="wheelCircle" r="192" fill="none" stroke="var(--line)"/><circle id="wheelHit" r="192" fill="none" stroke="transparent" stroke-width="16"/></g>
         <g id="stems" fill="none" stroke="var(--ink)" stroke-linecap="round"></g>
-        <g id="drops" filter="url(#goo)" fill="var(--ink)"><circle id="seedBlob" r="38"/></g>
+        <g id="drops" filter="url(#goo)" fill="var(--ink)"><circle id="seedBlob" r="38" title="Click the seed to SOW the selected branch"/></g>
         <text y="5" text-anchor="middle" fill="var(--pink)" font-size="14" font-weight="600" letter-spacing="1" pointer-events="none">SOW</text>
         <g id="nodes"></g>
         <g id="keys" class="mono" font-size="12"></g>
@@ -285,15 +310,23 @@ footer{display:grid;grid-template-columns:260px minmax(0,1fr) 340px;border-top:1
       </svg>
       <div class="lens" id="lens"></div>
       <div id="wheelLabel"></div>
+      <div class="helpLine" id="helpLine" aria-live="polite"></div>
       <div class="preview mono" id="previewNote" hidden>UI PREVIEW · SOUND COMES FROM THE GENSEXUELL PLUGIN OR STANDALONE</div>
+      <div class="genesView" id="fxView" role="tabpanel" aria-labelledby="vFx" hidden>
+        <div class="dlgBody"><div class="selects fxFlow" id="fxFlow"></div><div class="fxCards" id="fxCards"></div><div class="foot mono">SAVED WITH THE PATCH · FROM DRIVESEXUELL, TAPESEXUELL AND VERBSEXUELL</div></div>
+      </div>
+      <div class="genesView" id="genesView" role="tabpanel" aria-labelledby="vGenes" hidden>
+        <div class="tabs" role="tablist" id="geneTabs"></div>
+        <div class="dlgBody"><svg class="graph" id="geneGraph" viewBox="0 0 800 120" preserveAspectRatio="none"></svg><div class="geneGrid" id="geneGrid"></div><div class="foot mono" id="geneFoot">DOUBLE-CLICK A GENE TO RESET IT · GENES SET THE SEED, BRANCHES STILL GROW AT RANDOM</div></div>
+      </div>
     </section>
     <aside class="panel right">
       <div class="ctlGrid" id="ctls"></div>
       <div class="actions">
-        <button id="bNew" title="New random seed">NEW SEED</button>
-        <button id="bReroll" title="Grow a new random branch here">REROLL</button>
-        <button id="bClone" title="Clone the selected branch to all">CLONE</button>
-        <button id="bVolumes" title="Branch volumes">VOLUMES</button>
+        <button id="bNew" title="Start over with a completely new random seed">NEW SEED</button>
+        <button id="bReroll" title="Send the selected branch in a new random direction (the seed stays)">REROLL</button>
+        <button id="bClone" title="Copy the selected branch to all twelve keys, so every key plays it">CLONE</button>
+        <button id="bVolumes" title="Set the level of each branch">VOLUMES</button>
       </div>
       <div class="card selects" id="modes"></div>
       <div class="card minis" id="lower"></div>
@@ -302,16 +335,11 @@ footer{display:grid;grid-template-columns:260px minmax(0,1fr) 340px;border-top:1
   </main>
   <footer>
     <div class="out"><span class="lab" id="outText">OUT — dB</span><div class="meter" aria-hidden="true"><div id="outMeter"></div></div></div>
-    <div class="keyboard" id="keyboard" role="group" aria-label="Keyboard"></div>
+    <div class="keyboard" id="keyboard" role="group" aria-label="Keyboard" title="Click a key to play its branch; lower on the key plays louder"></div>
     <div class="status"><span id="stVoices">VOICES 0</span><span id="stGlide"></span><span id="stSync"></span></div>
   </footer>
 </div>
 
-<dialog id="dlgGenes" aria-labelledby="hGenes">
-  <div class="dlgHead"><h2 id="hGenes">GENES</h2><button data-close>CLOSE ✕</button></div>
-  <div class="tabs" role="tablist" id="geneTabs"></div>
-  <div class="dlgBody"><svg class="graph" id="geneGraph" viewBox="0 0 800 120" preserveAspectRatio="none"></svg><div class="geneGrid" id="geneGrid"></div><div class="foot mono" id="geneFoot">CTRL+CLICK A GENE TO RESET IT · GENES SET THE SEED, BRANCHES STILL GROW AT RANDOM</div></div>
-</dialog>
 
 <dialog id="dlgSound" aria-labelledby="hSound">
   <div class="dlgHead"><h2 id="hSound">SOUND → SEED</h2><button data-close>CLOSE ✕</button></div>
@@ -352,8 +380,8 @@ footer{display:grid;grid-template-columns:260px minmax(0,1fr) 340px;border-top:1
     </div>
     <canvas class="wave" id="pWave" width="1600" height="220" aria-label="Recording with detected notes"></canvas>
     <div class="btnRow" style="margin-top:14px">
-      <div class="dragTile" data-tile="wav" aria-disabled="true" title="Drag into your DAW (click: show file)">⇢ WAV</div>
-      <div class="dragTile" data-tile="mid" aria-disabled="true" title="Drag into your DAW (click: show file)">⇢ MIDI</div>
+      <div class="dragTile" data-tile="wav" aria-disabled="true" title="Drop a recording on Perform and RENDER it first, then drag the result into your DAW">⇢ WAV</div>
+      <div class="dragTile" data-tile="mid" aria-disabled="true" title="Drop a recording on Perform and RENDER it first, then drag the result into your DAW">⇢ MIDI</div>
     </div>
     <div class="foot mono" id="pFoot">ONE VOICE AT A TIME (VOCALS, HUMMING, BASS, LEAD) · TIMING AND DYNAMICS STAY, THE SOUND BECOMES THE CURRENT SEED</div>
   </div>
@@ -391,13 +419,14 @@ footer{display:grid;grid-template-columns:260px minmax(0,1fr) 340px;border-top:1
     </div>
     <h3>DAS VERSTEHT GENSEXUELL</h3>
     <dl>
-      <dt>Klangart</dt><dd>Pad, Fläche, Bass, Sub, 808, Pluck, Lead, Glocke, Mallet, Kick, Snare, Hat, Drone, FX, Riser, Textur, Atmo, Orgel, Akkord, Stab</dd>
+      <dt>Klangart</dt><dd>Pad, Fläche, Bass, Sub, 808, Pluck, Lead, Glocke, Mallet, Kick, Snare, Hat, Drone, FX, Riser, Textur, Atmo, Orgel, Akkord, Stab, Klavier, Gitarre, Percussion, Trommel, Arp, Sequenz, Reese</dd>
       <dt>Helligkeit</dt><dd>hell, spitz · dunkel, dumpf</dd>
-      <dt>Charakter</dt><dd>warm, weich, rund · hart, aggressiv, scharf</dd>
+      <dt>Charakter</dt><dd>warm, weich, rund · hart, aggressiv, scharf · druckvoll · rau · zart · funkelnd · himmlisch, verträumt · gruselig, düster</dd>
+      <dt>Welle</dt><dd>Sinus · Sägezahn · Rechteck · Puls</dd>
       <dt>Material</dt><dd>glasig, Kristall · metallisch · holzig · eisig, kalt</dd>
       <dt>Schmutz</dt><dd>dreckig, kaputt, lofi · verzerrt · sauber, pur</dd>
       <dt>Zeit</dt><dd>kurz, knapp, staccato · lang, endlos · langsam, schwellend · schnell, direkt</dd>
-      <dt>Bewegung</dt><dd>wobbel, schwebend, vibrato · lebendig, organisch · statisch</dd>
+      <dt>Bewegung</dt><dd>wobbel, schwebend, vibrato · lebendig, organisch · statisch · Glitch, stotternd · pulsierend, Tremolo · stufig · wiederholend</dd>
       <dt>Körper</dt><dd>fett, dick, breit · dünn · tief · hoch · hohl, nasal · luftig, rauschig</dd>
       <dt>Raum</dt><dd>Raum, Hall, weit · trocken, nah · Shimmer, Kathedrale</dd>
       <dt>Epoche</dt><dd>analog, vintage · FM, digital, 80er · acid, 303 · Tape, Vinyl · Laser, Sci-Fi</dd>
@@ -432,14 +461,15 @@ footer{display:grid;grid-template-columns:260px minmax(0,1fr) 340px;border-top:1
     </div>
     <h3>WHAT GENSEXUELL UNDERSTANDS</h3>
     <dl>
-      <dt>Kind of sound</dt><dd>pad, strings, bass, sub, 808, pluck, lead, bell, mallet, kick, snare, hat, drone, fx, riser, texture, atmo, organ, chord, stab</dd>
+      <dt>Kind of sound</dt><dd>pad, strings, bass, sub, 808, pluck, lead, bell, mallet, kick, snare, hat, drone, fx, riser, texture, atmo, organ, chord, stab, piano, guitar, percussion, drums, arp, sequence, reese</dd>
       <dt>Brightness</dt><dd>bright, crisp · dark, muffled</dd>
-      <dt>Character</dt><dd>warm, soft, smooth · hard, aggressive, harsh</dd>
+      <dt>Character</dt><dd>warm, soft, smooth · hard, aggressive, harsh · punchy · rough · delicate · sparkly · heavenly, dreamy · creepy, ominous</dd>
+      <dt>Wave</dt><dd>sine · saw · square · pulse</dd>
       <dt>Material</dt><dd>glassy, crystal · metallic · wood · icy, cold</dd>
       <dt>Dirt</dt><dd>dirty, gritty, lofi · distorted · clean, pure</dd>
       <dt>Time</dt><dd>short, snappy, staccato · long, endless · slow, swell · fast, immediate</dd>
-      <dt>Motion</dt><dd>wobble, wavy, vibrato · evolving, organic · static</dd>
-      <dt>Body</dt><dd>fat, thick, wide · thin · low, deep · high · hollow, nasal · airy, noisy</dd>
+      <dt>Motion</dt><dd>wobble, wavy, vibrato · evolving, organic · static · glitch, stutter · pulsing, tremolo · stepped · looping</dd>
+      <dt>Body</dt><dd>fat, thick, wide · thin · low, deep · high · hollow, nasal · airy, noisy, noise</dd>
       <dt>Space</dt><dd>reverb, spacey · dry, close · shimmer, cathedral</dd>
       <dt>Era</dt><dd>analog, vintage · FM, digital, 80s · acid, 303 · tape, vinyl · laser, sci-fi</dd>
       <dt>References</dt><dd>Juno, Moog, Prophet, DX7, Rhodes, MS-20, Mellotron, supersaw, chiptune · harp, sitar, cello, flute, trumpet, choir, gong, kalimba. These are approximations, not recreations.</dd>
@@ -476,7 +506,7 @@ footer{display:grid;grid-template-columns:260px minmax(0,1fr) 340px;border-top:1
     Performance → seed plays your recording with gensexuell's sound · Live input follows a sidechain in real time.<br>
     Runs entirely on this computer · no cloud · no account · it makes sounds, never songs.<br>
     Grain FX from grainsexuell · sound → seed: a neural net guesses, four strands refine.<br>
-    Free software under the GNU AGPL v3 · the source comes with the installer (gensexuell-0.3.1-source.zip).
+    Free software under the GNU AGPL v3 · the source comes with the installer (gensexuell-0.4.1-source.zip).
   </div>
 </dialog>
 
@@ -490,49 +520,92 @@ const KEYS=['waveA','waveB','ratioB','fm','mix','noise','cutoff','reso','fltEnv'
   'volFade','envLoop','envKey','modAttack','modVel','lfoShape','lfoDelay','noiseColor','sub','fltType','fltSpread','fltKey','drive',
   'space','damp','chorus','bass','treble','spread',
   'envTime','envTilt','modHold','lfoBalance','pitchA','noiseB','modB','holdB','fmMod','mixMod','shaper',
-  'rvbSize','rvbAttack','rvbLength','fxMix','fxSize','fxLength','fxDamp','fxChorus'];
+  'rvbSize','rvbAttack','rvbLength','fxMix','fxSize','fxLength','fxDamp','fxChorus',
+  'octA','semiA','centA','semiB','centB','modSH']; // pitchA is retired: kept so old patches load, not shown
 const BASE=KEYS.slice(0,35); // genes seeded/streamed before the expansion (keep in sync with Engine.h BASE_GENES)
+const PITCH=['octA','semiA','centA','semiB','centB'];
+const pitchSteps=(p,range)=>Math.floor((p-.5)*range+.5); // same rounding as Engine.h pitchSteps()
+const sgn=v=>(v>0?'+':v<0?'−':'')+Math.abs(v);
+const sec=s=>s<1?Math.round(s*1000)+' ms':s.toFixed(s<10?2:1)+' s',hz=f=>f<1000?Math.round(f)+' Hz':(f/1000).toFixed(f<1e4?2:1)+' kHz';
+const above=(v,from)=>v>from?Math.round((v-from)/(1-from)*100)+' %':'OFF',bip=v=>sgn(Math.round((v-.5)*200))+' %',times=v=>'×'+(2**((v-.5)*2)).toFixed(2);
+const nearest=(v,pos,names)=>{let i=0;for(let j=1;j<pos.length;j++)if(Math.abs(v-pos[j])<Math.abs(v-pos[i]))i=j;return(Math.abs(v-pos[i])>.02?'~':'')+names[i]};
+const waveName=v=>v>.81?'PULSE '+Math.round(50-37.5*(v-.81)/.19)+' %':nearest(v,[0,.57,.81],['SINE','SAW','SQUARE']);
+const GENE_FMT={
+  attack:v=>sec(.002*2000**v),decay:v=>sec(.01*800**v),sustain:v=>v<.08?'NONE':Math.round(v*100)+' %',volFade:v=>v>.75?sec(10-(v-.75)*38):'OFF',
+  envLoop:v=>v<.98?sec(.05*160**v):'OFF',envKey:v=>'×'+(2**(-(v-.5)*2)).toFixed(2)+'/oct',modAttack:v=>v>.5?sec(.001*2000**((v-.5)*2)):'NONE',
+  modDecay:v=>sec(.01*800**v),modVel:v=>Math.round(clamp((v-.1)/.9)*100)+' %',lfoRate:v=>(.05*400**v).toFixed(v<.5?2:1)+' Hz',lfoAmt:v=>Math.round(v*100)+' %',
+  lfoShape:v=>v>.85?'STEPS':v>.5?'TREMOLO':'VIBRATO',lfoDelay:v=>v>.5?sec((v-.5)*4):'NONE',
+  waveA:waveName,waveB:waveName,ratioB:v=>'×'+(v<.5?2**(2*(v-.5)):2**(4*(v-.5))).toFixed(2),fm:v=>(v*v*10).toFixed(1),mix:v=>'B '+Math.round(v*100)+' %',
+  noise:v=>Math.round(v**1.5*80)+' %',noiseColor:v=>Math.abs(v-.5)<.02?'WHITE':v<.5?'DARK':'BRIGHT',
+  sub:v=>v<.3?'RING '+Math.round((.3-v)/.3*100)+' %':v>.5?'SUB '+Math.round(Math.min(1,(v-.5)*1.4)*100)+' %':'OFF',pitchMod:v=>sgn(+((v-.5)*48).toFixed(1))+' st',
+  cutoff:v=>hz(130.8*40**v),reso:v=>'+'+(.5*30**v).toFixed(1)+' dB',fltEnv:v=>'+'+(v*6).toFixed(1)+' oct',fltType:v=>nearest(v,[0,1/3,2/3,1],['BAND-PASS','STEEP LP','TWO PEAKS','NOTCH']),
+  fltSpread:v=>Math.abs(v-.5)<.01?'OFF':sgn(+((v-.5)*6).toFixed(1))+' oct',fltKey:v=>Math.round(Math.min(1,v*2)*100)+' %',
+  drive:v=>v<=.5?'CLEAN':'+'+Math.round(20*Math.log10(1+(v-.5)*16))+' dB'+(v>.8?' FOLD':''),
+  space:v=>['ROOM','PLATE','HALL','SWELL'][Math.min(3,Math.floor(v*4))],damp:v=>v<=.5?'OFF':hz(19900*2**(-(v-.5)*14)),chorus:v=>v>.5?Math.round(Math.min(1,(v-.5)*1.6)*100)+' %':'OFF',
+  bass:v=>sgn(+((v-.5)*24).toFixed(1))+' dB',treble:v=>sgn(+((v-.5)*24).toFixed(1))+' dB',spread:v=>Math.round(v*100)+' %',
+  envTime:times,envTilt:bip,modHold:v=>above(v,.5),lfoBalance:bip,noiseB:v=>above(v,.5),modB:bip,holdB:v=>above(v,.5),fmMod:v=>above(v,.5),mixMod:bip,shaper:v=>above(v,.5),
+  rvbSize:times,fxDamp:times,fxMix:v=>sgn(Math.round((v-.5)*100)),fxSize:v=>sgn(Math.round((v-.5)*100)),fxLength:v=>sgn(Math.round((v-.5)*100)),
+  rvbAttack:()=>'NOT USED',rvbLength:()=>'NOT USED',fxChorus:v=>(.35*2**((v-.5)*6)).toFixed(2)+' Hz',
+  modSH:v=>v>.6?Math.round(64**((v-.6)/.4))+' /s':'OFF',octA:v=>sgn(pitchSteps(v,4))+' oct',semiA:v=>sgn(pitchSteps(v,24))+' st',centA:v=>sgn(Math.round((v-.5)*100))+' ct',semiB:v=>sgn(pitchSteps(v,24))+' st',centB:v=>sgn(Math.round((v-.5)*100))+' ct'};
 const MASTER=new Set(['space','damp','chorus','bass','treble','rvbSize','rvbAttack','rvbLength','fxMix','fxSize','fxLength','fxDamp','fxChorus']);
 const GENE_INFO={
-  attack:['ATTACK','Volume attack time'],decay:['DECAY','Volume decay time'],sustain:['SUSTAIN','Level held while the key is down (below 0.08: none)'],
+  attack:['ATTACK','Volume attack time (shown at C4, before ENV TIME)'],decay:['DECAY','Volume decay time (shown at C4, before ENV TIME)'],sustain:['SUSTAIN','Level held while the key is down (below 0.08: none)'],
   volFade:['FADE','Extra fade after the attack (above 0.75)'],envLoop:['LOOP','Envelope loop time (top = no loop)'],envKey:['ENV KEY','Above 0.5: shorter on high keys'],
   modAttack:['MOD ATTACK','Attack of the mod envelope (above 0.5)'],modDecay:['MOD DECAY','Decay of the mod envelope (filter, FM, pitch sweep)'],modVel:['MOD VEL','How much velocity scales the mod envelope'],
   lfoRate:['LFO RATE','LFO speed'],lfoAmt:['LFO DEPTH','Vibrato or tremolo depth'],lfoShape:['LFO TARGET','Vibrato → tremolo (above 0.5) → stepped random pitch (above 0.85)'],lfoDelay:['LFO DELAY','LFO fade-in time (above 0.5)'],
-  waveA:['WAVE A','Oscillator A: sine → triangle → saw → square'],waveB:['WAVE B','Oscillator B: sine → triangle → saw → square'],ratioB:['RATIO B','Pitch of B against A (½× … 4×)'],
+  waveA:['WAVE A','Oscillator A: sine → saw → square → narrow pulse'],waveB:['WAVE B','Oscillator B: sine → saw → square → narrow pulse'],ratioB:['RATIO B','Pitch of B against A (½× … 4×)'],
   fm:['FM','How much B bends the frequency of A'],mix:['MIX','Balance between A and B'],noise:['NOISE','Noise level'],noiseColor:['NOISE COLOR','Dark → white → bright'],
   sub:['SUB','Ring modulation (below 0.3) · sub oscillator an octave down (above 0.5)'],pitchMod:['SWEEP','Pitch sweep from the mod envelope (0.5 = none)'],
-  cutoff:['CUTOFF','Filter cutoff, relative to the note'],reso:['RESONANCE','Filter resonance'],fltEnv:['FILTER ENV','How far the mod envelope opens the filter'],
-  fltType:['FILTER TYPE','Band-pass → low-pass → notch'],fltSpread:['SPREAD','A second filter stage below or above the first'],fltKey:['KEY TRACK','Cutoff follows the key (0.5 = exactly)'],
+  cutoff:['CUTOFF','Filter cutoff, relative to the note (shown as played at C4)'],reso:['RESONANCE','Filter resonance'],fltEnv:['FILTER ENV','How far the mod envelope opens the filter'],
+  fltType:['FILTER TYPE','Band-pass (0) → steep low-pass (0.33) → two low-pass peaks an octave apart (0.67) → notch (1)'],fltSpread:['SPREAD','A second filter stage below or above the first'],fltKey:['KEY TRACK','Cutoff follows the key (0.5 = exactly)'],
   drive:['DRIVE','Saturation inside the voice (above 0.5) · wavefolding (above 0.8)'],space:['ROOM','Haze reverb: room / plate / hall / swell'],damp:['DUSK','Low-pass on the output (above 0.5)'],
   chorus:['CHORUS','Chorus (above 0.5)'],bass:['BASS','Low shelf ±12 dB'],treble:['TREBLE','High shelf ±12 dB'],spread:['PAN','How wide branches pan around the seed'],
   envTime:['ENV TIME','Overall envelope time scale'],envTilt:['ENV TILT','Envelope tilt'],modHold:['MOD HOLD','Mod envelope hold'],
   lfoBalance:['LFO BALANCE','LFO balance'],pitchA:['PITCH A','Oscillator A pitch'],noiseB:['NOISE B','Noise into B'],
   modB:['MOD B','Modulation of oscillator B'],holdB:['HOLD B','Sample & hold on B'],fmMod:['FM MOD','FM depth from the mod envelope'],
-  mixMod:['MIX MOD','Mix follows the mod envelope'],shaper:['SHAPER','Wave shaper'],rvbSize:['ROOM SIZE','Reverb size'],
-  rvbAttack:['ROOM ATTACK','Reverb attack'],rvbLength:['ROOM LENGTH','Reverb length'],fxMix:['FX MIX GENE','Extra FX mix'],
-  fxSize:['FX SIZE','Extra FX size'],fxLength:['FX LENGTH','Extra FX length'],fxDamp:['FX DAMP','Extra FX damping'],fxChorus:['FX CHORUS','Extra FX chorus']};
-const SECTIONS=[['ENVELOPE & LFO',['attack','decay','sustain','volFade','envLoop','envKey','modAttack','modDecay','modVel','lfoRate','lfoAmt','lfoShape','lfoDelay']],
-  ['OSCILLATORS',['waveA','waveB','ratioB','fm','mix','noise','noiseColor','sub','pitchMod']],
+  mixMod:['MIX MOD','Mix follows the mod envelope'],shaper:['SHAPER','Wave shaper'],rvbSize:['ROOM SIZE','How much reverb, on top of EFFECT'],
+  rvbAttack:['ROOM ATTACK','Not used yet: changing it does nothing'],rvbLength:['ROOM LENGTH','Not used yet: changing it does nothing'],fxMix:['FX MIX GENE','Adds to or takes from the grain FX mix'],
+  fxSize:['FX SIZE','Adds to or takes from the grain length (SPAN)'],fxLength:['FX LENGTH','Adds to or takes from the grain feedback (TAIL)'],fxDamp:['FX DAMP','Moves the DUSK low-pass up or down'],fxChorus:['CHORUS RATE','Chorus speed when CHORUS is on, 0.04 … 2.8 Hz'],
+  octA:['OCT A','Pitch of oscillator A in octaves, −2 to +2 (B, FM and sub follow A)'],semiA:['SEMI A','Pitch of oscillator A in semitones, ±12'],centA:['CENT A','Fine pitch (detune) of oscillator A, ±50 cents'],
+  modSH:['MOD S&H','Above 0.6: the mod envelope moves in steps, 1 to 64 per second'],
+  semiB:['SEMI B','Pitch of oscillator B in semitones on top of RATIO B, ±12'],centB:['CENT B','Fine pitch (detune) of oscillator B on top of RATIO B, ±50 cents']};
+const SECTIONS=[['ENVELOPE & LFO',['attack','decay','sustain','volFade','envLoop','envKey','modAttack','modDecay','modVel','modSH','lfoRate','lfoAmt','lfoShape','lfoDelay']],
+  ['OSCILLATORS',['waveA','waveB','ratioB','fm','mix','noise','noiseColor','sub','pitchMod','octA','semiA','centA','semiB','centB']],
   ['FILTER & EFFECT',['cutoff','reso','fltEnv','fltType','fltSpread','fltKey','drive','space','damp','chorus','bass','treble','spread']],
-  ['EXTRA',['envTime','envTilt','modHold','lfoBalance','pitchA','noiseB','modB','holdB','fmMod','mixMod','shaper','rvbSize','rvbAttack','rvbLength','fxMix','fxSize','fxLength','fxDamp','fxChorus']]];
+  ['EXTRA',['envTime','envTilt','modHold','lfoBalance','noiseB','modB','holdB','fmMod','mixMod','shaper','rvbSize','rvbAttack','rvbLength','fxMix','fxSize','fxLength','fxDamp','fxChorus']]];
 const NOTE=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 const HARM=[0,.5,.75,.5+Math.log2(3)/4,1]; // ratio positions for 0.5x 1x 2x 3x 4x
 const PATCH_FIELDS=['name','seed','base','br','len','gain','layers','tuning','effect','volume','release','atonality','fxType','fxVariant','fxSwarm','fxTail','fxSpan','fxScatter','fxMix',
+  'fxOrder','fxPlace','drvOn','drvStyle','drvAmt','drvTone','drvMix','tapeOn','tapeSpeed','tapeDrive','tapeWow','tapeHiss','tapeMix','verbOn','verbMode','verbDecay','verbSize','verbPre','verbDamp','verbMix',
   'bulbMode','voiceMode','wheelTarget','wheelScale','tempoSync','glide','velSens','rotation'];
 // presets drafted by DeepSeek v4.1 Flash, checked and adjusted by hand; genes they don't name stay neutral (0.5)
 const PRESETS=[
-{name:"WARM PAD",params:{waveA:0,waveB:.33,ratioB:.5,fm:.05,mix:.35,noise:.03,cutoff:.45,reso:.2,fltEnv:.4,attack:.6,decay:.7,sustain:.75,modDecay:.6,pitchMod:.5,lfoRate:.2,lfoAmt:.15,space:.6,chorus:.7},atonality:.1},
-{name:"GLASS PAD",params:{waveA:.66,waveB:0,ratioB:.75,fm:.1,mix:.4,noise:.05,cutoff:.6,reso:.35,fltEnv:.3,attack:.5,decay:.8,sustain:.7,modDecay:.55,pitchMod:.5,lfoRate:.35,lfoAmt:.2,space:.8},atonality:.2},
+{name:"WARM PAD",params:{waveA:0,waveB:.28,ratioB:.5,fm:.05,mix:.35,noise:.03,cutoff:.45,reso:.2,fltEnv:.4,attack:.6,decay:.7,sustain:.75,modDecay:.6,pitchMod:.5,lfoRate:.2,lfoAmt:.15,space:.6,chorus:.7},atonality:.1},
+{name:"GLASS PAD",params:{waveA:.57,waveB:0,ratioB:.75,fm:.1,mix:.4,noise:.05,cutoff:.6,reso:.35,fltEnv:.3,attack:.5,decay:.8,sustain:.7,modDecay:.55,pitchMod:.5,lfoRate:.35,lfoAmt:.2,space:.8},atonality:.2},
 {name:"SUB BASS",params:{waveA:0,waveB:0,ratioB:.5,fm:0,mix:.2,noise:0,cutoff:.25,reso:.1,fltEnv:.2,attack:0,decay:.4,sustain:.8,modDecay:.3,pitchMod:.5,lfoRate:.1,lfoAmt:0,sub:.8,space:.05},atonality:0},
-{name:"ACID BASS",params:{waveA:.66,waveB:1,ratioB:.5,fm:0,mix:.25,noise:0,cutoff:.3,reso:.7,fltEnv:.6,attack:0,decay:.35,sustain:.5,modDecay:.3,pitchMod:.5,lfoRate:.5,lfoAmt:.1,drive:.7,space:.1},atonality:.05},
-{name:"SOFT PLUCK",params:{waveA:.33,waveB:.66,ratioB:.5,fm:.05,mix:.3,noise:.02,cutoff:.5,reso:.25,fltEnv:.5,attack:0,decay:.5,sustain:0,modDecay:.3,pitchMod:.5,lfoRate:.2,lfoAmt:.05,space:.3},atonality:.1},
-{name:"SYNTH PLUCK",params:{waveA:.66,waveB:.66,ratioB:.75,fm:0,mix:.4,noise:0,cutoff:.55,reso:.4,fltEnv:.65,attack:0,decay:.45,sustain:0,modDecay:.25,pitchMod:.5,lfoRate:.3,lfoAmt:.1,space:.4},atonality:.15},
+{name:"ACID BASS",params:{waveA:.57,waveB:.81,ratioB:.5,fm:0,mix:.25,noise:0,cutoff:.3,reso:.7,fltEnv:.6,attack:0,decay:.35,sustain:.5,modDecay:.3,pitchMod:.5,lfoRate:.5,lfoAmt:.1,drive:.7,space:.1},atonality:.05},
+{name:"SOFT PLUCK",params:{waveA:.28,waveB:.57,ratioB:.5,fm:.05,mix:.3,noise:.02,cutoff:.5,reso:.25,fltEnv:.5,attack:0,decay:.5,sustain:0,modDecay:.3,pitchMod:.5,lfoRate:.2,lfoAmt:.05,space:.3},atonality:.1},
+{name:"SYNTH PLUCK",params:{waveA:.57,waveB:.57,ratioB:.75,fm:0,mix:.4,noise:0,cutoff:.55,reso:.4,fltEnv:.65,attack:0,decay:.45,sustain:0,modDecay:.25,pitchMod:.5,lfoRate:.3,lfoAmt:.1,space:.4},atonality:.15},
 {name:"BELL",params:{waveA:0,waveB:0,ratioB:.8,fm:.35,mix:.5,noise:0,cutoff:.6,reso:.2,fltEnv:.4,attack:0,decay:.7,sustain:0,modDecay:.5,pitchMod:.5,lfoRate:.15,lfoAmt:.05,space:.55},atonality:.2},
-{name:"MARIMBA",params:{waveA:.33,waveB:0,ratioB:1,fm:.15,mix:.35,noise:0,cutoff:.5,reso:.15,fltEnv:.3,attack:0,decay:.5,sustain:0,modDecay:.4,pitchMod:.5,lfoRate:.1,lfoAmt:.05,space:.3},atonality:.1},
-{name:"SOLO LEAD",params:{waveA:.66,waveB:.66,ratioB:.5,fm:0,mix:.3,noise:0,cutoff:.6,reso:.3,fltEnv:.3,attack:.05,decay:.4,sustain:.8,modDecay:.5,pitchMod:.5,lfoRate:.4,lfoAmt:.25,lfoDelay:.75,space:.3},atonality:.1},
-{name:"DARK DRONE",params:{waveA:.66,waveB:1,ratioB:0,fm:.15,mix:.5,noise:.1,cutoff:.3,reso:.5,fltEnv:.2,attack:.7,decay:.9,sustain:.9,modDecay:.8,pitchMod:.4,lfoRate:.1,lfoAmt:.3,space:.95,damp:.7},atonality:.4},
+{name:"MARIMBA",params:{waveA:.28,waveB:0,ratioB:1,fm:.15,mix:.35,noise:0,cutoff:.5,reso:.15,fltEnv:.3,attack:0,decay:.5,sustain:0,modDecay:.4,pitchMod:.5,lfoRate:.1,lfoAmt:.05,space:.3},atonality:.1},
+{name:"SOLO LEAD",params:{waveA:.57,waveB:.57,ratioB:.5,fm:0,mix:.3,noise:0,cutoff:.6,reso:.3,fltEnv:.3,attack:.05,decay:.4,sustain:.8,modDecay:.5,pitchMod:.5,lfoRate:.4,lfoAmt:.25,lfoDelay:.75,space:.3},atonality:.1},
+{name:"DARK DRONE",params:{waveA:.57,waveB:.81,ratioB:0,fm:.15,mix:.5,noise:.1,cutoff:.3,reso:.5,fltEnv:.2,attack:.7,decay:.9,sustain:.9,modDecay:.8,pitchMod:.4,lfoRate:.1,lfoAmt:.3,space:.95,damp:.7},atonality:.4},
 {name:"NOISE SWEEP",params:{waveA:0,waveB:0,ratioB:.5,fm:0,mix:0,noise:.8,cutoff:.4,reso:.6,fltEnv:.8,attack:.2,decay:.6,sustain:0,modDecay:.7,pitchMod:.7,lfoRate:.6,lfoAmt:.2,space:.7},atonality:.5},
-{name:"METAL HIT",params:{waveA:1,waveB:.66,ratioB:.75,fm:.5,mix:.5,noise:.2,cutoff:.7,reso:.5,fltEnv:.5,attack:0,decay:.4,sustain:0,modDecay:.2,pitchMod:.6,lfoRate:.7,lfoAmt:.1,space:.4},atonality:.6}];
+{name:"SQUARE KEYS",params:{waveA:.81,waveB:.57,ratioB:.75,mix:.3,cutoff:.55,reso:.2,fltEnv:.35,fltType:.333,attack:0,decay:.55,sustain:.55,modDecay:.35,lfoAmt:.05,chorus:.7,space:.35},atonality:.1},
+{name:"THIN PULSE LEAD",params:{waveA:1,waveB:.9,ratioB:.5,centB:.56,mix:.45,cutoff:.6,reso:.35,fltEnv:.4,fltType:.333,attack:.02,decay:.5,sustain:.75,modDecay:.45,lfoRate:.45,lfoAmt:.2,lfoDelay:.7,space:.3},atonality:.05},
+{name:"OCTAVE BASS",params:{waveA:.57,waveB:.81,ratioB:.5,octA:.25,mix:.3,sub:.8,cutoff:.3,reso:.3,fltEnv:.5,fltType:.333,attack:0,decay:.45,sustain:.6,modDecay:.3,drive:.65,space:.05},atonality:0},
+{name:"FIFTH STAB",params:{waveA:.57,waveB:.57,ratioB:.5,semiB:.7917,mix:.45,cutoff:.5,reso:.3,fltEnv:.55,fltType:.333,attack:0,decay:.4,sustain:.3,modDecay:.3,chorus:.65,space:.5},atonality:.05},
+{name:"STEP FILTER",params:{waveA:.57,waveB:.81,ratioB:.5,mix:.35,cutoff:.3,reso:.65,fltEnv:.8,fltType:.333,attack:0,decay:.6,sustain:.8,modDecay:.85,modSH:.8,space:.4},atonality:.1},
+{name:"TWO PEAK VOX",params:{waveA:.57,waveB:.57,ratioB:.5,centB:.55,mix:.4,cutoff:.35,reso:.75,fltEnv:.25,fltType:.667,attack:.25,decay:.7,sustain:.8,modDecay:.6,lfoRate:.35,lfoAmt:.15,chorus:.6,space:.6},atonality:.1},
+{name:"NOTCH PAD",params:{waveA:.57,waveB:.81,ratioB:.5,mix:.4,cutoff:.4,reso:.5,fltEnv:.5,fltType:1,attack:.7,decay:.9,sustain:.85,modDecay:.85,modAttack:.8,lfoRate:.15,lfoAmt:.1,chorus:.65,space:.75},atonality:.15},
+{name:"BAND PLUCK",params:{waveA:.57,waveB:.57,ratioB:.75,mix:.3,noise:.05,cutoff:.55,reso:.5,fltEnv:.5,fltType:0,attack:0,decay:.4,sustain:0,modDecay:.25,space:.35},atonality:.1},
+{name:"LASER ZAP",params:{waveA:.81,waveB:.57,ratioB:.5,mix:.3,cutoff:.6,reso:.3,fltEnv:.4,fltType:.333,attack:0,decay:.35,sustain:0,modDecay:.3,pitchMod:1,space:.3},atonality:.3},
+{name:"FM PIANO",params:{waveA:0,waveB:0,ratioB:.75,fm:.35,fmMod:.8,mix:.2,cutoff:.6,reso:.1,fltEnv:.2,attack:0,decay:.65,sustain:.35,modDecay:.35,lfoShape:.65,lfoRate:.45,lfoAmt:.2,chorus:.7,space:.35},atonality:.05},
+{name:"RING BELLS",params:{waveA:0,waveB:0,ratioB:.85,sub:.1,mix:.5,cutoff:.7,reso:.15,fltEnv:.3,attack:0,decay:.75,sustain:0,modDecay:.5,space:.7},atonality:.4},
+{name:"DUST ORGAN",params:{waveA:.81,waveB:.81,ratioB:.75,mix:.4,noise:.08,noiseColor:.2,cutoff:.5,reso:.15,fltEnv:.1,fltType:.333,attack:.05,decay:.5,sustain:1,lfoShape:.6,lfoRate:.55,lfoAmt:.15,chorus:.75,space:.4},atonality:0},
+{name:"SWELL CHOIR",params:{waveA:.57,waveB:.57,ratioB:.5,centA:.45,centB:.56,mix:.5,cutoff:.4,reso:.55,fltEnv:.2,fltType:.667,attack:.75,decay:.9,sustain:.9,modDecay:.7,lfoRate:.3,lfoAmt:.15,chorus:.75,space:1},atonality:.1},
+{name:"KICK DRUM",params:{waveA:0,waveB:0,ratioB:.5,octA:.25,mix:0,sub:.8,cutoff:.4,reso:.1,fltEnv:.2,attack:0,decay:.35,sustain:0,modDecay:.15,pitchMod:.9,drive:.65,space:0},atonality:0},
+{name:"METAL HIT",params:{waveA:.81,waveB:.57,ratioB:.75,fm:.5,mix:.5,noise:.2,cutoff:.7,reso:.5,fltEnv:.5,attack:0,decay:.4,sustain:0,modDecay:.2,pitchMod:.6,lfoRate:.7,lfoAmt:.1,space:.4},atonality:.6}];
 
 const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
 function mulberry32(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
@@ -543,15 +616,17 @@ const snap=x=>HARM.reduce((a,b)=>Math.abs(b-x)<Math.abs(a-x)?b:a);
 const baseAngle=i=>(-90+i*30)*Math.PI/180;
 const angle=i=>baseAngle(i)+S.br[i].off;
 const polar=(a,r)=>[Math.cos(a)*r,Math.sin(a)*r];
-const neutral=()=>Object.fromEntries(KEYS.map(k=>[k,k==='space'?.3:.5]));
+const neutral=()=>Object.fromEntries(KEYS.map(k=>[k,k==='space'?.3:k==='envLoop'?1:.5])); // keep in sync with neutralGenes() in Analysis.h
 
 // keep in sync with seedParams() in Engine.h
 function seedParams(n){
   const r=mulberry32(n),p={};
   for(const k of KEYS)p[k]=r();
   p.attack**=2.2;p.noise*=p.noise*.6;p.pitchMod=.5+(p.pitchMod-.5)*.25;p.lfoAmt*=.5;p.reso*=.8;p.fm*=.7;
-  p.volFade*=.8;p.envLoop=.6+p.envLoop*.4;p.modAttack*=.6;p.lfoShape*=.7;p.sub=.3+p.sub*.5;p.fltType=.3+p.fltType*.4;
+  p.volFade*=.8;p.envLoop=1;p.modAttack*=.6;p.lfoShape*=.7;p.sub=.3+p.sub*.5;p.fltType=.3+p.fltType*.4;
   p.fltSpread=.5+(p.fltSpread-.5)*.6;p.fltKey=.35+p.fltKey*.3;p.drive=.3+p.drive*.4;p.bass=.3+p.bass*.4;p.treble=.3+p.treble*.4;p.spread=.3+p.spread*.5;
+  for(const k of PITCH)p[k]=.5; // seeds start in tune
+  p.modSH=.5;                    // and with a smooth mod envelope
   if(S.atonality<50)p.ratioB=snap(p.ratioB);
   return p;
 }
@@ -571,15 +646,20 @@ function wheelAmt(){return clamp(Math.max(S.wheel,wheelLive))*S.wheelScale/100}
 function effLen(i){const l=S.len[i],w=wheelAmt();return S.wheelTarget===0?l+(1-l)*w:S.wheelTarget===1?l*(1-w):l}
 function branchParams(i){
   const b=S.br[i],a=S.atonality/100,l=effLen(i),amt=l*l*(.4+a),p={};
-  for(const k of KEYS)p[k]=MASTER.has(k)?S.base[k]:clamp(S.base[k]+b.dir[k]*amt*(k==='pitchMod'?a:1));
+  for(const k of KEYS)p[k]=MASTER.has(k)?S.base[k]:clamp(S.base[k]+b.dir[k]*amt*(k==='pitchMod'||PITCH.includes(k)?a:1));
   if(a<.5&&amt>0)p.ratioB=snap(p.ratioB);
+  if(a<.5)for(const k of ['octA','semiA','semiB'])p[k]=S.base[k]; // tonal: whole steps stay put
   return p;
 }
 
 // ================================================================ state
-const MIDI_DEFAULT={inChannel:0,velCurve:1,pressure:3,minPoly:16,maxPoly:32,pbRange:2,masterTune:440,pbHeldOnly:false,selectBranches:true,programChange:true,computerKeys:false};
-let S={seed:0x5EED1E55,name:'',sel:2,tuning:0,effect:35,volume:-8,release:40,atonality:20,velSens:100,glide:0,wheel:0,wheelScale:100,rotation:0,
+const MIDI_DEFAULT={inChannel:0,velCurve:1,pressure:3,minPoly:16,maxPoly:32,pbRange:2,masterTune:440,pbHeldOnly:false,selectBranches:true,programChange:true,computerKeys:false,mpe:false,mpeRange:48};
+// FX tab defaults: what a patch or preset without FX settings plays with
+const FX_DEFAULT={fxOrder:0,fxPlace:0,drvOn:0,drvStyle:0,drvAmt:.35,drvTone:.5,drvMix:1,tapeOn:0,tapeSpeed:1,tapeDrive:.35,tapeWow:.25,tapeHiss:.1,tapeMix:1,
+  verbOn:0,verbMode:0,verbDecay:.5,verbSize:.55,verbPre:10,verbDamp:.45,verbMix:.3};
+let S={lowCpu:0,seed:0x5EED1E55,name:'',sel:2,tuning:0,effect:35,volume:-8,release:40,atonality:20,velSens:100,glide:0,wheel:0,wheelScale:100,rotation:0,
   bulbMode:0,voiceMode:0,wheelTarget:0,tempoSync:0,fxType:0,fxVariant:0,fxSwarm:.5,fxTail:.5,fxSpan:.5,fxScatter:0,fxMix:.35,
+  ...FX_DEFAULT,
   liveOn:0,liveGate:-45,liveGlide:.03,liveFollow:0,liveOctave:0,
   gain:Array(12).fill(1),layers:Array(12).fill(true),midi:{...MIDI_DEFAULT},cc:{},programs:Array(16).fill(null),patchPath:'',zoom:1};
 S.base=seedParams(S.seed);S.br=dirsFor(S.seed);S.len=freshLens(S.seed);S.len[2]=.75;
@@ -593,12 +673,12 @@ function sow(){pushUndo();sowNew(branchParams(S.sel),rand32());preview()}
 function newSeed(){pushUndo();const n=rand32();sowNew(seedParams(n),n);preview()}
 function clone(){pushUndo();const b=S.br[S.sel],l=S.len[S.sel];S.br=S.br.map(x=>({...x,dir:{...b.dir}}));S.len=S.len.map(()=>l);hud();preview()}
 function reroll(i=S.sel){pushUndo();const r=mulberry32(rand32());S.br[i]={...S.br[i],dir:Object.fromEntries(KEYS.map(k=>[k,r()*2-1]))};hud();preview()}
-function loadPreset(p){pushUndo();S.atonality=p.atonality*100;sowNew({...neutral(),...p.params},hashStr(p.name),p.name);syncAll();preview()}
+function loadPreset(p){pushUndo();Object.assign(S,FX_DEFAULT);S.atonality=p.atonality*100;sowNew({...neutral(),...p.params},hashStr(p.name),p.name);syncAll();preview()}
 function regrow(){VIS.forEach(v=>{v.L.x=0;v.L.v=0});hud()}
 function patchOf(){const p={format:'seedling-patch',version:1};for(const k of PATCH_FIELDS)p[k]=structuredClone(S[k]);return p}
 function applyPatch(p,path=''){
   if(!p||p.format!=='seedling-patch'||!p.base){toast('NOT A PATCH');return false}
-  pushUndo();for(const k of PATCH_FIELDS)if(p[k]!==undefined)S[k]=structuredClone(p[k]);
+  pushUndo();Object.assign(S,FX_DEFAULT);for(const k of PATCH_FIELDS)if(p[k]!==undefined)S[k]=structuredClone(p[k]);
   S.base={...neutral(),...S.base};S.patchPath=path;regrow();syncAll();preview();return true;
 }
 
@@ -645,7 +725,7 @@ if(HOST){
       const db=m.out>0?20*Math.log10(m.out):-90;
       $('outText').textContent=db>-90?`OUT ${db.toFixed(1).replace('-','−')} dB`:'OUT — dB';
       $('outMeter').style.width=clamp((db+60)/60)*100+'%';
-      $('stVoices').textContent='VOICES '+m.voices;
+      $('stVoices').textContent='VOICES '+m.voices+(S.lowCpu?' · LOW CPU':'');
     }
   });
   HOST.emitEvent('ui',{type:'hello'});
@@ -716,8 +796,25 @@ svg.addEventListener('pointerup',endDrag);svg.addEventListener('pointercancel',e
 
 // ================================================================ sliders and selectors
 // a slider bound to S[key] (or a getter/setter pair); big = the large cards on the right
+// what each main control does: tooltip and help line
+const HELP={tuning:'Tunes the whole sound, ±12 semitones',effect:'How much reverb and grain effect you hear',volume:'Output level of gensexuell',
+  release:'How long notes ring after you let go: 20 ms … 4 s',atonality:'How wild new branches grow: low stays in tune and close to the seed, above 50 % ratios go free, metallic and noisy',
+  glide:'Portamento: how long the pitch slides to the next note while you still hold the previous one',wheelScale:'How far the mod wheel reaches',velSens:'How much playing harder makes it louder',
+  liveGate:'Live input quieter than this counts as silence: raise it if breaths or room noise trigger notes',liveGlide:'How smoothly the live pitch follows you between notes',liveOctave:'Plays the live input up to two octaves higher or lower',
+  fxSwarm:'Grain density: how many grains per second',fxTail:'Feedback: how long the grain effect keeps going',fxSpan:'Grain length',fxScatter:'Randomness: where grains start, their pitch and their place in the stereo field',fxMix:'How much of the grain effect you hear',
+  HAZE:'Reverb type: Room, Plate, Hall or Swell (EFFECT sets how much)',DUSK:'Low-pass on the whole sound: off up to 50, darker above',
+  liveOn:'Live input: gensexuell plays along with one voice or instrument on its sidechain input',liveFollow:'Own envelope: the seed shapes each note. Follow level: the loudness of your input shapes it',
+  bulbMode:'Which branch a key plays: Standard (one per note), Velocity (by how hard), Ranges (keyboard split), Layered (all switched-on branches)',
+  voiceMode:'Poly (up to 32 voices), Mono, or Legato (notes slide without a new attack)',wheelTarget:'What the mod wheel does: grow branches, open or close the filter, change envelope times, FM, LFO, effect or volume',
+  tempoSync:'Locks the LFO and looping envelopes to the song tempo',fxType:'Grain effect on the whole sound: Mosaic, Cloud, Shard or Tap',
+  fxOrder:'Order of drive, tape and verb; the cards below follow it',fxPlace:'After or before the grain FX, Haze and Dusk',
+  lowCpu:'Low CPU mode: voices run without oversampling, about half the CPU; driven sounds on high notes alias more',
+  drvOn:'Drive (from drivesexuell): distortion and saturation after the sound',drvStyle:'Distortion character: five styles from soft to hard',drvAmt:'How hard the drive pushes (1 … 25×)',drvTone:'Brighter or darker after the drive, ±12 dB above 800 Hz',drvMix:'Dry against driven sound',
+  tapeOn:'Tape (from tapesexuell): tape colour, head bump, wow and flutter, hiss',tapeSpeed:'Tape speed: slower has more low end and less top',tapeDrive:'How hard the tape saturates',tapeWow:'Pitch wobble of the tape',tapeHiss:'Tape noise',tapeMix:'Dry against taped sound',
+  verbOn:'Verb (from verbsexuell): a second, bigger reverb at the end of the chain',verbMode:'Reverb type: halls, plates, chambers, rooms and special spaces',verbDecay:'How long the reverb rings',verbSize:'Size of the space',verbPre:'Time before the reverb starts',verbDamp:'Darker reverb tail',verbMix:'Dry against reverb',fxVariant:'Variant of the grain effect'};
+const TILE_WAIT='Drop a recording on Perform and RENDER it first, then drag the result into your DAW',TILE_READY='Drag into your DAW (click: show file)';
 function mkSlider(parent,{key,name,min,max,step,fmt,get,set,n},big=false){
-  const d=document.createElement('div');d.className=big?'ctl':'mini';
+  const d=document.createElement('div');d.className=big?'ctl':'mini';if(HELP[key]??HELP[name])d.title=HELP[key]??HELP[name];
   d.innerHTML=`<div class="row">${n?`<span class="n mono">${n}</span>`:''}<span class="name">${name}</span><span class="v mono"></span></div>
   <div class="track"><div class="fill"></div><input type="range" min="${min}" max="${max}" step="${step}" aria-label="${name}"><div class="thumb"></div></div>`;
   parent.append(d);
@@ -726,6 +823,7 @@ function mkSlider(parent,{key,name,min,max,step,fmt,get,set,n},big=false){
   inp.addEventListener('pointerup',()=>s.held=false);inp.addEventListener('lostpointercapture',()=>s.held=false);
   inp.addEventListener('pointerdown',e=>{s.held=true;pushUndo();if(e.ctrlKey&&s.reset!==undefined){s.set(s.reset);inp.value=s.reset;hud();e.preventDefault()}});
   inp.addEventListener('keydown',e=>e.key.startsWith('Arrow')&&pushUndo());
+  inp.addEventListener('dblclick',()=>{if(s.reset===undefined)return;pushUndo();s.set(s.reset);inp.value=s.reset;hud()});
   inp.addEventListener('input',()=>{uiTouch=performance.now();s.set(+inp.value);hud()});
   SLIDERS.push(s);return s;
 }
@@ -734,9 +832,9 @@ const pct=v=>Math.round(v)+' %',unit=v=>v.toFixed(2);
 [{key:'tuning',name:'TUNING',min:-12,max:12,step:.1,fmt:v=>v.toFixed(1)+' st'},{key:'effect',name:'EFFECT',min:0,max:100,step:1,fmt:pct},
  {key:'volume',name:'VOLUME',min:-24,max:6,step:.5,fmt:v=>v.toFixed(1)+' dB'},{key:'release',name:'RELEASE',min:0,max:100,step:1,fmt:pct},
  {key:'atonality',name:'ATONALITY',min:0,max:100,step:1,fmt:pct}].forEach(c=>mkSlider($('ctls'),c,true));
-{const b=document.createElement('button');b.id='bGenes';b.className='geneCell';b.title='Edit the genes of the seed';b.textContent='ALL '+KEYS.length+' GENES';$('ctls').append(b)}
-mkSlider($('lower'),{key:'glide',name:'GLIDE',min:0,max:10,step:.01,fmt:v=>v.toFixed(2)+' s'});
-mkSlider($('lower'),{key:'wheelScale',name:'WHEEL',min:0,max:100,step:1,fmt:pct});
+{const b=document.createElement('button');b.id='bGenes';b.className='geneCell';b.title='Edit every gene of the seed (Ctrl+G)';b.innerHTML='EDIT GENES <small>'+SECTIONS.flatMap(s=>s[1]).length+'</small> ›';$('ctls').append(b)}
+mkSlider($('lower'),{key:'glide',name:'GLIDE',min:0,max:1,step:.001,get:()=>Math.cbrt(S.glide/10),set:v=>S.glide=+(10*v**3).toFixed(3),fmt:v=>sec(10*v**3)}).reset=0; // cubic: fine control of short glides
+mkSlider($('lower'),{key:'wheelScale',name:'WHEEL DEPTH',min:0,max:100,step:1,fmt:pct});
 mkSlider($('lower'),{key:'velSens',name:'VELOCITY',min:0,max:100,step:1,fmt:pct});
 for(const [k,n] of [['fxSwarm','SWARM'],['fxTail','TAIL'],['fxSpan','SPAN'],['fxScatter','SCATTER'],['fxMix','MIX']])
   mkSlider($('fxMinis'),{key:k,name:n,min:0,max:1,step:.001,fmt:v=>Math.round(v*100)});
@@ -746,7 +844,7 @@ for(const [k,n] of [['space','HAZE'],['damp','DUSK']])
 // pop-up selector bound to S[key], drawn as "LABEL VALUE ▾" with a popover list
 const SELECTS=[];
 function mkSelect(parent,key,label,options){
-  const w=document.createElement('span');w.className='sel';
+  const w=document.createElement('span');w.className='sel';if(HELP[key])w.title=HELP[key];
   const id='sel_'+key;
   w.innerHTML=`<span>${label}</span><button class="selBtn" popovertarget="${id}" aria-haspopup="menu" style="anchor-name:--${id}"></button><div class="menu" id="${id}" popover role="menu" style="position-anchor:--${id};top:anchor(bottom);left:anchor(left)"></div>`;
   parent.append(w);
@@ -760,10 +858,25 @@ function mkSelect(parent,key,label,options){
   const s={key,btn,opts};SELECTS.push(s);return s;
 }
 const FX_VARIANTS=[['A','B','C','D'],['STACK','LOW','HIGH','TUMBLE'],['MIST','SHIMMER','MURK','BACKWASH'],['SHUFFLE','CRUSH','ARP','STUTTER'],['ECHO','PING-PONG','REVERSE','CASCADE']];
+function fxCard(title,onKey,selects,sliders){
+  const c=document.createElement('div');c.className='fxCard';c.innerHTML=`<div class="fxHead"><span>${title}</span></div><div class="selects"></div><div class="minis"></div>`;$('fxCards').append(c);
+  mkSelect(c.querySelector('.fxHead'),onKey,'',['OFF','ON']);
+  for(const [k,l,o] of selects)mkSelect(c.querySelector('.selects'),k,l,o);
+  for(const s of sliders)mkSlider(c.querySelector('.minis'),{min:0,max:1,step:.001,fmt:v=>Math.round(v*100)+' %',...s});
+}
+const FX_ORDERS=[[0,1,2],[0,2,1],[1,0,2],[1,2,0],[2,0,1],[2,1,0]],FX_NAMES=['DRIVE','TAPE','VERB'];
+mkSelect($('fxFlow'),'fxOrder','ORDER',FX_ORDERS.map(o=>o.map(i=>FX_NAMES[i]).join(' → ')));
+mkSelect($('fxFlow'),'fxPlace','PLACE',['AFTER GRAIN FX + HAZE','BEFORE GRAIN FX + HAZE']);
+fxCard('DRIVE','drvOn',[['drvStyle','STYLE',['A','E','N','T','P']]],
+  [{key:'drvAmt',name:'DRIVE',fmt:v=>'×'+(1+v*24).toFixed(1)},{key:'drvTone',name:'TONE',fmt:v=>sgn(+((v-.5)*24).toFixed(1))+' dB'},{key:'drvMix',name:'MIX'}]);
+fxCard('TAPE','tapeOn',[['tapeSpeed','SPEED',['7.5 IPS','15 IPS','30 IPS']]],
+  [{key:'tapeDrive',name:'DRIVE'},{key:'tapeWow',name:'WOW'},{key:'tapeHiss',name:'HISS'},{key:'tapeMix',name:'MIX'}]);
+fxCard('VERB','verbOn',[['verbMode','MODE',['CONCERT HALL','BRIGHT HALL','DIRTY HALL','CHAOTIC HALL','VINTAGE HALL','CATHEDRAL','PALACE','PLATE','SMOOTH PLATE','DIRTY PLATE','CHAMBER','VINTAGE CHAMBER','CHAOTIC CHAMBER','ROOM','SMOOTH ROOM','AMBIENCE','SANCTUARY','NONLIN','RANDOM SPACE','CHORUS SPACE','CHAOTIC NEUTRAL']]],
+  [{key:'verbDecay',name:'DECAY',fmt:v=>sec(.5*40**v)},{key:'verbSize',name:'SIZE'},{key:'verbPre',name:'PRE-DELAY',min:0,max:200,step:.1,fmt:v=>Math.round(v)+' ms'},{key:'verbDamp',name:'DAMPING'},{key:'verbMix',name:'MIX'}]);
 mkSelect($('liveSelects'),'liveOn','',['OFF','ON']);
 mkSelect($('liveSelects'),'liveFollow','',['OWN ENVELOPE','FOLLOW LEVEL']);
 mkSlider($('liveMinis'),{key:'liveGate',name:'GATE',min:-70,max:-10,step:1,fmt:v=>Math.round(v)+' dB'});
-mkSlider($('liveMinis'),{key:'liveGlide',name:'GLIDE',min:0,max:.5,step:.001,fmt:v=>Math.round(v*1000)+' ms'});
+mkSlider($('liveMinis'),{key:'liveGlide',name:'LIVE GLIDE',min:0,max:.5,step:.001,fmt:v=>Math.round(v*1000)+' ms'});
 mkSlider($('liveMinis'),{key:'liveOctave',name:'OCTAVE',min:-2,max:2,step:1,fmt:v=>(v>0?'+':'')+v});
 mkSelect($('modes'),'bulbMode','BULB',['STANDARD','VELOCITY','RANGES','LAYERED']);
 mkSelect($('modes'),'voiceMode','VOICE',['POLY','MONO','LEGATO']);
@@ -790,7 +903,8 @@ function hud(sync=true){
   for(const s of SELECTS){if(s.key==='tempoSync')$('stSync').textContent='SYNC '+s.opts()[S.tempoSync];if(s.key==='wheelTarget')$('wheelLabel').textContent='MOD WHEEL · '+s.opts()[S.wheelTarget]}
   if(sync)queueSync();
 }
-function syncAll(){syncCtls();hud();if($('dlgGenes').open)renderGenes();if($('dlgBranches').open)renderBranches();if($('dlgMidi').open)renderMidi()}
+function syncAll(){syncCtls();hud();[...$('fxCards').children].forEach((c,i)=>c.style.order=FX_ORDERS[S.fxOrder].indexOf(i)); // cards follow the signal flow
+  if(!$('genesView').hidden)renderGenes();if($('dlgBranches').open)renderBranches();if($('dlgMidi').open)renderMidi()}
 let last=performance.now();
 function frame(now){
   const dt=Math.min(.033,(now-last)/1000),steps=Math.ceil(dt/.008)||1,h=dt/steps,T=now/1000;
@@ -849,14 +963,24 @@ function openDlg(id){const d=$(id);if(!d.open)d.showModal()}
 
 // ---------------- genes
 let geneTab=0;
-SECTIONS.forEach(([name],i)=>{const b=document.createElement('button');b.role='tab';b.textContent=name;b.onclick=()=>{geneTab=i;renderGenes()};$('geneTabs').append(b)});
+SECTIONS.forEach(([name],i)=>{const b=document.createElement('button');b.role='tab';b.textContent=name;b.onclick=()=>{geneTab=i;$('geneFind').value='';renderGenes()};$('geneTabs').append(b)});
+{const f=Object.assign(document.createElement('input'),{id:'geneFind',className:'geneFind',type:'search',placeholder:'FIND A GENE…',ariaLabel:'Find a gene by name or what it does'});f.oninput=renderGenes;$('geneTabs').append(f)}
+function showView(v){ // 'seed', 'genes' or 'fx'
+  $('genesView').hidden=v!=='genes';$('fxView').hidden=v!=='fx';
+  for(const [id,n] of [['vSeed','seed'],['vGenes','genes'],['vFx','fx']])$(id).setAttribute('aria-selected',v===n);
+  if(v==='genes')renderGenes()}
+const openGenes=()=>showView($('genesView').hidden?'genes':'seed'); // Ctrl+G and EDIT GENES toggle between the seed and its genes
+$('vSeed').onclick=()=>showView('seed');$('vGenes').onclick=()=>showView('genes');$('vFx').onclick=()=>showView('fx');$('vGenesN').textContent=SECTIONS.flatMap(s=>s[1]).length;
 function renderGenes(){
-  [...$('geneTabs').children].forEach((b,i)=>b.setAttribute('aria-selected',i===geneTab));
+  const q=$('geneFind').value.trim().toLowerCase();
+  [...$('geneTabs').querySelectorAll('[role=tab]')].forEach((b,i)=>b.setAttribute('aria-selected',!q&&i===geneTab));
   for(let i=SLIDERS.length-1;i>=0;i--)if(SLIDERS[i].gene)SLIDERS.splice(i,1);
   $('geneGrid').replaceChildren();
-  for(const k of SECTIONS[geneTab][1]){
-    const s=mkSlider($('geneGrid'),{name:GENE_INFO[k][0],min:0,max:1,step:.001,fmt:unit,get:()=>S.base[k],set:v=>{S.base[k]=v;drawGraph()}});
-    s.gene=k;s.reset=k==='space'?.3:.5;
+  const shown=q?SECTIONS.flatMap(s=>s[1]).filter(k=>(GENE_INFO[k][0]+' '+GENE_INFO[k][1]).toLowerCase().includes(q)):SECTIONS[geneTab][1];
+  $('geneFoot').textContent=q&&!shown.length?'NO GENE MATCHES “'+q.toUpperCase()+'”':'DOUBLE-CLICK A GENE TO RESET IT · GENES SET THE SEED, BRANCHES STILL GROW AT RANDOM';
+  for(const k of shown){
+    const s=mkSlider($('geneGrid'),{name:GENE_INFO[k][0],min:0,max:1,step:.001,fmt:GENE_FMT[k]||unit,get:()=>S.base[k],set:v=>{S.base[k]=v;drawGraph()}});
+    s.gene=k;s.reset=k==='space'?.3:.5;s.el.title=GENE_INFO[k][1];
     s.el.addEventListener('pointerenter',()=>$('geneFoot').textContent=GENE_INFO[k][1].toUpperCase());
   }
   syncCtls();hud(false);drawGraph();
@@ -872,15 +996,21 @@ function drawGraph(){
     const mp=[];for(let i=0;i<=200;i++){const t=i/200*4;mp.push(`${i*4},${H-8-Math.exp(-t/(md/3))*(H-16)}`)}
     line('M'+mp.join('L'),'4 4');
   }else if(geneTab===1){ // one cycle of A (solid) and B (dashed)
-    const shape=[n=>n===1?1:0,n=>n%2?8/(Math.PI**2*n*n)*((n-1)/2%2?-1:1):0,n=>2/(Math.PI*n)*(n%2?1:-1),n=>n%2?4/(Math.PI*n):0];
-    const wave=(x,ratio)=>{const pos=Math.round(x*24)/8,seg=Math.min(2,Math.floor(pos)),f=pos-seg,ys=[];
-      for(let i=0;i<=200;i++){let y=0;for(let n=1;n<24;n++)y+=(shape[seg](n)*(1-f)+shape[seg+1](n)*f)*Math.sin(2*Math.PI*n*i/200*ratio);ys.push(y)}
+    // mirrors Tables::harmonic in Engine.h: sine 0 > saw .57 > square .81 > pulse 1 (width 50 % > 12.5 %)
+    const harm=(x,n)=>{const P=Math.PI,saw=2/(P*n)*(n%2?1:-1),sq=n%2?4/(P*n):0;
+      if(x<=.57){const f=x/.57;return [(n===1?1-f:0)+saw*f,0]}
+      if(x<=.81){const f=(x-.57)/.24;return [saw*(1-f)+sq*f,0]}
+      const d=.5-.375*(x-.81)/.19;return [2/(P*n)*(1-Math.cos(2*P*n*d)),2/(P*n)*Math.sin(2*P*n*d)]};
+    const wave=(x,ratio)=>{x=Math.round(x*100)/100;const ys=[];
+      for(let i=0;i<=200;i++){let y=0;for(let n=1;n<24;n++){const [s,c]=harm(x,n),a=2*Math.PI*n*i/200*ratio;y+=s*Math.sin(a)+c*Math.cos(a)}ys.push(y)}
       const m=Math.max(...ys.map(Math.abs))||1;return 'M'+ys.map((y,i)=>`${i*4},${H/2-y/m*(H/2-8)}`).join('L')};
     line(wave(b.waveA,1));line(wave(b.waveB,b.ratioB<.5?2**(2*(b.ratioB-.5)):2**(4*(b.ratioB-.5))),'4 4');
   }else{ // filter response, cutoff as if played at C4
     const fc=261.6*.5*40**b.cutoff,q=Math.max(.707,10**(.5*30**b.reso/20)),k=1/q;
     for(let i=0;i<=200;i++){const f=20*1000**(i/200),w=f/fc,den=Math.hypot(1-w*w,k*w);
-      const lp=1/den,bp=k*w/den,hp=w*w/den,t=b.fltType,y=t<.4?bp*(1-t/.4)+lp*t/.4:t>.6?Math.abs(lp+hp*(t-.6)/.4*(w>1?1:-1)):lp;
+      const lp=1/den,bp=k*w/den,hp=w*w/den,ser=lp/Math.hypot(1-w*w,1.414*w),w2=w/2,par=.5*(lp+1/Math.hypot(1-w2*w2,k*w2)),
+        notch=Math.abs(1-w*w)/den,seg=Math.min(b.fltType*3,2.999),u=seg-Math.floor(seg); // same morph as Engine.h (magnitudes only)
+      const y=seg<1?bp*(1-u)+ser*u:seg<2?ser*(1-u)+par*u:par*(1-u)+notch*u;
       pts.push(`${i*4},${clamp(H*.35-20*Math.log10(y+1e-6)*1.6,4,H-4)}`)}
     line('M'+pts.join('L'));
   }
@@ -898,7 +1028,8 @@ const MIDI_FIELDS=[['inChannel','INPUT CHANNEL',['OMNI',...Array.from({length:16
   ['pressure','PRESSURE → WHEEL',['SOFT','NORMAL','HARD','OFF']],['minPoly','MIN POLYPHONY',[1,32]],['maxPoly','MAX POLYPHONY',[1,32]],
   ['pbRange','PITCH WHEEL RANGE (ST)',[0,48]],['masterTune','MASTER TUNING (HZ)',[340,540]],['pbHeldOnly','PITCH WHEEL ONLY HELD NOTES',null],
   ['selectBranches','SELECT BRANCHES WITH MIDI NOTES',null],['programChange','MIDI PROGRAM CHANGE',null],
-  ['computerKeys','PLAY BRANCHES WITH COMPUTER KEYS (A W S E D…)',null]];
+  ['computerKeys','PLAY BRANCHES WITH COMPUTER KEYS (A W S E D…)',null],
+  ['mpe','MPE (CHANNEL 1 MASTER, 2–16 ONE NOTE EACH)',null],['mpeRange','MPE NOTE BEND RANGE (ST)',[0,96]]];
 function renderMidi(){
   $('midiForm').replaceChildren(...MIDI_FIELDS.flatMap(([k,label,opt])=>{
     const l=document.createElement('label');l.textContent=label;l.htmlFor='m_'+k;
@@ -998,9 +1129,10 @@ function fitWindow(){if(!HOST)return;const r=document.documentElement,z=Math.min
 addEventListener('resize',fitWindow);fitWindow();
 const MAIN=[['UNDO',doUndo,'Ctrl+Z'],['REDO',doRedo,'Ctrl+Shift+Z'],null,['OPEN PATCH…',openPatch,'Ctrl+O'],['SAVE PATCH…',savePatch,'Ctrl+S'],['COPY PATCH',copyPatch],['PASTE PATCH',pastePatch],null,
   ['SOW',sow],['NEW RANDOM SEED',newSeed],['CLONE BRANCH TO ALL',clone],['GROW NEW RANDOM BRANCH',()=>reroll()],null,
-  ['GENES…',()=>{openDlg('dlgGenes');renderGenes()}],['SOUND → SEED…',()=>openDlg('dlgSound')],['TEXT → SEED',()=>$('desc').focus()],['HOW TO DESCRIBE…',()=>openDlg('dlgDescribe')],['PERFORMANCE → SEED…',()=>openDlg('dlgPerf')],null,
+  ['GENES',()=>showView('genes'),'Ctrl+G'],['EFFECTS',()=>showView('fx')],['SOUND → SEED…',()=>openDlg('dlgSound')],['TEXT → SEED',()=>$('desc').focus()],['HOW TO DESCRIBE…',()=>openDlg('dlgDescribe')],['PERFORMANCE → SEED…',()=>openDlg('dlgPerf')],null,
   ['CORRECT TUNING',correctTuning],['NORMALIZE VOLUME',normalizeVolume],['NORMALIZE BRANCH VOLUMES',normalizeBranches],['BRANCH VOLUMES…',()=>{openDlg('dlgBranches');renderBranches()}],null,
   ['MIDI CONTROLLERS…',()=>{openDlg('dlgCc');renderCc()}],['MIDI SETTINGS…',()=>{openDlg('dlgMidi');renderMidi()}],['PROGRAM LIST…',()=>{openDlg('dlgPrograms');renderPrograms()}],null,
+  ['LOW CPU MODE',()=>{S.lowCpu=S.lowCpu?0:1;hud();toast(S.lowCpu?'LOW CPU MODE ON: VOICES WITHOUT OVERSAMPLING':'LOW CPU MODE OFF')}],null,
   ['ZOOM',null],['ABOUT',()=>openDlg('dlgAbout')]];
 $('mainMenu').append(...MAIN.map(m=>{
   if(!m)return document.createElement('hr');
@@ -1198,7 +1330,7 @@ async function analyzePerformance(){
   const r=await native('perfAnalyze',P.pcm,{smoothing:+$('pSmooth').value,minNote:+$('pMin').value,keepBends:$('pBends').checked,octave:+$('pOct').value});
   P.notes=r?.notes??[];P.wav=P.mid='';
   ['pPlayIn','pRender'].forEach(id=>$(id).disabled=false);$('pPlayOut').disabled=true;
-  TILES.forEach(t=>t.setAttribute('aria-disabled','true'));
+  TILES.forEach(t=>{t.setAttribute('aria-disabled','true');t.title=TILE_WAIT});
   $('pFoot').textContent=`${P.name.toUpperCase()} · ${P.notes.length} NOTES · ${P.seconds.toFixed(1)} S · RENDER PLAYS THEM WITH THE CURRENT SEED`;
   drawPerformance();
 }
@@ -1221,7 +1353,7 @@ async function renderPerformance(){
     const r=await native('perfRender');if(!r)return;
     P.wav=r.path;P.mid=await native('perfMidi',P.name)??'';
     $('pPlayOut').disabled=false;
-    TILES.forEach(t=>t.setAttribute('aria-disabled',!P[t.dataset.tile]));
+    TILES.forEach(t=>{t.setAttribute('aria-disabled',!P[t.dataset.tile]);t.title=P[t.dataset.tile]?TILE_READY:TILE_WAIT});
     toast('RENDERED · DRAG WAV OR MIDI INTO YOUR DAW');
   }finally{$('pRender').disabled=false;$('pRender').textContent='RENDER'}
 }
@@ -1267,15 +1399,22 @@ function keyPress(n,on,v){KBD.get(n)?.classList.toggle('on',on);HOST?.emitEvent(
 
 // ================================================================ wiring
 $('bSow').onclick=sow;$('bNew').onclick=newSeed;$('bClone').onclick=clone;$('bReroll').onclick=()=>reroll();
-$('bGenes').onclick=()=>{openDlg('dlgGenes');renderGenes()};$('bUndo').onclick=doUndo;$('bRedo').onclick=doRedo;
+$('bGenes').onclick=openGenes;$('bUndo').onclick=doUndo;$('bRedo').onclick=doRedo;
 // letter keys play branches only when switched on in MIDI settings: in a DAW with its own computer MIDI keyboard they would sound twice
 const KB='awsedftgyhuj';
+const START_HINT='START HERE: play the keys below, drag a branch out of the seed, and SOW the one you like. Or describe a sound on the left.';
+let started=false;try{started=localStorage.getItem('gs.started')==='1'}catch{}
+const idleHelp=()=>started?'':START_HINT;
+function markStarted(){if(started)return;started=true;try{localStorage.setItem('gs.started','1')}catch{}if($('helpLine').textContent===START_HINT)$('helpLine').textContent=''}
+$('keyboard').addEventListener('pointerdown',markStarted);$('bulbSvg').addEventListener('pointerdown',markStarted);
+$('helpLine').textContent=idleHelp();
+addEventListener('pointerover',e=>{const t=e.target.closest?.('[title]');$('helpLine').textContent=t&&!t.closest('dialog,#genesView,#fxView')?t.getAttribute('title'):idleHelp()});
 addEventListener('keydown',e=>{
-  if(e.target.matches('input[type=number],input[type=text],select'))return;
+  if(e.target.matches('input[type=number],input[type=text],input[type=search],select'))return;
   if(e.ctrlKey||e.metaKey){
     const k=e.key.toLowerCase();
     if(k==='z'){e.preventDefault();e.shiftKey?doRedo():doUndo()}else if(k==='y'){e.preventDefault();doRedo()}
-    else if(k==='s'){e.preventDefault();savePatch()}else if(k==='o'){e.preventDefault();openPatch()}
+    else if(k==='s'){e.preventDefault();savePatch()}else if(k==='o'){e.preventDefault();openPatch()}else if(k==='g'){e.preventDefault();openGenes()}
     return;
   }
   if(!S.midi.computerKeys||e.repeat||e.altKey||document.querySelector('dialog[open]'))return;
@@ -1292,7 +1431,7 @@ function selfTest(){
   S.len[0]=1;const q=branchParams(0);console.assert(KEYS.every(k=>q[k]>=0&&q[k]<=1),'branch params in range');
   S.len[0]=save;
   console.assert(PRESETS.every(p=>Object.entries(p.params).every(([k,v])=>KEYS.includes(k)&&v>=0&&v<=1)),'presets use known genes');
-  console.assert(KEYS.every(k=>GENE_INFO[k])&&SECTIONS.flatMap(s=>s[1]).length===KEYS.length,'every gene has a label and a section');
+  console.assert(KEYS.every(k=>GENE_INFO[k])&&SECTIONS.flatMap(s=>s[1]).length===KEYS.length-1&&!SECTIONS.flatMap(s=>s[1]).includes('pitchA'),'every gene has a label and a section');
 }
 selfTest();syncCtls();hud(false);drawStrands();requestAnimationFrame(frame);
 </script>

@@ -2,7 +2,7 @@
 ;   "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\gensexuell.iss
 ; The setup lands in build\installer. Run installer\make-source.py first: the source zip ships inside.
 
-#define AppVersion "0.3.1"
+#define AppVersion "0.4.1"
 #define Artefacts "..\build\Seedling_artefacts\Release"
 
 [Setup]
@@ -35,6 +35,8 @@ UninstallDisplayName=gensexuell {#AppVersion} beta
 WizardImageFile=wizard.bmp,wizard@2x.bmp
 WizardSmallImageFile=small.bmp,small@2x.bmp
 InfoBeforeFile=README.txt
+; the presets go to Documents\Seedling\Presets of the user who runs the setup
+UsedUserAreasWarning=no
 
 [Languages]
 Name: "de"; MessagesFile: "compiler:Languages\German.isl"
@@ -80,6 +82,7 @@ Source: "{#Artefacts}\VST3\gensexuell.vst3\desktop.ini"; DestDir: "{commoncf64}\
 Source: "{#Artefacts}\CLAP\gensexuell.clap"; DestDir: "{commoncf64}\CLAP"; Components: clap; Flags: ignoreversion
 Source: "{#Artefacts}\LV2\gensexuell.lv2\*"; DestDir: "{commoncf64}\LV2\gensexuell.lv2"; Components: lv2; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "*.exp,*.lib"
 Source: "README.txt"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\presets\*"; DestDir: "{userdocs}\Seedling\Presets"; Flags: recursesubdirs createallsubdirs onlyifdoesntexist uninsneveruninstall
 Source: "..\docs\manual.html"; DestDir: "{app}"; DestName: "USER_MANUAL.html"; Flags: ignoreversion
 Source: "..\docs\handbuch.html"; DestDir: "{app}"; DestName: "BENUTZERHANDBUCH.html"; Flags: ignoreversion
 Source: "..\LICENSE"; DestDir: "{app}"; DestName: "LICENSE.txt"; Flags: ignoreversion

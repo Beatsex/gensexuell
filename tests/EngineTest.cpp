@@ -43,10 +43,39 @@ int main()
     const Genome g = defaultGenome (0x5EED1E55u);
     const Params base = seedParams (0x5EED1E55u, 20);
     check (near (base[waveA], 0.9050339f) && near (base[ratioB], 0.5f) && near (base[lfoAmt], 0.1950235f), "seedParams (first genes) matches JS");
-    check (near (base[drive], 0.3845241f) && near (base[spread], 0.4986768f) && near (base[envLoop], 0.9673820f), "seedParams (new genes) matches JS");
+    check (near (base[drive], 0.3845241f) && near (base[spread], 0.4986768f) && near (base[envLoop], 1.0f), "seedParams (new genes) matches JS");
     check (near (g.dir[0][waveA], -0.8256038f) && near (g.dir[0][spread], -0.4142749f), "dirsFor matches JS");
     check (near (g.off[11], -0.1063488f), "branch offsets match JS");
     check (near (freshLens (0x5EED1E55u)[1], 0.2702775f), "freshLens matches JS");
+
+    // ---- wave morph: sine 0, saw 0.57, square 0.81, pulse 1 (width 12.5 %)
+    {
+        float sn, cs;
+        Tables::harmonic (0, 1, sn, cs);                check (near (sn, 1) && near (cs, 0), "morph 0 is a sine");
+        Tables::harmonic (0, 2, sn, cs);                check (near (sn, 0), "sine has no 2nd harmonic");
+        Tables::harmonic (Tables::SAW, 2, sn, cs);      check (near (sn, -1 / PI) && near (cs, 0), "morph 0.57 is a saw");
+        Tables::harmonic (Tables::SQUARE, 2, sn, cs);   check (near (sn, 0) && near (cs, 0), "square has no even harmonics");
+        Tables::harmonic (Tables::SQUARE, 3, sn, cs);   check (near (sn, 4 / (3 * PI)), "morph 0.81 is a square");
+        Tables::harmonic (Tables::SQUARE + 1e-4f, 3, sn, cs);
+        check (near (sn, 4 / (3 * PI), 1e-3f) && near (cs, 0, 1e-2f), "pulse starts where the square ends");
+        const auto high = [] (float morph) // fraction of the cycle above zero (= pulse width)
+        {
+            const float* t = Tables::get().table (morph, 20, 48000);
+            int n = 0;
+            for (int s = 0; s < Tables::SIZE; ++s) n += t[s] > 0;
+            return n / float (Tables::SIZE);
+        };
+        check (near (high (Tables::SQUARE), 0.5f, 0.02f), "square is 50 % high");
+        check (near (high (1), Tables::PULSE_MIN, 0.02f), "morph 1 is a 12.5 % pulse");
+        const auto rms = [] (float morph)
+        {
+            const float* t = Tables::get().table (morph, 20, 48000);
+            float s = 0;
+            for (int i = 0; i < Tables::SIZE; ++i) s += t[i] * t[i];
+            return std::sqrt (s / Tables::SIZE);
+        };
+        check (near (rms (1), rms (Tables::SQUARE), 0.01f) && near (rms (0.9f), rms (Tables::SQUARE), 0.01f), "the pulse keeps the square's level");
+    }
 
     Controls c = defaults();
     c.len.fill (0);
@@ -133,6 +162,28 @@ int main()
         const float fLate = detectPitch (late.data(), int (late.size()), 48000);
         std::printf ("glide: %.1f Hz -> %.1f Hz\n", fEarly, fLate);
         check (fEarly < 450 && near (fLate, 523.25f, 4), "glide moves from C4 up to C5");
+    }
+    {
+        // pitch split: A by octave + semitones, B relative to A; a sine at C4 (261.63 Hz)
+        auto pitchOf = [&] (float octA_, float semiA_, float semiB_, float mixB) {
+            Params p = neutralGenes();
+            p[waveA] = 0; p[waveB] = 0; p[mix] = mixB; p[noise] = 0; p[fm] = 0; p[sub] = 0.5f; p[cutoff] = 1; p[fltEnv] = 0;
+            p[attack] = 0; p[sustain] = 1; p[lfoAmt] = 0; p[fltType] = 0.5f; p[drive] = 0.5f;
+            p[octA] = octA_; p[semiA] = semiA_; p[semiB] = semiB_;
+            Controls cs = defaults();
+            cs.base = p;
+            cs.len.fill (0);
+            cs.atonality = 0;
+            Engine e;
+            e.prepare (48000);
+            e.noteOn (1, 60, 0.9f, -1, g, cs, s);
+            play (e, g, cs, s, 40);
+            const auto x = play (e, g, cs, s, 40);
+            return detectPitch (x.data(), int (x.size()), 48000);
+        };
+        const float up = pitchOf (0.75f, 0.5f + 7 / 24.0f, 0.5f, 0), bUp = pitchOf (0.5f, 0.5f, 1, 1);
+        std::printf ("pitch split: A +1 oct +7 st %.1f Hz, B +12 st %.1f Hz\n", up, bUp);
+        check (near (up, 783.99f, 6) && near (bUp, 523.25f, 4), "octave, semitone and B offsets move the pitch");
     }
 
     // ---- voice colours outside every seed's range: ring mod, wavefold, stepped LFO; the ranges seeds use stay as they were
@@ -281,6 +332,121 @@ int main()
         cc.len.fill (0.1f);
         cc.wheel = 1;
         check (effectiveLen (cc, 0) == 1.0f, "Growth + wheel grows every branch");
+    }
+
+    {
+        // mod S&H: a pitch sweep from the mod envelope holds its first step instead of falling
+        auto pitches = [&] (float sh) {
+            Params p = neutralGenes();
+            p[waveA] = 0; p[mix] = 0; p[noise] = 0; p[fm] = 0; p[cutoff] = 1; p[fltEnv] = 0; p[attack] = 0; p[sustain] = 1;
+            p[lfoAmt] = 0; p[pitchMod] = 1; p[modSH] = sh;
+            Controls cs = defaults();
+            cs.base = p;
+            cs.len.fill (0);
+            Engine e;
+            e.prepare (48000);
+            e.noteOn (1, 60, 0.9f, -1, g, cs, s);
+            play (e, g, cs, s, 10);
+            const auto a = play (e, g, cs, s, 30);
+            play (e, g, cs, s, 20);
+            const auto b = play (e, g, cs, s, 30);
+            return std::pair { detectPitch (a.data(), int (a.size()), 48000), detectPitch (b.data(), int (b.size()), 48000) };
+        };
+        const auto [smoothA, smoothB] = pitches (0.5f);
+        const auto [heldA, heldB] = pitches (0.61f); // about one step per second
+        std::printf ("mod S&H: smooth %.0f -> %.0f Hz, stepped %.0f -> %.0f Hz\n", smoothA, smoothB, heldA, heldB);
+        check (smoothB < smoothA * 0.97f && near (heldA, heldB, 2) && heldA > 600, "S&H holds the mod envelope in steps");
+    }
+    {
+        // filter type: band-pass, serial low-pass, parallel low-pass and notch sound different from each other
+        Params p = neutralGenes();
+        p[waveA] = 0.57f; p[noise] = 0.3f; p[reso] = 0.6f; p[cutoff] = 0.5f; p[fltEnv] = 0; p[attack] = 0; p[sustain] = 1;
+        std::array<Features, 4> fs;
+        for (int i = 0; i < 4; ++i) { p[fltType] = i / 3.0f; fs[size_t (i)] = patchFeatures (p, 60); }
+        float closest = 1e9f;
+        for (int i = 0; i < 4; ++i)
+            for (int j = i + 1; j < 4; ++j) closest = std::min (closest, distance (fs[size_t (i)], fs[size_t (j)]));
+        std::printf ("filter types: closest pair %.3f apart\n", closest);
+        check (closest > 0.02f, "the four filter types sound different");
+    }
+
+    {
+        // anti-aliasing: a driven saw at A6 (1760 Hz) should keep its energy on the harmonics
+        Params p = neutralGenes();
+        p[waveA] = 0.57f; p[mix] = 0; p[noise] = 0; p[fm] = 0; p[cutoff] = 1; p[fltEnv] = 0; p[attack] = 0; p[sustain] = 1;
+        p[lfoAmt] = 0; p[drive] = 0.8f; // 1x: 23.5 dB, 2x: 31.8 dB
+        Controls cs = defaults();
+        cs.base = p;
+        cs.len.fill (0);
+        Voice v;
+        uint32_t rng = 1;
+        v.start (93, 0, 0, 0.9f, g, cs, s, 48000, rng, -1, 0);
+        const int N = 4800; // 10 Hz bins: every harmonic of 1760 Hz sits on a bin
+        std::vector<float> L (N * 2), R (N * 2);
+        v.render (L.data(), R.data(), N * 2, rng, Live {});
+        const float* x = L.data() + N;
+        double all = 0, harm = 0;
+        for (int i = 0; i < N; ++i) all += double (x[i]) * x[i];
+        for (int k = 0; k * 1760 < 24000; ++k)
+        {
+            double re = 0, im = 0;
+            for (int i = 0; i < N; ++i) { const double a = 2 * PI * k * 176.0 * i / N; re += x[i] * std::cos (a); im -= x[i] * std::sin (a); }
+            harm += (k == 0 ? 1.0 : 2.0) * (re * re + im * im) / N;
+        }
+        const double aliasDb = 10 * std::log10 (std::max (all - harm, 1e-12) / all);
+        std::printf ("aliasing: %.1f dB below the harmonics (driven saw at 1760 Hz)\n", -aliasDb);
+        check (aliasDb < -28, "a driven saw on a high note keeps its aliases low (oversampled voice)");
+    }
+
+    {
+        // MPE: a note channel bends only its own note, the master channel bends all of them
+        Params p = neutralGenes();
+        p[waveA] = 0; p[mix] = 0; p[noise] = 0; p[fm] = 0; p[sub] = 0.5f; p[cutoff] = 1; p[fltEnv] = 0;
+        p[attack] = 0; p[sustain] = 1; p[lfoAmt] = 0; p[fltType] = 0.5f; p[drive] = 0.5f;
+        Controls cs = defaults();
+        cs.base = p;
+        cs.len.fill (0);
+        cs.atonality = 0;
+        Settings ms = s;
+        ms.mpe = true;
+        ms.mpeRange = 12;
+        ms.pbRange = 2;
+        auto pitchWith = [&] (int noteCh, int bendCh, float amount) {
+            Engine e;
+            e.prepare (48000);
+            e.pitchBend (bendCh, amount);
+            e.noteOn (noteCh, 60, 0.9f, -1, g, cs, ms);
+            play (e, g, cs, ms, 40);
+            const auto x = play (e, g, cs, ms, 40);
+            return detectPitch (x.data(), int (x.size()), 48000);
+        };
+        const float own = pitchWith (2, 2, 1), other = pitchWith (2, 3, 1), master = pitchWith (2, 1, 1);
+        std::printf ("mpe: own channel %.1f Hz, other channel %.1f Hz, master %.1f Hz\n", own, other, master);
+        check (near (own, 523.25f, 4) && near (other, 261.63f, 3) && near (master, 293.66f, 3), "MPE bends per note, the master bends all");
+    }
+
+    {
+        // low CPU mode: no oversampling, same pitch and level (a saw at C4 with some noise)
+        Params p = neutralGenes();
+        p[waveA] = 0.57f; p[mix] = 0; p[noise] = 0.2f; p[fm] = 0; p[cutoff] = 1; p[fltEnv] = 0; p[attack] = 0; p[sustain] = 1; p[lfoAmt] = 0;
+        auto run = [&] (bool low) {
+            Controls cs = defaults();
+            cs.base = p;
+            cs.len.fill (0);
+            cs.lowCpu = low;
+            Engine e;
+            e.prepare (48000);
+            e.noteOn (1, 60, 0.9f, -1, g, cs, s);
+            play (e, g, cs, s, 20);
+            const auto x = play (e, g, cs, s, 40);
+            double sum = 0;
+            for (float v : x) sum += double (v) * v;
+            return std::pair { detectPitch (x.data(), int (x.size()), 48000), float (10 * std::log10 (sum / double (x.size()))) };
+        };
+        const auto [fHi, dbHi] = run (false);
+        const auto [fLo, dbLo] = run (true);
+        std::printf ("low cpu: %.1f Hz %.1f dB, oversampled %.1f Hz %.1f dB\n", fLo, dbLo, fHi, dbHi);
+        check (near (fLo, 261.63f, 3) && std::abs (dbLo - dbHi) < 1, "low CPU mode keeps pitch and level");
     }
 
     // ---- sound -> seed

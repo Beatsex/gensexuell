@@ -8,6 +8,9 @@
 #include "grain/EngineSet.h"
 #include "grain/Lowpass.h"
 #include "grain/Reverb.h"
+#include "retro/Distortion.h"
+#include "retro/TapeMachine.h"
+#include "retro/FDN.h"
 
 using namespace juce;
 using namespace seedling;
@@ -35,8 +38,8 @@ const std::vector<ParamDef>& paramDefs()
         std::vector<ParamDef> d;
         auto top = [&] (const char* id, const char* name, float lo, float hi, float step, float def, float skew = 1)
         { d.push_back ({ id, name, Where::top, id, 0, lo, hi, step, def, skew, {} }); };
-        auto choice = [&] (const char* id, const char* name, StringArray options)
-        { d.push_back ({ id, name, Where::top, id, 0, 0, float (options.size() - 1), 1, 0, 1, options }); };
+        auto choice = [&] (const char* id, const char* name, StringArray options, float def = 0)
+        { d.push_back ({ id, name, Where::top, id, 0, 0, float (options.size() - 1), 1, def, 1, options }); };
 
         top ("tuning", "Tuning", -12, 12, 0.1f, 0);
         top ("effect", "Effect", 0, 100, 1, 35);
@@ -59,6 +62,30 @@ const std::vector<ParamDef>& paramDefs()
         top ("fxSpan", "FX Span", 0, 1, 0.001f, 0.5f);
         top ("fxScatter", "FX Scatter", 0, 1, 0.001f, 0);
         top ("fxMix", "FX Mix", 0, 1, 0.001f, 0.35f);
+        // retro effects (drivesexuell, tapesexuell, verbsexuell): saved per patch, not genes
+        choice ("fxOrder", "FX Order", { "Drive > Tape > Verb", "Drive > Verb > Tape", "Tape > Drive > Verb", "Tape > Verb > Drive", "Verb > Drive > Tape", "Verb > Tape > Drive" });
+        choice ("fxPlace", "FX Place", { "After grain FX", "Before grain FX" });
+        choice ("drvOn", "Drive On", { "Off", "On" });
+        choice ("drvStyle", "Drive Style", { "A", "E", "N", "T", "P" });
+        top ("drvAmt", "Drive Amount", 0, 1, 0.001f, 0.35f);
+        top ("drvTone", "Drive Tone", 0, 1, 0.001f, 0.5f);
+        top ("drvMix", "Drive Mix", 0, 1, 0.001f, 1);
+        choice ("tapeOn", "Tape On", { "Off", "On" });
+        choice ("tapeSpeed", "Tape Speed", { "7.5 ips", "15 ips", "30 ips" }, 1);
+        top ("tapeDrive", "Tape Drive", 0, 1, 0.001f, 0.35f);
+        top ("tapeWow", "Tape Wow", 0, 1, 0.001f, 0.25f);
+        top ("tapeHiss", "Tape Hiss", 0, 1, 0.001f, 0.1f);
+        top ("tapeMix", "Tape Mix", 0, 1, 0.001f, 1);
+        choice ("verbOn", "Verb On", { "Off", "On" });
+        choice ("verbMode", "Verb Mode", { "Concert Hall", "Bright Hall", "Dirty Hall", "Chaotic Hall", "Vintage Hall", "Cathedral", "Palace",
+                                           "Plate", "Smooth Plate", "Dirty Plate", "Chamber", "Vintage Chamber", "Chaotic Chamber", "Room",
+                                           "Smooth Room", "Ambience", "Sanctuary", "Nonlin", "Random Space", "Chorus Space", "Chaotic Neutral" });
+        top ("verbDecay", "Verb Decay", 0, 1, 0.001f, 0.5f);
+        top ("verbSize", "Verb Size", 0, 1, 0.001f, 0.55f);
+        top ("verbPre", "Verb Pre-Delay", 0, 200, 0.1f, 10);
+        top ("verbDamp", "Verb Damping", 0, 1, 0.001f, 0.45f);
+        top ("verbMix", "Verb Mix", 0, 1, 0.001f, 0.3f);
+        choice ("lowCpu", "Low CPU Mode", { "Off", "On" });
         choice ("liveOn", "Live Input", { "Off", "On" });
         top ("liveGate", "Live Gate", -70, -10, 1, -45);
         top ("liveGlide", "Live Glide", 0, 0.5f, 0.001f, 0.03f, 0.5f);
@@ -113,9 +140,17 @@ float velocityCurve (float v, int curve)
 
 File userDir() { return File::getSpecialLocation (File::userDocumentsDirectory).getChildFile ("Seedling"); }
 
-struct FxSettings { int family = -1, variant = 0; float swarm = 0.5f, tail = 0.5f, span = 0.5f, scatter = 0, mix = 0.35f; };
+struct RetroSettings
+{
+    bool driveOn = false, tapeOn = false, verbOn = false, before = false; // before: ahead of grain FX, Haze and Dusk
+    int driveStyle = 0, tapeSpeed = 1, verbMode = 0, order = 0;           // order: one of the six orders of drive, tape, verb
+    float drive = 0.35f, driveTone = 0.5f, driveMix = 1, tapeDrive = 0.35f, tapeWow = 0.25f, tapeHiss = 0.1f, tapeMix = 1;
+    float verbDecay = 0.5f, verbSize = 0.55f, verbPreMs = 10, verbDamp = 0.45f, verbMix = 0.3f;
+};
+struct FxSettings { int family = -1, variant = 0; float swarm = 0.5f, tail = 0.5f, span = 0.5f, scatter = 0, mix = 0.35f; RetroSettings retro {}; };
 
-// chorus -> shelves -> grain FX -> Haze -> Dusk -> volume + soft clip; one per output path (live, offline render)
+// chorus -> shelves -> grain FX -> Haze -> Dusk -> drive / tape / verb in the chosen order (or before the grain FX) -> volume + soft clip;
+// one per output path (live, offline render)
 struct MasterChain
 {
     void prepare (double sampleRate, int block)
@@ -132,6 +167,91 @@ struct MasterChain
         chorusFx.setFeedback (0.1f);
         lowShelf.prepare (spec);
         highShelf.prepare (spec);
+        for (auto& f : driveDc) { f.reset(); f.setCutoff (15.0f, sampleRate); }
+        for (auto& f : driveTone) f.reset();
+        tape.prepare (sampleRate);
+        verb.prepare (sampleRate, 0.4f);
+        for (auto& p : verbPre) p.prepare (sampleRate, 0.25);
+        verbMode = -1;
+    }
+
+    // the retro effects, as their plugins run them (fixed: drive low/high cut open, tape bias 0.4 and bump 3 dB, verb width 1)
+    void processRetro (float* L, float* R, int n, const RetroSettings& r)
+    {
+        static constexpr int orders[6][3] { { 0, 1, 2 }, { 0, 2, 1 }, { 1, 0, 2 }, { 1, 2, 0 }, { 2, 0, 1 }, { 2, 1, 0 } };
+        for (int e : orders[std::clamp (r.order, 0, 5)])
+        {
+            if (e == 0) processDrive (L, R, n, r);
+            else if (e == 1) processTape (L, R, n, r);
+            else processVerb (L, R, n, r);
+        }
+    }
+
+    void processDrive (float* L, float* R, int n, const RetroSettings& r)
+    {
+        if (r.driveOn)
+        {
+            dist.setStyle (r.driveStyle);
+            dist.setDrive (r.drive);
+            dist.setPunish (false);
+            for (auto& t : driveTone) t.setHighShelf (sr, 800.0f, 0.7f, (r.driveTone - 0.5f) * 24.0f);
+            for (int i = 0; i < n; ++i)
+            {
+                const float wl = driveTone[0].process (driveDc[0].process (dist.process (L[i])));
+                const float wr = driveTone[1].process (driveDc[1].process (dist.process (R[i])));
+                L[i] += (wl - L[i]) * r.driveMix;
+                R[i] += (wr - R[i]) * r.driveMix;
+            }
+        }
+    }
+
+    void processTape (float* L, float* R, int n, const RetroSettings& r)
+    {
+        if (r.tapeOn)
+        {
+            tape.setDrive (r.tapeDrive);
+            tape.setSpeed (r.tapeSpeed);
+            tape.setBias (0.4f);
+            tape.setBump (3.0f);
+            tape.setWowFlutter (r.tapeWow);
+            tape.setNoise (r.tapeHiss);
+            for (int i = 0; i < n; ++i)
+            {
+                float wl = 0, wr = 0;
+                tape.process (L[i], R[i], wl, wr);
+                L[i] += (wl - L[i]) * r.tapeMix;
+                R[i] += (wr - R[i]) * r.tapeMix;
+            }
+        }
+    }
+
+    void processVerb (float* L, float* R, int n, const RetroSettings& r)
+    {
+        if (r.verbOn)
+        {
+            if (r.verbMode != verbMode) verb.setMode (verbMode = r.verbMode);
+            verb.setDecay (r.verbDecay);
+            verb.setSize (r.verbSize);
+            verb.setDamping (r.verbDamp);
+            verb.setModDepth (0.2f);
+            verb.setModRate (0.5f);
+            verb.setEarlyDiffusion (0.6f);
+            verb.setLateDiffusion (0.5f);
+            verb.setAttack (0);
+            verb.setHighShelf (-6);
+            verb.setBassMult (0.5f);
+            const float pre = r.verbPreMs * 0.001f * float (sr);
+            for (int i = 0; i < n; ++i)
+            {
+                const float pl = verbPre[0].readLinear (pre), pr = verbPre[1].readLinear (pre);
+                verbPre[0].write (L[i]);
+                verbPre[1].write (R[i]);
+                float wl = 0, wr = 0;
+                verb.process (pl, pr, wl, wr);
+                L[i] += (wl - L[i]) * r.verbMix;
+                R[i] += (wr - R[i]) * r.verbMix;
+            }
+        }
     }
 
     void process (AudioBuffer<float>& buffer, const Controls& c, const FxSettings& f)
@@ -145,6 +265,7 @@ struct MasterChain
         {
             chorusFx.setMix ((g[chorus] - 0.5f) * 1.6f);
             chorusFx.setDepth (0.25f + (g[chorus] - 0.5f));
+            chorusFx.setRate (0.35f * std::exp2 ((g[fxChorus] - 0.5f) * 6)); // FX CHORUS: 0.04 .. 2.8 Hz, 0.35 at 0.5
             dsp::AudioBlock<float> block (buffer);
             chorusFx.process (dsp::ProcessContextReplacing<float> (block));
         }
@@ -156,6 +277,8 @@ struct MasterChain
             lowShelf.process (dsp::ProcessContextReplacing<float> (block));
             highShelf.process (dsp::ProcessContextReplacing<float> (block));
         }
+
+        if (f.retro.before) processRetro (buffer.getWritePointer (0), buffer.getWritePointer (1), n, f.retro);
 
         grain::dsp::EngineSet::Params fx;
         fx.family = f.family; // -1: every engine disabled (Mix 0, passes the dry signal)
@@ -178,6 +301,7 @@ struct MasterChain
             haze.process (chans, 2, m, effect * rvbScale, hazeMode);
             dusk.process (chans, 2, m, duskHz);
         }
+        if (! f.retro.before) processRetro (buffer.getWritePointer (0), buffer.getWritePointer (1), n, f.retro);
 
         const float vol = c.volume + (c.wheelTarget == volumeAmount ? w * 12 : 0.0f);
         gain.setTargetValue (Decibels::decibelsToGain (vol) * 4);
@@ -198,6 +322,13 @@ struct MasterChain
     grain::dsp::Lowpass dusk;
     dsp::Chorus<float> chorusFx;
     dsp::ProcessorDuplicator<dsp::IIR::Filter<float>, dsp::IIR::Coefficients<float>> lowShelf, highShelf;
+    retro::Distortion dist;
+    retro::OnePoleHP driveDc[2];
+    retro::Biquad driveTone[2];
+    retro::TapeMachine tape;
+    retro::FDN verb;
+    retro::DelayLine verbPre[2];
+    int verbMode = -1;
 };
 
 // base64 of little-endian int16 -> floats
@@ -294,6 +425,7 @@ public:
         c.voiceMode = int (value ("voiceMode"));
         c.wheelTarget = int (value ("wheelTarget"));
         c.tempoSync = int (value ("tempoSync"));
+        c.lowCpu = value ("lowCpu") > 0.5f;
         if (value ("liveOn") > 0.5f) // a monophonic input plays one legato voice
         {
             c.voiceMode = voiceLegato;
@@ -304,7 +436,28 @@ public:
 
     FxSettings fxSettings() const
     {
-        return { int (value ("fxType")) - 1, int (value ("fxVariant")), value ("fxSwarm"), value ("fxTail"), value ("fxSpan"), value ("fxScatter"), value ("fxMix") };
+        RetroSettings r;
+        r.order = int (value ("fxOrder"));
+        r.before = value ("fxPlace") > 0.5f;
+        r.driveOn = value ("drvOn") > 0.5f;
+        r.driveStyle = int (value ("drvStyle"));
+        r.drive = value ("drvAmt");
+        r.driveTone = value ("drvTone");
+        r.driveMix = value ("drvMix");
+        r.tapeOn = value ("tapeOn") > 0.5f;
+        r.tapeSpeed = int (value ("tapeSpeed"));
+        r.tapeDrive = value ("tapeDrive");
+        r.tapeWow = value ("tapeWow");
+        r.tapeHiss = value ("tapeHiss");
+        r.tapeMix = value ("tapeMix");
+        r.verbOn = value ("verbOn") > 0.5f;
+        r.verbMode = int (value ("verbMode"));
+        r.verbDecay = value ("verbDecay");
+        r.verbSize = value ("verbSize");
+        r.verbPreMs = value ("verbPre");
+        r.verbDamp = value ("verbDamp");
+        r.verbMix = value ("verbMix");
+        return { int (value ("fxType")) - 1, int (value ("fxVariant")), value ("fxSwarm"), value ("fxTail"), value ("fxSpan"), value ("fxScatter"), value ("fxMix"), r };
     }
 
     void processBlock (AudioBuffer<float>& buffer, MidiBuffer& midi) override
@@ -424,7 +577,16 @@ public:
     void handleMidi (const MidiMessage& msg, Controls& c, const Settings& s)
     {
         const int ch = msg.getChannel();
-        if (s.inChannel > 0 && ch != s.inChannel) return;
+        if (! s.mpe && s.inChannel > 0 && ch != s.inChannel) return;
+        if (s.mpe && ch >= 2) // MPE note channel: pressure and CC74 belong to that one note
+        {
+            if (msg.isChannelPressure()) { engine.pressure (ch, msg.getChannelPressureValue() / 127.0f); return; }
+            if (msg.isController())
+            {
+                if (msg.getControllerNumber() == 74) engine.slide (ch, std::clamp ((msg.getControllerValue() - 64) / 63.0f, -1.0f, 1.0f));
+                return;
+            }
+        }
 
         if (msg.isNoteOn())
         {
@@ -551,6 +713,8 @@ public:
         s.masterTune = std::clamp (num ("masterTune", 440), 340.0f, 540.0f);
         s.pbHeldOnly = bool (m["pbHeldOnly"]);
         s.programChange = m["programChange"].isVoid() || bool (m["programChange"]);
+        s.mpe = bool (m["mpe"]);
+        s.mpeRange = std::clamp (num ("mpeRange", 48), 0.0f, 96.0f);
         const SpinLock::ScopedLockType lock (stateLock);
         settings = s;
     }
@@ -729,7 +893,6 @@ private:
     MasterChain master;
     LiveTracker tracker;
     float follow = 0;
-    static constexpr int LIVE_CHANNEL = 15;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SeedlingProcessor)
 };

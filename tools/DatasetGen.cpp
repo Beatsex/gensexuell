@@ -49,6 +49,14 @@ int main (int argc, char** argv)
                 t[volFade] = std::max (t[volFade], 0.75f);
                 t[drive] = std::max (t[drive], 0.5f);
                 if (t[sub] >= 0.3f && t[sub] <= 0.5f) t[sub] = 0.4f;
+                if (t[modSH] <= 0.6f) t[modSH] = 0.5f;
+                {   // a loop at or past the envelope's end is no loop (same times as Voice::start)
+                    const float tm = std::exp2 (-(p[envKey] - 0.5f) * 2 * (midi - 60) / 12.0f) * std::exp2 ((p[envTime] - 0.5f) * 2.0f);
+                    const float tilt = (p[envTilt] - 0.5f) * 2.0f;
+                    const float env = 0.002f * std::pow (2000.0f, p[attack]) * tm * std::exp2 (tilt * 0.7f)
+                                    + 2 * 0.01f * std::pow (800.0f, p[decay]) * tm * std::exp2 (-tilt * 0.7f);
+                    if (p[envLoop] >= 0.98f || 0.05f * std::pow (160.0f, p[envLoop]) * tm >= env) t[envLoop] = 1;
+                }
                 for (int j = 0; j < NG; ++j) targets[size_t (i) * size_t (NG) + size_t (j)] = t[size_t (genes[size_t (j)])];
                 break;
             }

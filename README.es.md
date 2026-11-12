@@ -17,8 +17,8 @@ Descarga la última versión en [Releases](https://github.com/Beatsex/gensexuell
 
 | Sistema | Cómo |
 |---|---|
-| Windows 10 / 11 (64 bits) | Ejecuta `gensexuell-…-win64-setup.exe`. La beta aún no está firmada: si aparece SmartScreen, haz clic en *Más información* → *Ejecutar de todas formas*. La interfaz necesita Microsoft WebView2 Runtime; Windows 11 ya lo incluye y el instalador te avisa si falta. |
-| macOS | Copia `gensexuell.vst3` a `~/Library/Audio/Plug-Ins/VST3`, `gensexuell.component` a `~/Library/Audio/Plug-Ins/Components` y `gensexuell.clap` a `~/Library/Audio/Plug-Ins/CLAP`. La versión de macOS aún no se ha probado a mano. |
+| Windows 10 / 11 (64 bits) | Ejecuta `gensexuell-…-win64-setup.exe`. La beta aún no está firmada: si aparece SmartScreen, haz clic en *Más información* → *Ejecutar de todas formas*. La interfaz necesita Microsoft WebView2 Runtime; Windows 11 ya lo incluye y el instalador te avisa si falta. Los 355 presets se instalan en `Documentos\Seedling\Presets`. |
+| macOS | Copia `gensexuell.vst3` a `~/Library/Audio/Plug-Ins/VST3`, `gensexuell.component` a `~/Library/Audio/Plug-Ins/Components` y `gensexuell.clap` a `~/Library/Audio/Plug-Ins/CLAP`. Pon la carpeta `Presets` en `~/Documents/Seedling/`. La versión de macOS aún no se ha probado a mano. |
 
 Después reinicia tu DAW (o vuelve a escanear los plugins) e insértalo como instrumento: *beatsexuell → gensexuell*.
 
@@ -29,6 +29,7 @@ Después reinicia tu DAW (o vuelve a escanear los plugins) e insértalo como ins
 3. ¿Encontraste uno que te gusta? Haz clic en **SOW** para convertirlo en la nueva semilla y repite.
 4. O escribe *"dark soft bass"* a la izquierda y haz clic en **GROW**.
 5. O suelta un one-shot en **Sound → Seed**.
+6. O haz clic en el nombre del patch arriba y abre un preset; las flechas de al lado recorren su carpeta.
 
 ## Documentación
 
@@ -44,11 +45,13 @@ Después reinicia tu DAW (o vuelve a escanear los plugins) e insértalo como ins
   - **Trae una muestra**: suelta un one-shot. Una red neuronal estima los genes y cuatro hebras afinan el resultado mientras escuchas.
 - **Interpretación → semilla**: suelta una grabación monofónica (voz, tarareo, bajo). Detecta notas, tiempos, dinámica y bends y los toca con la semilla actual. Arrastra el resultado a tu DAW como WAV o MIDI.
 - **Entrada en directo**: envía audio al sidechain y toca el sintetizador con tu voz o un instrumento en tiempo real.
-- **54 genes** en un editor, con modulación en anillo, wavefolding y tono aleatorio escalonado en sus extremos
+- **59 genes** en la pestaña GENES, con búsqueda, ayudas y unidades reales: una onda que va de seno a sierra, cuadrada y pulso estrecho, afinación en octava / semitono / cent, un filtro que va de paso banda a paso bajo de 24 dB, dos picos y notch, una envolvente de modulación escalonada, y en sus extremos modulación en anillo, wavefolding y tono aleatorio escalonado
+- **Pestaña FX**: drive, cinta y reverb (21 modos) de los plugins de beatsexuell, en cualquier orden, después o antes de los efectos granulares
 - **Modos de bulbo** (estándar, velocidad, rangos, capas), poly / mono / legato con glide, volumen por rama
-- **Anillo de rueda de modulación** con diez destinos, sincronización de tempo, MPE básico
+- **Anillo de rueda de modulación** con diez destinos, sincronización de tempo, **MPE** (bend, presión y slide por nota)
 - **Efectos granulares** de [grainsexuell](https://github.com/Beatsex/grainsexuell): Mosaic, Cloud, Shard, Tap, además de la reverb Haze y el paso bajo Dusk
-- **Patches**: 12 sonidos de fábrica, archivos de patch, programas, **MIDI learn**
+- **Patches**: 26 sonidos de fábrica y **355 presets** en 12 categorías, archivos de patch, programas, **MIDI learn**
+- Las voces funcionan al doble de frecuencia de muestreo contra el aliasing; el **LOW CPU MODE** lo desactiva
 - Teclado en pantalla, medidor de salida, ventana redimensionable
 
 ## Comentarios

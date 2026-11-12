@@ -24,7 +24,7 @@ jobs:
           - name: windows-x64
             os: windows-2022
           - name: macos-universal
-            os: macos-14
+            os: macos-15
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     defaults:
@@ -79,6 +79,7 @@ jobs:
           cp installer/README.txt LICENSE THIRD-PARTY-LICENSES.txt "$OUT/"
           cp docs/manual.html "$OUT/User Manual.html"
           cp docs/handbuch.html "$OUT/Benutzerhandbuch.html"
+          cp -R presets "$OUT/Presets"
           cp -R "$A/VST3/gensexuell.vst3" "$A/CLAP/gensexuell.clap" "$A/LV2/gensexuell.lv2" "$OUT/"
           if [ "$RUNNER_OS" = "macOS" ]; then
             cp -R "$A/AU/gensexuell.component" "$A/Standalone/gensexuell.app" "$OUT/"

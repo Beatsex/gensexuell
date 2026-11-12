@@ -23,7 +23,7 @@ inline const std::vector<int>& netGenes()
     static const std::vector<int> g = [] {
         std::vector<int> v;
         for (int k = 0; k < NP; ++k) // every non-master gene (the expansion genes are wired now)
-            if (! isMasterGene (k) && k != spread) v.push_back (k);
+            if (! isMasterGene (k) && k != spread && k != pitchA) v.push_back (k); // pitchA is retired (silent)
         return v;
     }();
     return g;
@@ -34,6 +34,7 @@ inline Params neutralGenes()
     Params p;
     p.fill (0.5f);
     p[space] = 0.3f;
+    p[envLoop] = 1.0f; // no envelope loop
     return p;
 }
 
@@ -285,6 +286,8 @@ public:
         Params p = neutralGenes();
         const auto& g = netGenes();
         for (size_t i = 0; i < g.size(); ++i) p[size_t (g[i])] = x[i];
+        if (p[envLoop] > 0.95f) p[envLoop] = 1;  // a sigmoid never quite reaches "no loop" (the dataset's target for it)
+        if (p[modSH] < 0.65f) p[modSH] = 0.5f;   // nor "no steps"
         return p;
     }
 

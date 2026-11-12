@@ -12,7 +12,7 @@ enum Descriptor { dBright, dAttack, dSustain, dLength, dNoise, dTonal, dInharm, 
 inline const char* const DESCRIPTOR_NAMES[ND] = { "bright", "attack", "sustain", "length", "noise", "tonal", "inharm", "motion", "bass" };
 using Descriptors = std::array<float, ND>;
 
-constexpr float DESC_SECONDS = 1.5f, DESC_HOLD = 0.8f;
+constexpr float DESC_SECONDS = 1.5f, DESC_HOLD = DESC_SECONDS; // held to the end, so a sustained sound can reach full length
 
 // all values 0..1, from audio at FEAT_SR
 inline Descriptors describe (const std::vector<float>& x)
@@ -121,18 +121,18 @@ inline const std::vector<Word>& lexicon()
         // categories
         { "pad|flaeche|teppich|strings", { { dAttack, 0.7f, 1 }, { dSustain, 0.8f, 1 }, { dLength, 0.9f, 1 } }, { { attack, 0.5f, 0.8f }, { sustain, 0.6f, 0.95f }, { decay, 0.6f, 0.95f } }, 60 },
         { "bass|bas", { { dBass, 0.8f, 1.5f }, { dBright, 0.3f, 0.7f } }, { { sub, 0.6f, 1 }, { cutoff, 0.15f, 0.45f }, { attack, 0, 0.05f } }, 36 },
-        { "sub|subbass|808", { { dBass, 1, 2 }, { dBright, 0.1f, 1 }, { dTonal, 0.9f, 1 } }, { { sub, 0.75f, 1 }, { waveA, 0, 0.1f }, { cutoff, 0.1f, 0.3f }, { noise, 0, 0.05f } }, 36 },
+        { "sub|subbass|808", { { dBass, 1, 2 }, { dBright, 0.1f, 1 }, { dTonal, 0.9f, 1 } }, { { sub, 0.75f, 1 }, { waveA, 0, 0.09f }, { cutoff, 0.1f, 0.3f }, { noise, 0, 0.05f } }, 36 },
         { "pluck|zupf|gezupft|pizz", { { dAttack, 0, 1 }, { dSustain, 0, 1 }, { dLength, 0.25f, 1 } }, { { attack, 0, 0.05f }, { sustain, 0, 0.07f }, { decay, 0.3f, 0.55f }, { fltEnv, 0.4f, 0.8f } }, 60 },
         { "lead|solo|melodie", { { dSustain, 0.7f, 1 }, { dTonal, 0.9f, 1 }, { dBright, 0.6f, 0.7f } }, { { sustain, 0.6f, 0.9f }, { attack, 0, 0.15f } }, 67 },
         { "glocke|bell|glockenspiel|chime", { { dAttack, 0, 1 }, { dInharm, 0.65f, 1 }, { dLength, 0.7f, 1 }, { dSustain, 0.15f, 0.7f } }, { { fm, 0.25f, 0.6f }, { sustain, 0, 0.07f }, { decay, 0.6f, 0.85f }, { attack, 0, 0.03f } }, 72 },
         { "mallet|marimba|xylophon|vibraphon", { { dAttack, 0, 1 }, { dLength, 0.45f, 1 }, { dTonal, 0.85f, 0.7f } }, { { sustain, 0, 0.07f }, { decay, 0.4f, 0.65f }, { attack, 0, 0.02f } }, 64 },
-        { "kick|bassdrum|bd", { { dAttack, 0, 1 }, { dBass, 1, 2 }, { dLength, 0.25f, 1 } }, { { pitchMod, 0.1f, 0.3f }, { modDecay, 0.15f, 0.35f }, { sustain, 0, 0.07f }, { decay, 0.3f, 0.5f }, { waveA, 0, 0.15f } }, 36 },
+        { "kick|bassdrum|bd", { { dAttack, 0, 1 }, { dBass, 1, 2 }, { dLength, 0.25f, 1 } }, { { pitchMod, 0.1f, 0.3f }, { modDecay, 0.15f, 0.35f }, { sustain, 0, 0.07f }, { decay, 0.3f, 0.5f }, { waveA, 0, 0.13f } }, 36 },
         { "snare|clap|rim", { { dAttack, 0, 1 }, { dNoise, 0.7f, 1.5f }, { dLength, 0.2f, 1 } }, { { noise, 0.6f, 1 }, { sustain, 0, 0.07f }, { decay, 0.2f, 0.4f } }, 50 },
-        { "hat|hihat|hi-hat|cymbal|becken", { { dAttack, 0, 1 }, { dNoise, 0.9f, 1.5f }, { dBright, 0.95f, 1.5f }, { dLength, 0.1f, 1 } }, { { noise, 0.75f, 1 }, { noiseColor, 0.7f, 1 }, { sustain, 0, 0.07f }, { decay, 0.05f, 0.3f }, { cutoff, 0.8f, 1 } }, 72 },
+        { "hat|hihat|hi-hat|cymbal|becken", { { dAttack, 0, 1 }, { dNoise, 0.9f, 1.5f }, { dBright, 0.85f, 1.5f }, { dLength, 0.1f, 1 } }, { { noise, 0.75f, 1 }, { noiseColor, 0.7f, 1 }, { sustain, 0, 0.07f }, { decay, 0.05f, 0.3f }, { cutoff, 0.8f, 1 } }, 72 },
         { "drone|brumm", { { dSustain, 0.95f, 1 }, { dLength, 1, 1 }, { dMotion, 0.6f, 0.5f } }, { { sustain, 0.8f, 1 }, { attack, 0.4f, 0.9f }, { lfoAmt, 0.2f, 0.5f } }, 48 },
         { "fx|effekt|riser|sweep|whoosh", { { dMotion, 0.8f, 1 }, { dNoise, 0.6f, 0.7f } }, { { pitchMod, 0.6f, 0.9f }, { noise, 0.3f, 0.8f }, { modDecay, 0.6f, 0.9f } }, 60 },
         { "textur|texture|atmo|ambient|soundscape", { { dMotion, 0.7f, 1 }, { dLength, 0.9f, 0.7f }, { dAttack, 0.6f, 0.6f } }, { { attack, 0.4f, 0.8f }, { sustain, 0.5f, 0.9f }, { lfoAmt, 0.15f, 0.5f } }, 60 },
-        { "orgel|organ", { { dAttack, 0.05f, 0.7f }, { dSustain, 1, 1 }, { dTonal, 1, 1 } }, { { sustain, 0.85f, 1 }, { attack, 0, 0.1f }, { waveA, 0, 0.3f } }, 60 },
+        { "orgel|organ", { { dAttack, 0.05f, 0.7f }, { dSustain, 1, 1 }, { dTonal, 1, 1 } }, { { sustain, 0.85f, 1 }, { attack, 0, 0.1f }, { waveA, 0, 0.26f } }, 60 },
         { "chord|akkord|stab", { { dAttack, 0, 0.8f }, { dSustain, 0.3f, 0.6f }, { dBright, 0.6f, 0.5f } }, { { attack, 0, 0.05f }, { decay, 0.35f, 0.6f } }, 60 },
         // properties
         { "hell|bright|brillant|crisp|knackig|spitz|strahlend", { { dBright, 0.85f, 1 } } },
@@ -149,7 +149,7 @@ inline const std::vector<Word>& lexicon()
         { "langsam|slow|schwellend|swell", { { dAttack, 0.8f, 1 } } },
         { "schnell|fast|direkt|immediate", { { dAttack, 0, 1 } } },
         { "luftig|airy|hauchig|breathy|rauschig|noisy", { { dNoise, 0.7f, 1 }, { dBright, 0.7f, 0.4f } } },
-        { "hohl|hollow|nasal", { { dBright, 0.5f, 0.4f }, { dTonal, 0.85f, 0.5f } }, { { waveA, 0.85f, 1 }, { fltType, 0, 0.25f } } },
+        { "hohl|hollow|nasal", { { dBright, 0.5f, 0.4f }, { dTonal, 0.85f, 0.5f } }, { { waveA, 0.7f, 0.81f }, { fltType, 0, 0.2f } } },
         { "wobbel|wobble|wabern|wobbly|schwebend|wavy|vibrato", { { dMotion, 0.8f, 1 } }, { { lfoAmt, 0.4f, 0.9f } } },
         { "bewegt|moving|lebendig|evolving|organisch|organic", { { dMotion, 0.7f, 1 } } },
         { "statisch|static|steady", { { dMotion, 0.05f, 1 } } },
@@ -162,27 +162,27 @@ inline const std::vector<Word>& lexicon()
         { "raum|hall|reverb|spacey|spacig|weit|roomy", {}, { { space, 0.6f, 1 } } },
         { "trocken|dry|nah|nahe|close", {}, { { space, 0, 0.2f } } },
         { "fm|digital|80er|80s", { { dInharm, 0.5f, 0.5f } }, { { fm, 0.3f, 0.7f } } },
-        { "analog|vintage|retro|alt|alte|aelter|old", { { dBright, 0.45f, 0.5f } }, { { waveA, 0.55f, 0.75f }, { drive, 0.55f, 0.7f } } },
-        { "acid|303|squelch", { { dMotion, 0.6f, 0.6f } }, { { reso, 0.65f, 0.9f }, { fltEnv, 0.5f, 0.9f }, { waveA, 0.6f, 0.75f } } },
+        { "analog|vintage|retro|alt|alte|aelter|old", { { dBright, 0.45f, 0.5f } }, { { waveA, 0.47f, 0.63f }, { drive, 0.55f, 0.7f } } },
+        { "acid|303|squelch", { { dMotion, 0.6f, 0.6f } }, { { reso, 0.65f, 0.9f }, { fltEnv, 0.5f, 0.9f }, { waveA, 0.51f, 0.63f } } },
         { "chorus|phaser|flanger", { { dMotion, 0.6f, 0.7f } }, { { chorus, 0.6f, 0.95f } } },
         // synth archetypes
-        { "cs-80|cs80|vangelis|bladerunner", { { dAttack, 0.55f, 0.8f }, { dSustain, 0.85f, 1 }, { dBright, 0.55f, 0.7f }, { dMotion, 0.6f, 0.7f } }, { { waveA, 0.55f, 0.8f }, { chorus, 0.5f, 0.85f }, { space, 0.5f, 0.9f }, { fltEnv, 0.35f, 0.7f } } },
-        { "juno|juno-60|juno-106|jupiter|polysix", { { dSustain, 0.75f, 0.8f }, { dBright, 0.5f, 0.7f }, { dMotion, 0.55f, 0.7f } }, { { chorus, 0.65f, 0.95f }, { sub, 0.5f, 0.8f }, { waveA, 0.5f, 0.75f } } },
+        { "cs-80|cs80|vangelis|bladerunner", { { dAttack, 0.55f, 0.8f }, { dSustain, 0.85f, 1 }, { dBright, 0.55f, 0.7f }, { dMotion, 0.6f, 0.7f } }, { { waveA, 0.47f, 0.67f }, { chorus, 0.5f, 0.85f }, { space, 0.5f, 0.9f }, { fltEnv, 0.35f, 0.7f } } },
+        { "juno|juno-60|juno-106|jupiter|polysix", { { dSustain, 0.75f, 0.8f }, { dBright, 0.5f, 0.7f }, { dMotion, 0.55f, 0.7f } }, { { chorus, 0.65f, 0.95f }, { sub, 0.5f, 0.8f }, { waveA, 0.43f, 0.63f } } },
         { "moog|minimoog|sub37|taurus|model-d", { { dBass, 0.85f, 1.2f }, { dBright, 0.4f, 0.7f }, { dTonal, 0.9f, 0.8f } }, { { sub, 0.65f, 0.95f }, { reso, 0.35f, 0.65f }, { fltEnv, 0.4f, 0.75f }, { drive, 0.45f, 0.7f } }, 36 },
-        { "prophet|oberheim|ob-xa|ob-8", { { dBright, 0.55f, 0.7f }, { dSustain, 0.7f, 0.7f } }, { { waveA, 0.55f, 0.85f }, { spread, 0.55f, 0.85f }, { fltSpread, 0.55f, 0.8f } } },
-        { "dx7|tx81z|synclavier|operator|fm-piano|epiano|e-piano|rhodes|wurlitzer|wurli", { { dAttack, 0, 0.9f }, { dSustain, 0.35f, 0.7f }, { dLength, 0.6f, 0.8f }, { dTonal, 0.9f, 0.9f }, { dInharm, 0.35f, 0.7f } }, { { fm, 0.2f, 0.5f }, { attack, 0, 0.04f }, { decay, 0.45f, 0.75f }, { sustain, 0.1f, 0.35f } }, 60 },
+        { "prophet|oberheim|ob-xa|ob-8", { { dBright, 0.55f, 0.7f }, { dSustain, 0.7f, 0.7f } }, { { waveA, 0.47f, 0.7f }, { spread, 0.55f, 0.85f }, { fltSpread, 0.55f, 0.8f } } },
+        { "dx7|tx81z|synclavier|operator|fm-piano|epiano|e-piano|rhodes|wurlitzer|wurli", { { dAttack, 0, 0.9f }, { dSustain, 0.35f, 0.7f }, { dTonal, 0.9f, 0.9f }, { dInharm, 0.35f, 0.7f } }, { { fm, 0.2f, 0.5f }, { attack, 0, 0.04f }, { decay, 0.45f, 0.75f }, { sustain, 0.1f, 0.35f } }, 60 },
         { "ms-20|ms20|polivoks|screaming", { { dBright, 0.75f, 0.8f }, { dNoise, 0.45f, 0.7f } }, { { reso, 0.7f, 0.95f }, { drive, 0.75f, 1 } } },
         { "buchla|vactrol|lpg|west-coast|westcoast", { { dAttack, 0, 1 }, { dSustain, 0, 1 }, { dLength, 0.25f, 0.9f }, { dInharm, 0.45f, 0.7f } }, { { fm, 0.2f, 0.55f }, { drive, 0.75f, 0.95f }, { fltEnv, 0.6f, 0.9f }, { attack, 0, 0.03f }, { sustain, 0, 0.05f }, { decay, 0.2f, 0.45f } }, 60 },
         { "mellotron|optigan", { { dAttack, 0.45f, 0.8f }, { dSustain, 0.75f, 0.8f }, { dBright, 0.35f, 0.8f }, { dNoise, 0.35f, 0.7f }, { dMotion, 0.55f, 0.7f } }, { { lfoAmt, 0.2f, 0.45f }, { cutoff, 0.25f, 0.5f }, { noise, 0.15f, 0.35f } } },
-        { "supersaw|hypersaw|virus|jp-8000|trance", { { dBright, 0.8f, 1 }, { dSustain, 0.8f, 0.8f }, { dMotion, 0.65f, 0.8f } }, { { waveA, 0.65f, 0.9f }, { chorus, 0.75f, 1 }, { spread, 0.7f, 1 }, { cutoff, 0.65f, 0.95f } } },
-        { "chiptune|8-bit|8bit|sid|c64|gameboy|nes|arcade", { { dAttack, 0, 1 }, { dBright, 0.75f, 0.8f }, { dTonal, 0.9f, 0.8f } }, { { waveA, 0.8f, 1 }, { lfoShape, 0.7f, 1 }, { space, 0, 0.15f }, { attack, 0, 0.02f } } },
+        { "supersaw|hypersaw|virus|jp-8000|trance", { { dBright, 0.8f, 1 }, { dSustain, 0.8f, 0.8f }, { dMotion, 0.65f, 0.8f } }, { { waveA, 0.56f, 0.74f }, { chorus, 0.75f, 1 }, { spread, 0.7f, 1 }, { cutoff, 0.65f, 0.95f } } },
+        { "chiptune|8-bit|8bit|sid|c64|gameboy|nes|arcade", { { dAttack, 0, 1 }, { dBright, 0.75f, 0.8f }, { dTonal, 0.9f, 0.8f } }, { { waveA, 0.67f, 0.81f }, { lfoShape, 0.7f, 1 }, { space, 0, 0.15f }, { attack, 0, 0.02f } } },
         // acoustic instruments
-        { "kalimba|mbira|handpan|hang|tongue-drum", { { dAttack, 0, 1 }, { dSustain, 0.05f, 1 }, { dLength, 0.45f, 0.9f }, { dTonal, 0.95f, 1 }, { dBright, 0.45f, 0.8f } }, { { attack, 0, 0.02f }, { sustain, 0, 0.06f }, { decay, 0.4f, 0.65f }, { waveA, 0, 0.25f } }, 64 },
-        { "harfe|harp|koto|guzheng|shamisen|sitar|zither|oud", { { dAttack, 0, 1 }, { dSustain, 0.1f, 0.9f }, { dLength, 0.55f, 0.8f }, { dBright, 0.65f, 0.7f }, { dTonal, 0.9f, 0.8f } }, { { attack, 0, 0.03f }, { sustain, 0, 0.08f }, { decay, 0.45f, 0.75f }, { fltEnv, 0.45f, 0.8f } }, 60 },
-        { "cello|violine|geige|violin|viola|bratsche|arco|bowed|gestrichen|gambe", { { dAttack, 0.55f, 0.9f }, { dSustain, 0.85f, 1 }, { dTonal, 0.95f, 1 }, { dMotion, 0.5f, 0.7f } }, { { attack, 0.35f, 0.7f }, { sustain, 0.7f, 0.95f }, { waveA, 0.55f, 0.8f } }, 60 },
-        { "floete|flute|shakuhachi|panfloete|ocarina|whistle|duduk|geblasen|blown", { { dAttack, 0.3f, 0.8f }, { dSustain, 0.8f, 0.9f }, { dNoise, 0.45f, 0.8f }, { dTonal, 0.85f, 0.8f }, { dBright, 0.45f, 0.7f } }, { { noise, 0.2f, 0.45f }, { waveA, 0, 0.3f }, { attack, 0.15f, 0.4f }, { sustain, 0.65f, 0.9f } }, 67 },
-        { "brass|blaeser|trompete|trumpet|horn|waldhorn|posaune|trombone|tuba|braaam", { { dAttack, 0.2f, 0.8f }, { dSustain, 0.75f, 0.9f }, { dBright, 0.6f, 0.8f }, { dTonal, 0.95f, 0.9f } }, { { waveA, 0.55f, 0.8f }, { fltEnv, 0.5f, 0.85f }, { modAttack, 0.55f, 0.8f }, { attack, 0.08f, 0.25f } }, 55 },
-        { "chor|choir|vocal|stimme|voice|formant|vowel|aah|ooh", { { dAttack, 0.55f, 0.8f }, { dSustain, 0.85f, 0.9f }, { dTonal, 0.9f, 0.8f }, { dBright, 0.45f, 0.7f } }, { { fltType, 0.2f, 0.4f }, { fltSpread, 0.65f, 0.9f }, { reso, 0.5f, 0.8f }, { chorus, 0.55f, 0.9f }, { attack, 0.35f, 0.7f } }, 60 },
+        { "kalimba|mbira|handpan|hang|tongue-drum", { { dAttack, 0, 1 }, { dSustain, 0.05f, 1 }, { dLength, 0.45f, 0.9f }, { dTonal, 0.95f, 1 }, { dBright, 0.45f, 0.8f } }, { { attack, 0, 0.02f }, { sustain, 0, 0.06f }, { decay, 0.4f, 0.65f }, { waveA, 0, 0.21f } }, 64 },
+        { "harfe|harp|gitarre|guitar|banjo|mandoline|mandolin|ukulele|koto|guzheng|shamisen|sitar|zither|oud", { { dAttack, 0, 1 }, { dSustain, 0.1f, 0.9f }, { dLength, 0.55f, 0.8f }, { dBright, 0.65f, 0.7f }, { dTonal, 0.9f, 0.8f } }, { { attack, 0, 0.03f }, { sustain, 0, 0.08f }, { decay, 0.45f, 0.75f }, { fltEnv, 0.45f, 0.8f } }, 60 },
+        { "cello|violine|geige|violin|viola|bratsche|arco|bowed|gestrichen|gambe", { { dAttack, 0.55f, 0.9f }, { dSustain, 0.85f, 1 }, { dTonal, 0.95f, 1 }, { dMotion, 0.5f, 0.7f } }, { { attack, 0.35f, 0.7f }, { sustain, 0.7f, 0.95f }, { waveA, 0.47f, 0.67f } }, 60 },
+        { "floete|flute|shakuhachi|panfloete|ocarina|whistle|duduk|geblasen|blown", { { dAttack, 0.3f, 0.8f }, { dSustain, 0.8f, 0.9f }, { dNoise, 0.45f, 0.8f }, { dTonal, 0.85f, 0.8f }, { dBright, 0.45f, 0.7f } }, { { noise, 0.2f, 0.45f }, { waveA, 0, 0.26f }, { attack, 0.15f, 0.4f }, { sustain, 0.65f, 0.9f } }, 67 },
+        { "brass|blaeser|trompete|trumpet|horn|waldhorn|posaune|trombone|tuba|braaam", { { dAttack, 0.2f, 0.8f }, { dSustain, 0.75f, 0.9f }, { dBright, 0.6f, 0.8f }, { dTonal, 0.95f, 0.9f } }, { { waveA, 0.47f, 0.67f }, { fltEnv, 0.5f, 0.85f }, { modAttack, 0.55f, 0.8f }, { attack, 0.08f, 0.25f } }, 55 },
+        { "chor|choir|vocal|stimme|voice|formant|vowel|aah|ooh", { { dAttack, 0.55f, 0.8f }, { dSustain, 0.85f, 0.9f }, { dTonal, 0.9f, 0.8f }, { dBright, 0.45f, 0.7f } }, { { fltType, 0.15f, 0.33f }, { fltSpread, 0.65f, 0.9f }, { reso, 0.5f, 0.8f }, { chorus, 0.55f, 0.9f }, { attack, 0.35f, 0.7f } }, 60 },
         { "gong|gamelan|klangschale|singing-bowl|bowl|waterphone|cristal|baschet|crotales", { { dAttack, 0.05f, 0.8f }, { dLength, 0.9f, 1 }, { dInharm, 0.75f, 1 }, { dSustain, 0.45f, 0.7f } }, { { fm, 0.35f, 0.75f }, { sub, 0, 0.25f }, { decay, 0.75f, 0.98f }, { space, 0.55f, 0.95f } }, 64 },
         // materials and effects
         { "holzig|holz|wood|wooden|bambus|bamboo", { { dBright, 0.35f, 0.8f }, { dInharm, 0.35f, 0.6f }, { dLength, 0.3f, 0.6f } }, { { cutoff, 0.25f, 0.5f }, { reso, 0.3f, 0.55f } } },
@@ -190,6 +190,26 @@ inline const std::vector<Word>& lexicon()
         { "tape|band|cassette|kassette|vinyl|crackle|knistern|hiss|wow|flutter|leiern|nostalg", { { dBright, 0.3f, 0.8f }, { dNoise, 0.35f, 0.7f }, { dMotion, 0.6f, 0.7f } }, { { cutoff, 0.25f, 0.55f }, { lfoAmt, 0.2f, 0.45f }, { drive, 0.5f, 0.65f }, { damp, 0.55f, 0.85f } } },
         { "shimmer|kathedrale|cathedral|kirche|church|blackhole|haze", { { dLength, 0.95f, 1 }, { dSustain, 0.8f, 0.8f }, { dBright, 0.65f, 0.6f } }, { { space, 0.8f, 1 }, { damp, 0.1f, 0.4f } } },
         { "laser|zap|blaster|scifi|sci-fi|sonar|ping", { { dAttack, 0, 1 }, { dMotion, 0.85f, 1 }, { dLength, 0.35f, 0.8f } }, { { pitchMod, 0.75f, 1 }, { modDecay, 0.2f, 0.5f }, { reso, 0.7f, 0.95f } } },
+        // more words
+        { "klavier|piano|fluegel|keys|tasten", { { dAttack, 0, 1 }, { dSustain, 0.25f, 0.8f }, { dTonal, 0.95f, 1 }, { dInharm, 0.25f, 0.6f } }, { { attack, 0, 0.02f }, { decay, 0.55f, 0.8f }, { sustain, 0.1f, 0.3f }, { fltEnv, 0.5f, 0.8f } }, 60 },
+        { "perc|percussion|perkussion|drum|drums|trommel|tom|toms|conga|bongo|tabla", { { dAttack, 0, 1 }, { dLength, 0.2f, 1 }, { dSustain, 0, 0.8f } }, { { attack, 0, 0.02f }, { sustain, 0, 0.06f }, { decay, 0.2f, 0.45f }, { pitchMod, 0.25f, 0.45f } }, 48 },
+        { "arp|arpeggio|arpeggiator|sequenz|sequence|sequencer", { { dAttack, 0, 0.9f }, { dLength, 0.3f, 0.9f }, { dTonal, 0.9f, 0.7f } }, { { attack, 0, 0.03f }, { sustain, 0, 0.1f }, { decay, 0.3f, 0.5f } }, 60 },
+        { "reese|growl|knurr|neuro", { { dBass, 0.7f, 1 }, { dMotion, 0.7f, 1 }, { dBright, 0.45f, 0.5f } }, { { waveA, 0.53f, 0.63f }, { chorus, 0.6f, 0.9f }, { drive, 0.6f, 0.8f }, { sustain, 0.75f, 1 } }, 36 },
+        { "sinus|sine|sinusoid|sinuston", { { dTonal, 1, 1 }, { dBright, 0.1f, 0.8f }, { dNoise, 0, 0.8f }, { dInharm, 0, 0.6f } }, { { waveA, 0, 0.04f }, { mix, 0, 0.15f }, { fm, 0, 0.1f }, { noise, 0, 0.03f } } },
+        { "saege|saegezahn|saw|saws|sawtooth", { { dBright, 0.65f, 0.6f }, { dTonal, 0.9f, 0.6f } }, { { waveA, 0.53f, 0.61f } } },
+        { "rechteck|square|squarewave", { { dTonal, 0.9f, 0.6f }, { dBright, 0.55f, 0.4f } }, { { waveA, 0.78f, 0.83f } } },
+        { "pulse|puls|pulswelle|pwm", { { dTonal, 0.9f, 0.6f }, { dBright, 0.7f, 0.5f } }, { { waveA, 0.86f, 1 } } },
+        { "glitch|glitchy|stotter|stutter|stuttering|gated|zerhackt|choppy", { { dMotion, 0.95f, 1 }, { dNoise, 0.45f, 0.4f } }, { { modSH, 0.75f, 1 }, { lfoAmt, 0.4f, 0.8f } } },
+        { "pulsierend|pulsing|rhythmisch|rhythmic|tremolo|pumpend|pumping", { { dMotion, 0.85f, 1 } }, { { lfoShape, 0.55f, 0.8f }, { lfoAmt, 0.45f, 0.85f } } },
+        { "stufig|gestuft|stepped|sample-and-hold|treppe", { { dMotion, 0.8f, 1 } }, { { modSH, 0.7f, 0.95f } } },
+        { "wiederholend|repeating|looping|loop|schleife", { { dMotion, 0.7f, 0.7f } }, { { envLoop, 0.2f, 0.6f } } },
+        { "himmlisch|heavenly|engel|angel|aetherisch|ethereal|traum|dreamy|vertraeumt|celestial", { { dAttack, 0.65f, 0.8f }, { dSustain, 0.85f, 0.8f }, { dLength, 1, 0.8f }, { dBright, 0.6f, 0.6f }, { dMotion, 0.55f, 0.5f }, { dNoise, 0.15f, 0.4f } }, { { space, 0.65f, 1 }, { chorus, 0.5f, 0.85f }, { attack, 0.45f, 0.8f } } },
+        { "gruselig|creepy|unheimlich|scary|horror|spooky|duester|bedrohlich|ominous", { { dInharm, 0.7f, 0.8f }, { dBright, 0.3f, 0.7f }, { dMotion, 0.7f, 0.7f }, { dTonal, 0.4f, 0.5f } }, { { space, 0.5f, 0.9f } } },
+        { "druckvoll|punchy|knallig|wuchtig|punch", { { dAttack, 0, 1 }, { dBass, 0.7f, 0.8f }, { dLength, 0.35f, 0.5f } }, { { attack, 0, 0.02f }, { drive, 0.5f, 0.7f } } },
+        { "rau|rauh|rough|raspy|kratzig|grob|coarse", { { dNoise, 0.55f, 1 }, { dInharm, 0.5f, 0.6f }, { dBright, 0.6f, 0.4f } }, { { drive, 0.6f, 0.85f } } },
+        { "funkel|funkelnd|sparkle|sparkly|glitzer|glitzernd|shiny|schimmernd|glaenzend", { { dBright, 0.8f, 1 }, { dInharm, 0.45f, 0.5f }, { dAttack, 0, 0.4f } }, { { treble, 0.6f, 0.9f } } },
+        { "zart|delicate|fragile|zerbrechlich|filigran|fein", { { dBright, 0.6f, 0.5f }, { dBass, 0.05f, 0.7f }, { dNoise, 0.1f, 0.5f } } },
+        { "rauschen|noise|white-noise|static-noise", { { dNoise, 1, 1.2f }, { dTonal, 0.1f, 0.8f } }, { { noise, 0.75f, 1 } } },
     };
     return words;
 }
@@ -452,7 +472,8 @@ inline std::vector<Take> textTakes (const Wish& w, uint32_t seed, int takes = 4,
             for (int gen = 0; gen < generations; ++gen)
             {
                 Params child = out[t].genes;
-                for (int k : netGenes()) child[size_t (k)] = clamp01 (child[size_t (k)] + n (r) * sigma);
+                for (int k : netGenes()) // words describe the sound: pitch, LOOP and MOD S&H stay as the seed has them
+                    if (! isPitchGene (k) && k != envLoop && k != modSH) child[size_t (k)] = clamp01 (child[size_t (k)] + n (r) * sigma);
                 const float d = wishDistance (w, describePatch (child, w.note));
                 if (d < out[t].fit) { out[t].genes = child; out[t].fit = d; sigma *= 1.2f; }
                 else sigma *= 0.85f;
