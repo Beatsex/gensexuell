@@ -431,6 +431,13 @@ public:
         spreadAmt = std::abs (p[fltSpread] - 0.5f) * 1.4f;
         spreadMul = std::exp2 ((p[fltSpread] - 0.5f) * 6);
         driveGain = 1 + std::max (0.0f, p[drive] - 0.5f) * 16;
+        driveRoot = std::sqrt (driveGain);
+        osRoot = std::sqrt (float (os));
+        // cutoff follows the key by fltKey (0.5 = fully, 0 = fixed at middle C); the per-sample part is pow (f, keyAmt)
+        keyAmt = clamp01 (p[fltKey] * 2);
+        keyFixed = std::pow (261.63f, 1 - keyAmt);
+        cutoffMul = std::pow (40.0f, p[cutoff]);
+        fltEnv6 = p[fltEnv] * 6;
         foldAmt = p[drive] > 0.8f ? (p[drive] - 0.8f) / 0.2f : 0.0f; // above every seed's range: wavefolding on top of the saturation
         k = 1.0f / std::max (0.707f, std::pow (10.0f, 0.5f * std::pow (30.0f, p[reso]) / 20)); // resonance in dB, like Web Audio
 
@@ -561,16 +568,14 @@ public:
             const float w = rand (rng) * 2 - 1;
             nLp += (w - nLp) * noiseLp;
             nSlow += (w - nSlow) * noiseSlow;
-            const float nz = (nLp - noiseHp * nSlow) * std::sqrt (float (os)); // decimation keeps 1/os of the white noise power
+            const float nz = (nLp - noiseHp * nSlow) * osRoot; // decimation keeps 1/os of the white noise power
 
             const float a = lookup (ta, phA);
             const float mixB = clamp01 (p[mix] + mixModAmt * mod * 0.5f), mixA = 1 - mixB; // expansion gene: mix can follow the mod envelope
             const float x = (a * mixA + b * mixB) * (1 - ringAmt) + a * b * ringAmt + subAmt * std::sin (2 * PI * phS) + noiseAmt * nz + noiseBAmt * nz * mixB;
 
-            // cutoff follows the key by fltKey (0.5 = fully, 0 = fixed at middle C)
-            const float keyAmt = clamp01 (p[fltKey] * 2);
-            const float base = std::pow (f, keyAmt) * std::pow (261.63f, 1 - keyAmt) * 0.5f * std::pow (40.0f, p[cutoff]);
-            const float fc = std::clamp (base * std::exp2 (p[fltEnv] * 6 * mod * modScale) * live.filterMul, 20.0f, 0.45f * sr);
+            const float base = std::pow (f, keyAmt) * keyFixed * 0.5f * cutoffMul;
+            const float fc = std::clamp (base * std::exp2 (fltEnv6 * mod * modScale) * live.filterMul, 20.0f, 0.45f * sr);
             float lp, bp, hp;
             f1.process (x, std::tan (PI * fc / sr), k, lp, bp, hp);
             // filter type morphs band-pass (0) -> serial low-pass (1/3) -> parallel low-pass (2/3) -> notch (1)
@@ -591,7 +596,7 @@ public:
             {
                 // ponytail: oversampled by OS only; at full fold on very high notes some aliasing is left, raise OS_STAGES if audible
                 const float sat = std::tanh (y * driveGain);
-                y = (foldAmt > 0 ? sat + foldAmt * (std::sin (y * driveGain * 1.5f) - sat) : sat) / std::sqrt (driveGain);
+                y = (foldAmt > 0 ? sat + foldAmt * (std::sin (y * driveGain * 1.5f) - sat) : sat) / driveRoot;
             }
             if (shaperAmt > 0.001f)
                 y = std::tanh (y * (1 + shaperAmt * 3)); // expansion gene: extra wave shaping
@@ -636,6 +641,7 @@ private:
     float lfoHz = 1, trem = 0, lfoDelayS = 0, noiseAmt = 0, noiseLp = 1, noiseSlow = 0.05f, noiseHp = 0, nLp = 0, nSlow = 0, subAmt = 0;
     float spreadAmt = 0, spreadMul = 1, driveGain = 1, k = 1, modCoef = 0, modAtkS = 0, mod = 1, modEnv = 1, modShS = 0, modShT = 0, modScale = 1;
     float decCoef = 0, relCoef = 0, sus = 0, peak = 0, amp = 0, ampStart = 0, fade = 1, fadeCoef = 1, loopS = 0;
+    float driveRoot = 1, osRoot = 1, keyAmt = 0, keyFixed = 1, cutoffMul = 1, fltEnv6 = 0; // per-note constants of the sample loop
     float atkS = 1, oneShotEnd = -1, gl = 0.7f, gr = 0.7f, phA = 0, phB = 0, phL = 0, phS = 0, t = 0, tAll = 0;
     float shMix = 0, shHold = 0, ringAmt = 0, foldAmt = 0;
     float pitchACents = 0, fmModAmt = 0, mixModAmt = 0, noiseBAmt = 0, shaperAmt = 0;

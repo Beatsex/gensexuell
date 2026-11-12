@@ -152,6 +152,18 @@ inline Features features (const float* x, int n, int midi, const FeatConfig& cfg
     Features out (static_cast<size_t> (nfeat (cfg)), 0.0f);
     std::vector<std::complex<float>> buf (static_cast<size_t> (fftN));
     const int span = std::max (fftN, featLen (cfg));
+    // once per call instead of per frame: the Hann window, and the bins where each mel band is not zero (the sums stay the same)
+    std::vector<float> hann (static_cast<size_t> (fftN));
+    for (int i = 0; i < fftN; ++i) hann[size_t (i)] = fftN > 1 ? 0.5f - 0.5f * std::cos (2 * PI * i / (fftN - 1)) : 1.0f;
+    std::vector<std::pair<int, int>> bins (static_cast<size_t> (mel), { 0, 0 });
+    for (int b = 0; b < mel; ++b)
+    {
+        const auto& band = melBank[size_t (b)];
+        int lo = 0, hi = int (band.size());
+        while (lo < hi && band[size_t (lo)] == 0) ++lo;
+        while (hi > lo && band[size_t (hi - 1)] == 0) --hi;
+        bins[size_t (b)] = { lo, hi };
+    }
     float top = -100, sumSq = 0;
     for (int j = 0; j < frames; ++j)
     {
@@ -160,15 +172,14 @@ inline Features features (const float* x, int n, int midi, const FeatConfig& cfg
         for (int i = 0; i < fftN; ++i)
         {
             const int idx = start + i;
-            const float win = fftN > 1 ? 0.5f - 0.5f * std::cos (2 * PI * i / (fftN - 1)) : 1.0f;
-            buf[size_t (i)] = { idx < n ? x[idx] * win : 0.0f, 0.0f };
+            buf[size_t (i)] = { idx < n ? x[idx] * hann[size_t (i)] : 0.0f, 0.0f };
         }
         fft (buf);
         for (int b = 0; b < mel; ++b)
         {
             float e = 0;
             const auto& band = melBank[size_t (b)];
-            for (int k = 0; k < fftN / 2 + 1; ++k) e += band[size_t (k)] * std::norm (buf[size_t (k)]);
+            for (int k = bins[size_t (b)].first; k < bins[size_t (b)].second; ++k) e += band[size_t (k)] * std::norm (buf[size_t (k)]);
             for (int s = 0; s < cfg.sqrtSqrt && s < 2; ++s) e = std::sqrt (std::max (e, 0.0f));
             float v = std::log10 (e + 1e-10f);
             v = std::clamp (v, cfg.noiseFloor, cfg.clipAt);

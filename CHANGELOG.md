@@ -12,6 +12,8 @@
 - Fixed: in MPE mode, All Notes Off and All Sound Off on a note channel were ignored.
 - Fixed: switching live input off and on again started with the last tracked note.
 - Fixed: the patch counter of sound → seed kept counting from the previous sample.
+- Performance → seed: rendering the WAV no longer freezes the DAW's window while it runs.
+- Voices take about 3 % less CPU, and sound → seed tries about 8 % more patches per second. The sound is unchanged.
 - The audio thread no longer allocates memory (bass and treble shelves, live input) or calls the host (mapped MIDI CCs, program changes); those now happen on the user interface thread.
 
 ## 0.4.1

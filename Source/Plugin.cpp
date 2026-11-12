@@ -667,13 +667,13 @@ public:
         return genome;
     }
 
-    // a performance through the current seed and the full master chain, stereo interleaved at 48 kHz
-    std::vector<float> renderPerformanceWithMaster (const std::vector<NoteEvent>& notes, double seconds)
+    // a performance through a seed and the full master chain, stereo interleaved at 48 kHz;
+    // takes copies of everything it needs, so it can run on a worker thread
+    static std::vector<float> renderPerformanceWithMaster (const std::vector<NoteEvent>& notes, double seconds, const Genome& g, Controls c, const FxSettings& fx)
     {
         constexpr double rate = 48000;
-        Controls c = controls();
         c.wheel = 0;
-        auto dry = renderPerformance (notes, seconds + 3, currentGenome(), c, float (rate)); // 3 s for the tail
+        auto dry = renderPerformance (notes, seconds + 3, g, c, float (rate)); // 3 s for the tail
         MasterChain mc;
         mc.prepare (rate, 480);
         const int total = int (dry.size() / 2);
@@ -687,7 +687,7 @@ public:
                 buf.setSample (0, i, dry[size_t (pos + i) * 2]);
                 buf.setSample (1, i, dry[size_t (pos + i) * 2 + 1]);
             }
-            mc.process (buf, c, fxSettings());
+            mc.process (buf, c, fx);
             for (int i = 0; i < m; ++i)
             {
                 dry[size_t (pos + i) * 2] = buf.getSample (0, i);
@@ -1127,29 +1127,39 @@ private:
         return var (r.get());
     }
 
+    // renders and writes the WAV on a worker, so the host's UI keeps running; the result comes back like textSeed's
     void perfRender (WebBrowserComponent::NativeFunctionCompletion done)
     {
         if (proc.perfNotes.empty()) return done ({});
-        proc.perfResult = proc.renderPerformanceWithMaster (proc.perfNotes, proc.perfAudio.size() / double (FEAT_SR));
-        const File f = rendersDir().getNonexistentChildFile ("gensexuell performance", ".wav");
-        WavAudioFormat wav;
-        if (auto out = f.createOutputStream())
+        Thread::launch ([notes = proc.perfNotes, seconds = proc.perfAudio.size() / double (FEAT_SR), g = proc.currentGenome(),
+                         c = proc.controls(), fx = proc.fxSettings(), done, editor = SafePointer<SeedlingEditor> (this)]
         {
-            const auto frames = int (proc.perfResult.size() / 2);
-            AudioBuffer<float> buf (2, frames);
-            for (int i = 0; i < frames; ++i)
+            auto result = SeedlingProcessor::renderPerformanceWithMaster (notes, seconds, g, c, fx);
+            const File f = rendersDir().getNonexistentChildFile ("gensexuell performance", ".wav");
+            WavAudioFormat wav;
+            if (auto out = f.createOutputStream())
             {
-                buf.setSample (0, i, proc.perfResult[size_t (i) * 2]);
-                buf.setSample (1, i, proc.perfResult[size_t (i) * 2 + 1]);
+                const auto frames = int (result.size() / 2);
+                AudioBuffer<float> buf (2, frames);
+                for (int i = 0; i < frames; ++i)
+                {
+                    buf.setSample (0, i, result[size_t (i) * 2]);
+                    buf.setSample (1, i, result[size_t (i) * 2 + 1]);
+                }
+                std::unique_ptr<OutputStream> stream (out.release());
+                if (auto writer = wav.createWriterFor (stream, AudioFormatWriterOptions {}.withSampleRate (48000).withNumChannels (2).withBitsPerSample (24)))
+                    writer->writeFromAudioSampleBuffer (buf, 0, frames);
             }
-            std::unique_ptr<OutputStream> stream (out.release());
-            if (auto writer = wav.createWriterFor (stream, AudioFormatWriterOptions {}.withSampleRate (48000).withNumChannels (2).withBitsPerSample (24)))
-                writer->writeFromAudioSampleBuffer (buf, 0, frames);
-        }
-        DynamicObject::Ptr r = new DynamicObject();
-        r->setProperty ("path", f.getFullPathName());
-        r->setProperty ("seconds", proc.perfResult.size() / 2 / 48000.0);
-        done (var (r.get()));
+            DynamicObject::Ptr r = new DynamicObject();
+            r->setProperty ("path", f.getFullPathName());
+            r->setProperty ("seconds", result.size() / 2 / 48000.0);
+            MessageManager::callAsync ([editor, done, r = var (r.get()), result = std::move (result)]() mutable
+            {
+                if (editor == nullptr) return;
+                editor->proc.perfResult = std::move (result);
+                done (r);
+            });
+        });
     }
 
     // MIDI file at 120 bpm; bends are written for a 12-semitone wheel range (set by RPN at the start)

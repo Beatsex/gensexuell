@@ -1,6 +1,7 @@
 // Speed check for the voice engine and the sound -> seed search's inner loop; not part of CI.
 // Prints the realtime factor of 32 held voices (normal and low CPU mode) and the time of 50 patchFeatures calls.
 #include "Analysis.h"
+#include "Transcribe.h"
 #include <chrono>
 #include <cstdio>
 
@@ -38,4 +39,13 @@ int main()
     float sum = 0;
     for (int i = 0; i < 50; ++i) sum += patchFeatures (seedParams (uint32_t (i + 1), 20), 60)[0];
     std::printf ("50 patchFeatures: %.3f s (%g)\n", seconds (t0), double (sum));
+
+    // pitch: performance -> seed (windowPitch every 10 ms) and detectPitch (sample -> seed, text -> seed)
+    std::vector<float> tone (size_t (FEAT_SR * 5));
+    for (size_t i = 0; i < tone.size(); ++i) tone[i] = 0.5f * std::sin (2 * PI * (220 + 40 * float (i / 24000)) * float (i) / FEAT_SR);
+    const auto t1 = std::chrono::steady_clock::now();
+    size_t notes = 0;
+    for (int i = 0; i < 5; ++i) notes += transcribe (tone.data(), int (tone.size()), FEAT_SR).size();
+    for (int i = 0; i < 200; ++i) sum += detectPitch (tone.data() + i * 100, 12000, FEAT_SR);
+    std::printf ("pitch (5 transcribe, 200 detectPitch): %.3f s (%zu, %g)\n", seconds (t1), notes, double (sum));
 }
