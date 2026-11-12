@@ -19,6 +19,9 @@
 - MPE: a new switch in the MIDI settings. Channel 1 is the master, channels 2–16 play one note each with its own pitch bend (MPE NOTE BEND RANGE, default 48 semitones), pressure (opens the note's filter) and slide on CC74 (brighter or darker). The on-screen keyboard and live input no longer share MIDI channels 16 and 15 with your controller.
 - GLIDE is gentler: a note only slides while you still hold the previous one (before, in poly every note slid from the last one, even after a pause), and the slider is finest at the short end (halfway is about 1.25 s instead of 5 s).
 - 14 new factory sounds (26 in all) that use the new pulse, pitch, filter-type and MOD S&H genes: SQUARE KEYS, THIN PULSE LEAD, OCTAVE BASS, FIFTH STAB, STEP FILTER, TWO PEAK VOX, NOTCH PAD, BAND PLUCK, LASER ZAP, FM PIANO, RING BELLS, DUST ORGAN, SWELL CHOIR, KICK DRUM.
+- Fixed: the two extra filter stages of FILTER TYPE kept their state from a voice's previous note, which could click at the start of a note.
+- Fixed: ENV TILT used the value of the voice's previous note (or none) for attack and decay; now every note uses its own. Seeds with ENV TILT away from the middle have slightly different attack and decay times than before.
+- Fixed: loading a factory sound or a patch saved before the FX tab kept the current DRIVE, TAPE and VERB settings; they now start off.
 - Both manuals are on the website: https://beatsex.github.io/gensexuell/manual.html and https://beatsex.github.io/gensexuell/handbuch.html.
 
 ## 0.3.1

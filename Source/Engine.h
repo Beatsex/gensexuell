@@ -428,6 +428,7 @@ public:
         foldAmt = p[drive] > 0.8f ? (p[drive] - 0.8f) / 0.2f : 0.0f; // above every seed's range: wavefolding on top of the saturation
         k = 1.0f / std::max (0.707f, std::pow (10.0f, 0.5f * std::pow (30.0f, p[reso]) / 20)); // resonance in dB, like Web Audio
 
+        envTiltVal = (p[envTilt] - 0.5f) * 2.0f; // before attack and decay use it
         atkS = std::max (1.0f, 0.002f * std::pow (2000.0f, p[attack]) * timeMul * sr * std::exp2 (envTiltVal * 0.7f));
         const float dec = 0.01f * std::pow (800.0f, p[decay]) * timeMul * std::exp2 (-envTiltVal * 0.7f);
         decCoef = std::exp (-1.0f / (dec / 3 * sr));
@@ -450,7 +451,6 @@ public:
         mixModAmt = (p[mixMod] - 0.5f) * 2.0f;
         noiseBAmt = std::max (0.0f, p[noiseB] - 0.5f) * 2.0f;
         shaperAmt = std::max (0.0f, p[shaper] - 0.5f) * 2.0f;
-        envTiltVal = (p[envTilt] - 0.5f) * 2.0f;
         modHoldLevel = std::max (0.0f, p[modHold] - 0.5f) * 2.0f;
         modShS = p[modSH] > 0.6f ? sr / std::pow (64.0f, (p[modSH] - 0.6f) / 0.4f) : 0.0f; // above 0.6: 1 .. 64 steps per second
         lfoBal = (p[lfoBalance] - 0.5f) * 2.0f;
@@ -466,6 +466,8 @@ public:
         t = tAll = 0;
         f1 = {};
         f2 = {};
+        f3 = {};
+        f4 = {};
         nLp = nSlow = 0;
         releasing = false;
         active = held = true;
