@@ -12,6 +12,7 @@
 - Fixed: in MPE mode, All Notes Off and All Sound Off on a note channel were ignored.
 - Fixed: switching live input off and on again started with the last tracked note.
 - Fixed: the patch counter of sound → seed kept counting from the previous sample.
+- Fixed: a pitch sweep or pitch bend of more than an octave up aliased (a saw bent up four octaves: aliases 18.5 dB below the tone, now 66.4 dB), because the oscillator's wave table was chosen for the unbent note. Notes with a pitch sweep, TUNE or bend now start with the table of the pitch they really play, so swept seeds can sound slightly different.
 - Performance → seed: rendering the WAV no longer freezes the DAW's window while it runs.
 - Voices take about 3 % less CPU, and sound → seed tries about 8 % more patches per second. The sound is unchanged.
 - The audio thread no longer allocates memory (bass and treble shelves, live input) or calls the host (mapped MIDI CCs, program changes); those now happen on the user interface thread.

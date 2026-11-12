@@ -412,6 +412,28 @@ int main()
         const double aliasDb = 10 * std::log10 (std::max (all - harm, 1e-12) / all);
         std::printf ("aliasing: %.1f dB below the harmonics (driven saw at 1760 Hz)\n", -aliasDb);
         check (aliasDb < -28, "a driven saw on a high note keeps its aliases low (oversampled voice)");
+
+        // the same undriven saw at A3 bent up four octaves to A7 (3520 Hz): the table must follow the bend
+        p[drive] = 0;
+        cs.base = p;
+        Voice vb;
+        rng = 1;
+        vb.start (57, 0, 0, 0.9f, g, cs, s, 48000, rng, -1, 0);
+        Live bent;
+        bent.bendSemis = 48;
+        std::fill (L.begin(), L.end(), 0.0f);
+        vb.render (L.data(), R.data(), N * 2, rng, bent);
+        double allB = 0, harmB = 0;
+        for (int i = 0; i < N; ++i) allB += double (x[i]) * x[i];
+        for (int k = 0; k * 3520 < 24000; ++k)
+        {
+            double re = 0, im = 0;
+            for (int i = 0; i < N; ++i) { const double a = 2 * PI * k * 352.0 * i / N; re += x[i] * std::cos (a); im -= x[i] * std::sin (a); }
+            harmB += (k == 0 ? 1.0 : 2.0) * (re * re + im * im) / N;
+        }
+        const double bentDb = 10 * std::log10 (std::max (allB - harmB, 1e-12) / allB);
+        std::printf ("aliasing: %.1f dB below the harmonics (saw bent up 4 octaves to 3520 Hz)\n", -bentDb);
+        check (bentDb < -40, "a saw bent far up picks a table for its real pitch");
     }
 
     {

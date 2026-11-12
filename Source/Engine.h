@@ -514,9 +514,10 @@ public:
     void render (float* L, float* R, int n, uint32_t& rng, const Live& live)
     {
         const auto& T = Tables::get();
-        const float fNow = masterTune * std::exp2 ((semi - 69) / 12);
-        const float* ta = T.table (p[waveA], fNow * std::exp2 (pitchACents / 1200) * 2, sr); // headroom for vibrato, sweep and glide
-        const float* tb = T.table (p[waveB], fNow * std::exp2 (pitchACents / 1200) * ratio * 2, sr);
+        // band from the real frequency at block start (sweep and bend included); x2 is headroom for vibrato and glide within the block
+        const float fNow = masterTune * std::exp2 (((semi - 69) * 100 + tune + pitchACents + sweep * mod * modScale + live.bendSemis * 100) / 1200);
+        const float* ta = T.table (p[waveA], fNow * 2, sr);
+        const float* tb = T.table (p[waveB], fNow * ratio * 2, sr);
         const float fmIndex = std::pow (clamp01 (p[fm] + live.fmAdd), 2.0f) * 10;
         const float lfoA = clamp01 (p[lfoAmt] + live.lfoAdd), lfoCents = lfoA * lfoA * 100 * (1 - trem) * (1 - 0.5f * lfoBal), tremDepth = lfoA * trem * 0.5f * (1 + 0.5f * lfoBal);
         const float fltT = p[fltType];
