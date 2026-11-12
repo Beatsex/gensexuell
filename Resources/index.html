@@ -8,7 +8,7 @@
 /* fonts ship with gensexuell (OFL 1.1), nothing loads from the internet */
 @font-face{font-family:Inter;src:url(fonts/inter.woff2) format('woff2');font-weight:100 900;font-display:swap}
 @font-face{font-family:'JetBrains Mono';src:url(fonts/jetbrainsmono.woff2) format('woff2');font-weight:100 800;font-display:swap}
-:root{--pink:#F2B8C6;--cream:#F2F1ED;--ink:#111;--line:#0004;--mute:#0008;--glass:rgba(242,241,237,.55)}
+:root{--pink:#F2B8C6;--cream:#F2F1ED;--ink:#111;--line:#0004;--mute:#000b;--glass:rgba(242,241,237,.55)}
 *{box-sizing:border-box;margin:0}
 html,body{background:var(--pink);color:var(--ink);font:500 15px/1.2 Inter,system-ui,sans-serif;letter-spacing:.08em}
 .frame{position:relative;overflow:hidden;width:min(1280px,100%);height:800px;margin:0 auto;background:var(--pink);border:1.5px solid var(--ink);display:grid;grid-template-rows:56px minmax(0,1fr) 96px}
@@ -16,7 +16,7 @@ html,body{background:var(--pink);color:var(--ink);font:500 15px/1.2 Inter,system
 .liquid{position:absolute;z-index:0;left:0;top:0;width:440px;height:440px;margin:-220px 0 0 -220px;border-radius:50%;background:var(--cream);filter:blur(46px);pointer-events:none;will-change:transform}
 .liquid.two{left:1040px;top:560px;animation:drift 19s ease-in-out infinite alternate}
 @keyframes drift{to{transform:translate(-70px,-60px) scale(1.15)}}
-.lab{font:400 11px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.1em;color:#333}
+.lab{font:400 12px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.1em;color:var(--ink)}
 .mono{font-family:'JetBrains Mono',ui-monospace,monospace;font-weight:400}
 button{font:inherit;letter-spacing:inherit;color:inherit;background:none;border:0;cursor:pointer}
 button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--ink);outline-offset:-4px}
@@ -85,13 +85,16 @@ main{display:grid;grid-template-columns:260px minmax(0,1fr) 340px;min-height:0}
   background:radial-gradient(circle at 32% 26%,#ffffffb0 0 5%,transparent 20%),radial-gradient(circle at 68% 82%,#ffffff38,transparent 52%);
   box-shadow:inset 0 1px 1px #fffd,inset 0 -8px 14px #ffffff40,inset 0 0 0 1px #ffffff90,0 8px 20px #0000001c}
 .preview{position:absolute;left:20px;bottom:12px;max-width:50%;font-size:10px;color:var(--mute)}
+.helpLine{position:absolute;left:14px;right:230px;bottom:12px;z-index:1;font:400 11.5px/1.4 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.04em;pointer-events:none}
+.helpLine:not(:empty){padding:6px 10px;background:rgba(242,241,237,.9);border:1px solid var(--line)}
+.helpLine:not(:empty)~.preview{visibility:hidden}
 
 .ctlGrid{flex:1 0 auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:minmax(64px,1fr);border-bottom:1.5px solid var(--ink)}
 .ctl{display:flex;flex-direction:column;justify-content:center;padding:6px 16px;border-bottom:1.5px solid var(--ink)}
 .ctl:nth-child(odd){border-right:1.5px solid var(--ink)}
 .ctl:nth-last-child(-n+2){border-bottom:0}
 .row{display:flex;align-items:baseline;gap:8px}
-.ctl .name{font:400 11px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.08em;color:#333}
+.ctl .name{font:400 12px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.08em;color:var(--ink)}
 .ctl .v{margin-left:auto;font:600 14px Inter,sans-serif;letter-spacing:0}
 .name{font-weight:600}
 .geneCell{display:flex;align-items:center;justify-content:center;gap:8px;margin:10px 16px;border:1.5px solid var(--ink);font-size:11px;font-weight:600;letter-spacing:.14em;transition:background .2s,color .2s}
@@ -112,15 +115,17 @@ main{display:grid;grid-template-columns:260px minmax(0,1fr) 340px;min-height:0}
 .track input::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px}
 .track input:focus-visible~.thumb{outline:2px solid var(--ink);outline-offset:3px}
 .minis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px 14px;padding:8px 16px}
-.mini{font-size:10px;letter-spacing:.02em}
+.mini{font-size:11.5px;letter-spacing:.02em}
 #liveMinis{grid-template-columns:minmax(0,1fr)}
+#liveSelects{grid-template-columns:auto auto;justify-content:space-between}
+.minis{align-items:end}
 .mini .row{gap:6px}
 .mini .v{margin-left:auto;white-space:nowrap}
-.selects{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 14px;padding:8px 16px;font-size:10px}
+.selects{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 14px;padding:8px 16px;font-size:11.5px}
 .sel{display:flex;align-items:baseline;gap:6px}
-.sel>span{color:var(--mute)}
-.selBtn{font:400 11px 'JetBrains Mono',monospace;letter-spacing:.06em;padding:3px 0;white-space:nowrap}
-.selBtn:hover{text-decoration:underline}
+.sel>span{color:var(--ink)}
+.selBtn{font:400 11.5px 'JetBrains Mono',monospace;letter-spacing:.06em;padding:2px 7px;border:1px solid var(--line);background:#ffffff40;white-space:nowrap;transition:background .2s,border-color .2s}
+.selBtn:hover{background:#ffffff99;border-color:var(--ink)}
 .cardTitle{display:flex;align-items:baseline;gap:12px;padding:8px 16px 0;font-size:11px}
 .cardTitle .selects{display:flex;gap:10px;padding:0}
 .card{border-bottom:1.5px solid var(--ink)}
@@ -173,8 +178,8 @@ td input{font:400 12px 'JetBrains Mono',monospace;width:5em;background:#fff8;bor
 .dropZone{height:52px;border:1.5px dashed var(--ink);font-size:13px;font-weight:500;letter-spacing:.02em;transition:background .2s}
 .dropZone:hover,.dropZone.over{background:#0000000d}
 .tiles{display:grid;grid-template-columns:1fr 1fr;gap:4px}
-.tiles .dragTile{justify-content:center;padding:8px 4px;border-style:solid;font-size:10px}
-.localLine{margin-top:auto;padding:10px 16px;font:400 10px 'JetBrains Mono',monospace;letter-spacing:.08em;color:#333;cursor:help}
+.tiles .dragTile{justify-content:center;padding:8px 4px;border-style:solid;font-size:11px}
+.localLine{margin-top:auto;padding:10px 16px;font:400 11px 'JetBrains Mono',monospace;letter-spacing:.08em;color:var(--ink);cursor:help}
 .chip{border:1.5px solid var(--ink);padding:5px 9px;font:400 11px 'JetBrains Mono',monospace;transition:background .2s}
 .chip:hover{background:#0000000d}
 .chip[aria-current=true]{background:var(--ink);color:var(--cream)}
@@ -212,7 +217,7 @@ footer{display:grid;grid-template-columns:260px minmax(0,1fr) 340px;border-top:1
 .keyboard .b{position:absolute;top:0;width:4.2%;height:58%;background:var(--ink)}
 .keyboard .w.on{background:var(--pink)}
 .keyboard .b.on{background:#a8697b}
-.status{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 16px;border-left:1.5px solid var(--ink);font:400 11px 'JetBrains Mono',monospace;letter-spacing:.04em;color:#333}
+.status{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 16px;border-left:1.5px solid var(--ink);font:400 12px 'JetBrains Mono',monospace;letter-spacing:.04em;color:var(--ink)}
 
 /* inside the plugin window: the 1280 x 800 layout scales to fill the editor */
 .host{background:var(--pink)}
@@ -233,15 +238,15 @@ footer{display:grid;grid-template-columns:260px minmax(0,1fr) 340px;border-top:1
   <i class="liquid" id="blob" aria-hidden="true"></i><i class="liquid two" aria-hidden="true"></i>
   <header>
     <div class="brand">
-      <button class="burger" id="burger" popovertarget="mainMenu" aria-haspopup="menu" aria-label="Main menu">☰</button>
+      <button class="burger" id="burger" popovertarget="mainMenu" aria-haspopup="menu" aria-label="Main menu" title="Main menu: patches, seed actions, helpers, MIDI, zoom">☰</button>
       <div class="menu" id="mainMenu" popover role="menu"></div>
       <b>GENSEXUELL</b>
     </div>
     <div class="patchNav">
-      <button id="prevPatch" aria-label="Previous patch">‹</button>
+      <button id="prevPatch" aria-label="Previous patch" title="Previous patch in the folder">‹</button>
       <button id="patchName" popovertarget="patchMenu" aria-haspopup="menu" title="Patches (Ctrl+click: random)"></button>
       <span class="seedhex mono">SEED <span id="hex"></span></span>
-      <button id="nextPatch" aria-label="Next patch">›</button>
+      <button id="nextPatch" aria-label="Next patch" title="Next patch in the folder">›</button>
       <div class="menu" id="patchMenu" popover role="menu" aria-label="Patches"></div>
     </div>
     <div class="topActions">
@@ -254,7 +259,7 @@ footer{display:grid;grid-template-columns:260px minmax(0,1fr) 340px;border-top:1
     <aside class="panel left">
       <div class="sec">
         <div class="labRow"><label class="lab" for="desc">DESCRIBE</label><button class="lab howTo" id="bGuide" title="How to describe a sound, with examples to try">HOW TO ?</button></div>
-        <input id="desc" type="text" placeholder="z. B. dunkler, weicher Bass" autocomplete="off" spellcheck="false">
+        <input id="desc" type="text" title="Describe a sound in German or English, e.g. dark soft bass, then Enter or GROW" placeholder="z. B. dunkler, weicher Bass" autocomplete="off" spellcheck="false">
         <div class="growRow"><button id="bGrow" title="Grow seeds from the description (again: new takes)">GROW</button><span id="takes" style="display:contents"></span></div>
         <div class="words" id="wordLine" hidden></div>
       </div>
@@ -266,8 +271,8 @@ footer{display:grid;grid-template-columns:260px minmax(0,1fr) 340px;border-top:1
         <span class="lab">PERFORM</span>
         <button class="dropZone" id="bPerf" title="Drop a recording here, or click to open">Drop a recording</button>
         <div class="tiles">
-          <div class="dragTile" data-tile="wav" aria-disabled="true" title="Drag into your DAW (click: show file)">DRAG WAV</div>
-          <div class="dragTile" data-tile="mid" aria-disabled="true" title="Drag into your DAW (click: show file)">DRAG MIDI</div>
+          <div class="dragTile" data-tile="wav" aria-disabled="true" title="Drop a recording on Perform and RENDER it first, then drag the result into your DAW">DRAG WAV</div>
+          <div class="dragTile" data-tile="mid" aria-disabled="true" title="Drop a recording on Perform and RENDER it first, then drag the result into your DAW">DRAG MIDI</div>
         </div>
       </div>
       <div class="sec" id="liveCard" style="border-bottom:0">
@@ -279,7 +284,7 @@ footer{display:grid;grid-template-columns:260px minmax(0,1fr) 340px;border-top:1
       <div class="localLine" title="gensexuell runs entirely on this computer: no cloud, no internet connection, nothing you load leaves your machine. It makes sounds, never songs.">LOCAL · NOTHING LEAVES THIS COMPUTER</div>
     </aside>
     <section class="bulb" id="bulb">
-      <div class="viewTabs" role="tablist" aria-label="Centre view"><button role="tab" id="vSeed" aria-selected="true">SEED</button><button role="tab" id="vGenes" aria-selected="false" title="Edit every gene of the seed (Ctrl+G)">GENES <small id="vGenesN"></small></button></div>
+      <div class="viewTabs" role="tablist" aria-label="Centre view"><button role="tab" id="vSeed" aria-selected="true" title="The seed and its twelve branches (Ctrl+G switches)">SEED</button><button role="tab" id="vGenes" aria-selected="false" title="Edit every gene of the seed (Ctrl+G)">GENES <small id="vGenesN"></small></button></div>
       <div class="bulbHead"><span><span id="label"></span> · LENGTH <span id="big">0.00</span></span><span id="hint">DRAG A BRANCH OUT</span></div>
       <svg id="bulbSvg" viewBox="-292 -292 584 584" role="application" aria-label="Seed and branches">
         <defs>
@@ -299,6 +304,7 @@ footer{display:grid;grid-template-columns:260px minmax(0,1fr) 340px;border-top:1
       </svg>
       <div class="lens" id="lens"></div>
       <div id="wheelLabel"></div>
+      <div class="helpLine" id="helpLine" aria-live="polite"></div>
       <div class="preview mono" id="previewNote" hidden>UI PREVIEW · SOUND COMES FROM THE GENSEXUELL PLUGIN OR STANDALONE</div>
       <div class="genesView" id="genesView" role="tabpanel" aria-labelledby="vGenes" hidden>
         <div class="tabs" role="tablist" id="geneTabs"></div>
@@ -320,7 +326,7 @@ footer{display:grid;grid-template-columns:260px minmax(0,1fr) 340px;border-top:1
   </main>
   <footer>
     <div class="out"><span class="lab" id="outText">OUT — dB</span><div class="meter" aria-hidden="true"><div id="outMeter"></div></div></div>
-    <div class="keyboard" id="keyboard" role="group" aria-label="Keyboard"></div>
+    <div class="keyboard" id="keyboard" role="group" aria-label="Keyboard" title="Click a key to play its branch; lower on the key plays louder"></div>
     <div class="status"><span id="stVoices">VOICES 0</span><span id="stGlide"></span><span id="stSync"></span></div>
   </footer>
 </div>
@@ -365,8 +371,8 @@ footer{display:grid;grid-template-columns:260px minmax(0,1fr) 340px;border-top:1
     </div>
     <canvas class="wave" id="pWave" width="1600" height="220" aria-label="Recording with detected notes"></canvas>
     <div class="btnRow" style="margin-top:14px">
-      <div class="dragTile" data-tile="wav" aria-disabled="true" title="Drag into your DAW (click: show file)">⇢ WAV</div>
-      <div class="dragTile" data-tile="mid" aria-disabled="true" title="Drag into your DAW (click: show file)">⇢ MIDI</div>
+      <div class="dragTile" data-tile="wav" aria-disabled="true" title="Drop a recording on Perform and RENDER it first, then drag the result into your DAW">⇢ WAV</div>
+      <div class="dragTile" data-tile="mid" aria-disabled="true" title="Drop a recording on Perform and RENDER it first, then drag the result into your DAW">⇢ MIDI</div>
     </div>
     <div class="foot mono" id="pFoot">ONE VOICE AT A TIME (VOCALS, HUMMING, BASS, LEAD) · TIMING AND DYNAMICS STAY, THE SOUND BECOMES THE CURRENT SEED</div>
   </div>
@@ -740,8 +746,20 @@ svg.addEventListener('pointerup',endDrag);svg.addEventListener('pointercancel',e
 
 // ================================================================ sliders and selectors
 // a slider bound to S[key] (or a getter/setter pair); big = the large cards on the right
+// what each main control does: tooltip and help line
+const HELP={tuning:'Tunes the whole sound, ±12 semitones',effect:'How much reverb and grain effect you hear',volume:'Output level of gensexuell',
+  release:'How long notes ring after you let go: 20 ms … 4 s',atonality:'How wild new branches grow: low stays in tune and close to the seed, above 50 % ratios go free, metallic and noisy',
+  glide:'Portamento: how long the pitch slides from one note to the next',wheelScale:'How far the mod wheel reaches',velSens:'How much playing harder makes it louder',
+  liveGate:'Live input quieter than this counts as silence: raise it if breaths or room noise trigger notes',liveGlide:'How smoothly the live pitch follows you between notes',liveOctave:'Plays the live input up to two octaves higher or lower',
+  fxSwarm:'Grain density: how many grains per second',fxTail:'Feedback: how long the grain effect keeps going',fxSpan:'Grain length',fxScatter:'Randomness: where grains start, their pitch and their place in the stereo field',fxMix:'How much of the grain effect you hear',
+  HAZE:'Reverb amount (the space gene of the seed)',DUSK:'Darkens the reverb (the damp gene of the seed)',
+  liveOn:'Live input: gensexuell plays along with one voice or instrument on its sidechain input',liveFollow:'Own envelope: the seed shapes each note. Follow level: the loudness of your input shapes it',
+  bulbMode:'Which branch a key plays: Standard (one per note), Velocity (by how hard), Ranges (keyboard split), Layered (all switched-on branches)',
+  voiceMode:'Poly (up to 32 voices), Mono, or Legato (notes slide without a new attack)',wheelTarget:'What the mod wheel does: grow branches, open or close the filter, change envelope times, FM, LFO, effect or volume',
+  tempoSync:'Locks the LFO and looping envelopes to the song tempo',fxType:'Grain effect on the whole sound: Mosaic, Cloud, Shard or Tap',fxVariant:'Variant of the grain effect'};
+const TILE_WAIT='Drop a recording on Perform and RENDER it first, then drag the result into your DAW',TILE_READY='Drag into your DAW (click: show file)';
 function mkSlider(parent,{key,name,min,max,step,fmt,get,set,n},big=false){
-  const d=document.createElement('div');d.className=big?'ctl':'mini';
+  const d=document.createElement('div');d.className=big?'ctl':'mini';if(HELP[key]??HELP[name])d.title=HELP[key]??HELP[name];
   d.innerHTML=`<div class="row">${n?`<span class="n mono">${n}</span>`:''}<span class="name">${name}</span><span class="v mono"></span></div>
   <div class="track"><div class="fill"></div><input type="range" min="${min}" max="${max}" step="${step}" aria-label="${name}"><div class="thumb"></div></div>`;
   parent.append(d);
@@ -761,7 +779,7 @@ const pct=v=>Math.round(v)+' %',unit=v=>v.toFixed(2);
  {key:'atonality',name:'ATONALITY',min:0,max:100,step:1,fmt:pct}].forEach(c=>mkSlider($('ctls'),c,true));
 {const b=document.createElement('button');b.id='bGenes';b.className='geneCell';b.title='Edit every gene of the seed (Ctrl+G)';b.innerHTML='EDIT GENES <small>'+SECTIONS.flatMap(s=>s[1]).length+'</small> ›';$('ctls').append(b)}
 mkSlider($('lower'),{key:'glide',name:'GLIDE',min:0,max:10,step:.01,fmt:v=>v.toFixed(2)+' s'});
-mkSlider($('lower'),{key:'wheelScale',name:'WHEEL',min:0,max:100,step:1,fmt:pct});
+mkSlider($('lower'),{key:'wheelScale',name:'WHEEL DEPTH',min:0,max:100,step:1,fmt:pct});
 mkSlider($('lower'),{key:'velSens',name:'VELOCITY',min:0,max:100,step:1,fmt:pct});
 for(const [k,n] of [['fxSwarm','SWARM'],['fxTail','TAIL'],['fxSpan','SPAN'],['fxScatter','SCATTER'],['fxMix','MIX']])
   mkSlider($('fxMinis'),{key:k,name:n,min:0,max:1,step:.001,fmt:v=>Math.round(v*100)});
@@ -771,7 +789,7 @@ for(const [k,n] of [['space','HAZE'],['damp','DUSK']])
 // pop-up selector bound to S[key], drawn as "LABEL VALUE ▾" with a popover list
 const SELECTS=[];
 function mkSelect(parent,key,label,options){
-  const w=document.createElement('span');w.className='sel';
+  const w=document.createElement('span');w.className='sel';if(HELP[key])w.title=HELP[key];
   const id='sel_'+key;
   w.innerHTML=`<span>${label}</span><button class="selBtn" popovertarget="${id}" aria-haspopup="menu" style="anchor-name:--${id}"></button><div class="menu" id="${id}" popover role="menu" style="position-anchor:--${id};top:anchor(bottom);left:anchor(left)"></div>`;
   parent.append(w);
@@ -788,7 +806,7 @@ const FX_VARIANTS=[['A','B','C','D'],['STACK','LOW','HIGH','TUMBLE'],['MIST','SH
 mkSelect($('liveSelects'),'liveOn','',['OFF','ON']);
 mkSelect($('liveSelects'),'liveFollow','',['OWN ENVELOPE','FOLLOW LEVEL']);
 mkSlider($('liveMinis'),{key:'liveGate',name:'GATE',min:-70,max:-10,step:1,fmt:v=>Math.round(v)+' dB'});
-mkSlider($('liveMinis'),{key:'liveGlide',name:'GLIDE',min:0,max:.5,step:.001,fmt:v=>Math.round(v*1000)+' ms'});
+mkSlider($('liveMinis'),{key:'liveGlide',name:'LIVE GLIDE',min:0,max:.5,step:.001,fmt:v=>Math.round(v*1000)+' ms'});
 mkSlider($('liveMinis'),{key:'liveOctave',name:'OCTAVE',min:-2,max:2,step:1,fmt:v=>(v>0?'+':'')+v});
 mkSelect($('modes'),'bulbMode','BULB',['STANDARD','VELOCITY','RANGES','LAYERED']);
 mkSelect($('modes'),'voiceMode','VOICE',['POLY','MONO','LEGATO']);
@@ -1236,7 +1254,7 @@ async function analyzePerformance(){
   const r=await native('perfAnalyze',P.pcm,{smoothing:+$('pSmooth').value,minNote:+$('pMin').value,keepBends:$('pBends').checked,octave:+$('pOct').value});
   P.notes=r?.notes??[];P.wav=P.mid='';
   ['pPlayIn','pRender'].forEach(id=>$(id).disabled=false);$('pPlayOut').disabled=true;
-  TILES.forEach(t=>t.setAttribute('aria-disabled','true'));
+  TILES.forEach(t=>{t.setAttribute('aria-disabled','true');t.title=TILE_WAIT});
   $('pFoot').textContent=`${P.name.toUpperCase()} · ${P.notes.length} NOTES · ${P.seconds.toFixed(1)} S · RENDER PLAYS THEM WITH THE CURRENT SEED`;
   drawPerformance();
 }
@@ -1259,7 +1277,7 @@ async function renderPerformance(){
     const r=await native('perfRender');if(!r)return;
     P.wav=r.path;P.mid=await native('perfMidi',P.name)??'';
     $('pPlayOut').disabled=false;
-    TILES.forEach(t=>t.setAttribute('aria-disabled',!P[t.dataset.tile]));
+    TILES.forEach(t=>{t.setAttribute('aria-disabled',!P[t.dataset.tile]);t.title=P[t.dataset.tile]?TILE_READY:TILE_WAIT});
     toast('RENDERED · DRAG WAV OR MIDI INTO YOUR DAW');
   }finally{$('pRender').disabled=false;$('pRender').textContent='RENDER'}
 }
@@ -1308,6 +1326,7 @@ $('bSow').onclick=sow;$('bNew').onclick=newSeed;$('bClone').onclick=clone;$('bRe
 $('bGenes').onclick=openGenes;$('bUndo').onclick=doUndo;$('bRedo').onclick=doRedo;
 // letter keys play branches only when switched on in MIDI settings: in a DAW with its own computer MIDI keyboard they would sound twice
 const KB='awsedftgyhuj';
+addEventListener('pointerover',e=>{const t=e.target.closest?.('[title]');$('helpLine').textContent=t&&!t.closest('dialog,#genesView')?t.title:''});
 addEventListener('keydown',e=>{
   if(e.target.matches('input[type=number],input[type=text],input[type=search],select'))return;
   if(e.ctrlKey||e.metaKey){

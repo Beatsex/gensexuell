@@ -9,6 +9,9 @@
 - Each voice runs at twice the sample rate (oscillators, filter, drive and fold) and is brought back down with a half-band filter, so driven and folded sounds on high notes alias much less (a driven saw at 1760 Hz: aliases 31.8 dB below the tone instead of 23.5 dB). A voice now takes about twice the CPU.
 - Sample → seed has a newly trained net that also guesses the new pitch genes and MOD S&H, and hears the oversampled voice and the new filter types.
 - The genes have their own tab: GENES next to SEED above the branches shows them in place of the seed view, so the keyboard keeps playing while you edit. EDIT GENES (a framed button next to ATONALITY) and Ctrl+G switch to it. In the GENES tab, FIND A GENE searches all tabs by name and by what a gene does, every gene shows its description when you hover it, and a double-click resets a gene.
+- Every control explains itself: hover it for a tooltip, and a line at the bottom of the seed view says what it does. Greyed-out WAV and MIDI tiles say what to do first.
+- Easier to read: labels are larger and darker, and the mode selectors (BULB, VOICE, WHEEL, SYNC, live input, grain FX) look like buttons.
+- No more double names: the live input slider is now LIVE GLIDE and the mod wheel amount is WHEEL DEPTH.
 - Both manuals are on the website: https://beatsex.github.io/gensexuell/manual.html and https://beatsex.github.io/gensexuell/handbuch.html.
 
 ## 0.3.1
