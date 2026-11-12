@@ -125,7 +125,7 @@ inline Params seedParams (uint32_t n, float atonality)
     p[reso] *= 0.8f;
     p[fm] *= 0.7f;
     p[volFade] *= 0.8f;
-    p[envLoop] = 0.6f + p[envLoop] * 0.4f;
+    p[envLoop] = 1.0f; // seeds start without an envelope loop (branches can grow into it)
     p[modAttack] *= 0.6f;
     p[lfoShape] *= 0.7f;
     p[sub] = 0.3f + p[sub] * 0.5f;

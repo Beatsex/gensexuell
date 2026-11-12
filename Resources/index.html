@@ -614,14 +614,14 @@ const snap=x=>HARM.reduce((a,b)=>Math.abs(b-x)<Math.abs(a-x)?b:a);
 const baseAngle=i=>(-90+i*30)*Math.PI/180;
 const angle=i=>baseAngle(i)+S.br[i].off;
 const polar=(a,r)=>[Math.cos(a)*r,Math.sin(a)*r];
-const neutral=()=>Object.fromEntries(KEYS.map(k=>[k,k==='space'?.3:.5]));
+const neutral=()=>Object.fromEntries(KEYS.map(k=>[k,k==='space'?.3:k==='envLoop'?1:.5])); // keep in sync with neutralGenes() in Analysis.h
 
 // keep in sync with seedParams() in Engine.h
 function seedParams(n){
   const r=mulberry32(n),p={};
   for(const k of KEYS)p[k]=r();
   p.attack**=2.2;p.noise*=p.noise*.6;p.pitchMod=.5+(p.pitchMod-.5)*.25;p.lfoAmt*=.5;p.reso*=.8;p.fm*=.7;
-  p.volFade*=.8;p.envLoop=.6+p.envLoop*.4;p.modAttack*=.6;p.lfoShape*=.7;p.sub=.3+p.sub*.5;p.fltType=.3+p.fltType*.4;
+  p.volFade*=.8;p.envLoop=1;p.modAttack*=.6;p.lfoShape*=.7;p.sub=.3+p.sub*.5;p.fltType=.3+p.fltType*.4;
   p.fltSpread=.5+(p.fltSpread-.5)*.6;p.fltKey=.35+p.fltKey*.3;p.drive=.3+p.drive*.4;p.bass=.3+p.bass*.4;p.treble=.3+p.treble*.4;p.spread=.3+p.spread*.5;
   for(const k of PITCH)p[k]=.5; // seeds start in tune
   p.modSH=.5;                    // and with a smooth mod envelope

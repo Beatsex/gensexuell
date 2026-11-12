@@ -43,7 +43,7 @@ int main()
     const Genome g = defaultGenome (0x5EED1E55u);
     const Params base = seedParams (0x5EED1E55u, 20);
     check (near (base[waveA], 0.9050339f) && near (base[ratioB], 0.5f) && near (base[lfoAmt], 0.1950235f), "seedParams (first genes) matches JS");
-    check (near (base[drive], 0.3845241f) && near (base[spread], 0.4986768f) && near (base[envLoop], 0.9673820f), "seedParams (new genes) matches JS");
+    check (near (base[drive], 0.3845241f) && near (base[spread], 0.4986768f) && near (base[envLoop], 1.0f), "seedParams (new genes) matches JS");
     check (near (g.dir[0][waveA], -0.8256038f) && near (g.dir[0][spread], -0.4142749f), "dirsFor matches JS");
     check (near (g.off[11], -0.1063488f), "branch offsets match JS");
     check (near (freshLens (0x5EED1E55u)[1], 0.2702775f), "freshLens matches JS");

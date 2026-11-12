@@ -34,6 +34,7 @@ inline Params neutralGenes()
     Params p;
     p.fill (0.5f);
     p[space] = 0.3f;
+    p[envLoop] = 1.0f; // no envelope loop
     return p;
 }
 
