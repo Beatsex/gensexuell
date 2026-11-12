@@ -84,8 +84,11 @@ main{display:grid;grid-template-columns:260px minmax(0,1fr) 340px;min-height:0}
 .ctl .name{font:400 11px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.08em;color:#333}
 .ctl .v{margin-left:auto;font:600 14px Inter,sans-serif;letter-spacing:0}
 .name{font-weight:600}
-.geneCell{font-size:11px;letter-spacing:.12em;transition:background .2s}
-.geneCell:hover{background:#0000000d}
+.geneCell{display:flex;align-items:center;justify-content:center;gap:8px;margin:10px 16px;border:1.5px solid var(--ink);font-size:11px;font-weight:600;letter-spacing:.14em;transition:background .2s,color .2s}
+.geneCell:hover,.geneCell:focus-visible{background:var(--ink);color:var(--cream)}
+.geneCell small{font-weight:400;opacity:.65}
+.geneFind{margin-left:auto;align-self:stretch;width:200px;border:0;border-left:1.5px solid var(--ink);padding:0 14px;background:transparent;font:11px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.08em;color:var(--ink)}
+.geneFind:focus{outline:none;background:#ffffff40}
 .actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;padding:8px 16px;border-bottom:1.5px solid var(--ink)}
 .actions button{height:36px;border:1.5px solid var(--ink);font-size:11px;letter-spacing:.12em;transition:background .2s}
 .actions button:hover{background:#0000000d}
@@ -310,7 +313,7 @@ footer{display:grid;grid-template-columns:260px minmax(0,1fr) 340px;border-top:1
 <dialog id="dlgGenes" aria-labelledby="hGenes">
   <div class="dlgHead"><h2 id="hGenes">GENES</h2><button data-close>CLOSE ✕</button></div>
   <div class="tabs" role="tablist" id="geneTabs"></div>
-  <div class="dlgBody"><svg class="graph" id="geneGraph" viewBox="0 0 800 120" preserveAspectRatio="none"></svg><div class="geneGrid" id="geneGrid"></div><div class="foot mono" id="geneFoot">CTRL+CLICK A GENE TO RESET IT · GENES SET THE SEED, BRANCHES STILL GROW AT RANDOM</div></div>
+  <div class="dlgBody"><svg class="graph" id="geneGraph" viewBox="0 0 800 120" preserveAspectRatio="none"></svg><div class="geneGrid" id="geneGrid"></div><div class="foot mono" id="geneFoot">DOUBLE-CLICK A GENE TO RESET IT · GENES SET THE SEED, BRANCHES STILL GROW AT RANDOM</div></div>
 </dialog>
 
 <dialog id="dlgSound" aria-labelledby="hSound">
@@ -516,9 +519,9 @@ const GENE_INFO={
   mixMod:['MIX MOD','Mix follows the mod envelope'],shaper:['SHAPER','Wave shaper'],rvbSize:['ROOM SIZE','Reverb size'],
   rvbAttack:['ROOM ATTACK','Reverb attack'],rvbLength:['ROOM LENGTH','Reverb length'],fxMix:['FX MIX GENE','Extra FX mix'],
   fxSize:['FX SIZE','Extra FX size'],fxLength:['FX LENGTH','Extra FX length'],fxDamp:['FX DAMP','Extra FX damping'],fxChorus:['FX CHORUS','Extra FX chorus'],
-  octA:['OCT A','Oscillator A octave, −2 to +2 (B, FM and sub follow A)'],semiA:['SEMI A','Oscillator A semitones, ±12'],centA:['CENT A','Oscillator A fine tune, ±50 cents'],
+  octA:['OCT A','Pitch of oscillator A in octaves, −2 to +2 (B, FM and sub follow A)'],semiA:['SEMI A','Pitch of oscillator A in semitones, ±12'],centA:['CENT A','Fine pitch (detune) of oscillator A, ±50 cents'],
   modSH:['MOD S&H','Above 0.6: the mod envelope moves in steps, 1 to 64 per second'],
-  semiB:['SEMI B','Oscillator B semitones on top of RATIO B, ±12'],centB:['CENT B','Oscillator B fine tune on top of RATIO B, ±50 cents']};
+  semiB:['SEMI B','Pitch of oscillator B in semitones on top of RATIO B, ±12'],centB:['CENT B','Fine pitch (detune) of oscillator B on top of RATIO B, ±50 cents']};
 const SECTIONS=[['ENVELOPE & LFO',['attack','decay','sustain','volFade','envLoop','envKey','modAttack','modDecay','modVel','modSH','lfoRate','lfoAmt','lfoShape','lfoDelay']],
   ['OSCILLATORS',['waveA','waveB','ratioB','fm','mix','noise','noiseColor','sub','pitchMod','octA','semiA','centA','semiB','centB']],
   ['FILTER & EFFECT',['cutoff','reso','fltEnv','fltType','fltSpread','fltKey','drive','space','damp','chorus','bass','treble','spread']],
@@ -737,6 +740,7 @@ function mkSlider(parent,{key,name,min,max,step,fmt,get,set,n},big=false){
   inp.addEventListener('pointerup',()=>s.held=false);inp.addEventListener('lostpointercapture',()=>s.held=false);
   inp.addEventListener('pointerdown',e=>{s.held=true;pushUndo();if(e.ctrlKey&&s.reset!==undefined){s.set(s.reset);inp.value=s.reset;hud();e.preventDefault()}});
   inp.addEventListener('keydown',e=>e.key.startsWith('Arrow')&&pushUndo());
+  inp.addEventListener('dblclick',()=>{if(s.reset===undefined)return;pushUndo();s.set(s.reset);inp.value=s.reset;hud()});
   inp.addEventListener('input',()=>{uiTouch=performance.now();s.set(+inp.value);hud()});
   SLIDERS.push(s);return s;
 }
@@ -745,7 +749,7 @@ const pct=v=>Math.round(v)+' %',unit=v=>v.toFixed(2);
 [{key:'tuning',name:'TUNING',min:-12,max:12,step:.1,fmt:v=>v.toFixed(1)+' st'},{key:'effect',name:'EFFECT',min:0,max:100,step:1,fmt:pct},
  {key:'volume',name:'VOLUME',min:-24,max:6,step:.5,fmt:v=>v.toFixed(1)+' dB'},{key:'release',name:'RELEASE',min:0,max:100,step:1,fmt:pct},
  {key:'atonality',name:'ATONALITY',min:0,max:100,step:1,fmt:pct}].forEach(c=>mkSlider($('ctls'),c,true));
-{const b=document.createElement('button');b.id='bGenes';b.className='geneCell';b.title='Edit the genes of the seed';b.textContent='ALL '+SECTIONS.flatMap(s=>s[1]).length+' GENES';$('ctls').append(b)}
+{const b=document.createElement('button');b.id='bGenes';b.className='geneCell';b.title='Edit every gene of the seed (Ctrl+G)';b.innerHTML='EDIT GENES <small>'+SECTIONS.flatMap(s=>s[1]).length+'</small> ›';$('ctls').append(b)}
 mkSlider($('lower'),{key:'glide',name:'GLIDE',min:0,max:10,step:.01,fmt:v=>v.toFixed(2)+' s'});
 mkSlider($('lower'),{key:'wheelScale',name:'WHEEL',min:0,max:100,step:1,fmt:pct});
 mkSlider($('lower'),{key:'velSens',name:'VELOCITY',min:0,max:100,step:1,fmt:pct});
@@ -860,14 +864,19 @@ function openDlg(id){const d=$(id);if(!d.open)d.showModal()}
 
 // ---------------- genes
 let geneTab=0;
-SECTIONS.forEach(([name],i)=>{const b=document.createElement('button');b.role='tab';b.textContent=name;b.onclick=()=>{geneTab=i;renderGenes()};$('geneTabs').append(b)});
+SECTIONS.forEach(([name],i)=>{const b=document.createElement('button');b.role='tab';b.textContent=name;b.onclick=()=>{geneTab=i;$('geneFind').value='';renderGenes()};$('geneTabs').append(b)});
+{const f=Object.assign(document.createElement('input'),{id:'geneFind',className:'geneFind',type:'search',placeholder:'FIND A GENE…',ariaLabel:'Find a gene by name or what it does'});f.oninput=renderGenes;$('geneTabs').append(f)}
+const openGenes=()=>{openDlg('dlgGenes');renderGenes()};
 function renderGenes(){
-  [...$('geneTabs').children].forEach((b,i)=>b.setAttribute('aria-selected',i===geneTab));
+  const q=$('geneFind').value.trim().toLowerCase();
+  [...$('geneTabs').querySelectorAll('[role=tab]')].forEach((b,i)=>b.setAttribute('aria-selected',!q&&i===geneTab));
   for(let i=SLIDERS.length-1;i>=0;i--)if(SLIDERS[i].gene)SLIDERS.splice(i,1);
   $('geneGrid').replaceChildren();
-  for(const k of SECTIONS[geneTab][1]){
+  const shown=q?SECTIONS.flatMap(s=>s[1]).filter(k=>(GENE_INFO[k][0]+' '+GENE_INFO[k][1]).toLowerCase().includes(q)):SECTIONS[geneTab][1];
+  $('geneFoot').textContent=q&&!shown.length?'NO GENE MATCHES “'+q.toUpperCase()+'”':'DOUBLE-CLICK A GENE TO RESET IT · GENES SET THE SEED, BRANCHES STILL GROW AT RANDOM';
+  for(const k of shown){
     const s=mkSlider($('geneGrid'),{name:GENE_INFO[k][0],min:0,max:1,step:.001,fmt:GENE_FMT[k]||unit,get:()=>S.base[k],set:v=>{S.base[k]=v;drawGraph()}});
-    s.gene=k;s.reset=k==='space'?.3:.5;
+    s.gene=k;s.reset=k==='space'?.3:.5;s.el.title=GENE_INFO[k][1];
     s.el.addEventListener('pointerenter',()=>$('geneFoot').textContent=GENE_INFO[k][1].toUpperCase());
   }
   syncCtls();hud(false);drawGraph();
@@ -1015,7 +1024,7 @@ function fitWindow(){if(!HOST)return;const r=document.documentElement,z=Math.min
 addEventListener('resize',fitWindow);fitWindow();
 const MAIN=[['UNDO',doUndo,'Ctrl+Z'],['REDO',doRedo,'Ctrl+Shift+Z'],null,['OPEN PATCH…',openPatch,'Ctrl+O'],['SAVE PATCH…',savePatch,'Ctrl+S'],['COPY PATCH',copyPatch],['PASTE PATCH',pastePatch],null,
   ['SOW',sow],['NEW RANDOM SEED',newSeed],['CLONE BRANCH TO ALL',clone],['GROW NEW RANDOM BRANCH',()=>reroll()],null,
-  ['GENES…',()=>{openDlg('dlgGenes');renderGenes()}],['SOUND → SEED…',()=>openDlg('dlgSound')],['TEXT → SEED',()=>$('desc').focus()],['HOW TO DESCRIBE…',()=>openDlg('dlgDescribe')],['PERFORMANCE → SEED…',()=>openDlg('dlgPerf')],null,
+  ['GENES…',()=>openGenes(),'Ctrl+G'],['SOUND → SEED…',()=>openDlg('dlgSound')],['TEXT → SEED',()=>$('desc').focus()],['HOW TO DESCRIBE…',()=>openDlg('dlgDescribe')],['PERFORMANCE → SEED…',()=>openDlg('dlgPerf')],null,
   ['CORRECT TUNING',correctTuning],['NORMALIZE VOLUME',normalizeVolume],['NORMALIZE BRANCH VOLUMES',normalizeBranches],['BRANCH VOLUMES…',()=>{openDlg('dlgBranches');renderBranches()}],null,
   ['MIDI CONTROLLERS…',()=>{openDlg('dlgCc');renderCc()}],['MIDI SETTINGS…',()=>{openDlg('dlgMidi');renderMidi()}],['PROGRAM LIST…',()=>{openDlg('dlgPrograms');renderPrograms()}],null,
   ['ZOOM',null],['ABOUT',()=>openDlg('dlgAbout')]];
@@ -1284,15 +1293,15 @@ function keyPress(n,on,v){KBD.get(n)?.classList.toggle('on',on);HOST?.emitEvent(
 
 // ================================================================ wiring
 $('bSow').onclick=sow;$('bNew').onclick=newSeed;$('bClone').onclick=clone;$('bReroll').onclick=()=>reroll();
-$('bGenes').onclick=()=>{openDlg('dlgGenes');renderGenes()};$('bUndo').onclick=doUndo;$('bRedo').onclick=doRedo;
+$('bGenes').onclick=openGenes;$('bUndo').onclick=doUndo;$('bRedo').onclick=doRedo;
 // letter keys play branches only when switched on in MIDI settings: in a DAW with its own computer MIDI keyboard they would sound twice
 const KB='awsedftgyhuj';
 addEventListener('keydown',e=>{
-  if(e.target.matches('input[type=number],input[type=text],select'))return;
+  if(e.target.matches('input[type=number],input[type=text],input[type=search],select'))return;
   if(e.ctrlKey||e.metaKey){
     const k=e.key.toLowerCase();
     if(k==='z'){e.preventDefault();e.shiftKey?doRedo():doUndo()}else if(k==='y'){e.preventDefault();doRedo()}
-    else if(k==='s'){e.preventDefault();savePatch()}else if(k==='o'){e.preventDefault();openPatch()}
+    else if(k==='s'){e.preventDefault();savePatch()}else if(k==='o'){e.preventDefault();openPatch()}else if(k==='g'){e.preventDefault();openGenes()}
     return;
   }
   if(!S.midi.computerKeys||e.repeat||e.altKey||document.querySelector('dialog[open]'))return;

@@ -8,6 +8,7 @@
 - New gene MOD S&H (in Envelope & LFO): above 0.6 the mod envelope moves in steps, 1 to 64 per second, so pitch sweeps, filter envelopes and FM jump instead of gliding. Seeds start without it; branches can grow into it. The editor now shows 59 genes.
 - Each voice runs at twice the sample rate (oscillators, filter, drive and fold) and is brought back down with a half-band filter, so driven and folded sounds on high notes alias much less (a driven saw at 1760 Hz: aliases 31.8 dB below the tone instead of 23.5 dB). A voice now takes about twice the CPU.
 - Sample → seed has a newly trained net that also guesses the new pitch genes and MOD S&H, and hears the oversampled voice and the new filter types.
+- The gene editor is easier to find: EDIT GENES is a framed button next to ATONALITY, and Ctrl+G opens it from anywhere. In the editor, FIND A GENE searches all tabs by name and by what a gene does, every gene shows its description when you hover it, and a double-click resets a gene.
 - Both manuals are on the website: https://beatsex.github.io/gensexuell/manual.html and https://beatsex.github.io/gensexuell/handbuch.html.
 
 ## 0.3.1
