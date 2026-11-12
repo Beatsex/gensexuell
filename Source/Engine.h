@@ -516,9 +516,14 @@ public:
             const float fc = std::clamp (base * std::exp2 (p[fltEnv] * 6 * mod * modScale) * live.filterMul, 20.0f, 0.45f * sr);
             float lp, bp, hp;
             f1.process (x, std::tan (PI * fc / sr), k, lp, bp, hp);
-            float y = fltT < 0.4f   ? bp * k * (1 - fltT / 0.4f) + lp * (fltT / 0.4f)
-                      : fltT > 0.6f ? lp + hp * (fltT - 0.6f) / 0.4f // towards notch
-                                    : lp;
+            // filter type morphs band-pass (0) -> serial low-pass (1/3) -> parallel low-pass (2/3) -> notch (1)
+            const float g1 = std::tan (PI * fc / sr), seg = std::min (fltT * 3, 2.999f), u = seg - std::floor (seg);
+            float serial = 0, parallel = 0;
+            if (seg < 2) { float l, b2, h; f3.process (lp, g1, 1.414f, l, b2, h); serial = l; }    // second stage flat (no extra peak): 24 dB/oct
+            if (seg >= 1) { float l, b2, h; f4.process (x, std::tan (PI * std::min (fc * 2, 0.45f * sr) / sr), k, l, b2, h); parallel = 0.5f * (lp + l); } // second peak an octave up
+            float y = seg < 1 ? bp * k * (1 - u) + serial * u
+                    : seg < 2 ? serial * (1 - u) + parallel * u
+                              : parallel * (1 - u) + (lp + hp) * u;
             if (spreadAmt > 0.01f)
             {
                 float lp2, bp2, hp2;
@@ -541,7 +546,7 @@ public:
             ++tAll;
         }
 
-        if ((releasing && amp < 1e-5f) || (oneShotEnd > 0 && t > oneShotEnd) || (fade < 1e-4f) || ! std::isfinite (f1.ic1 + f1.ic2 + f2.ic1))
+        if ((releasing && amp < 1e-5f) || (oneShotEnd > 0 && t > oneShotEnd) || (fade < 1e-4f) || ! std::isfinite (f1.ic1 + f1.ic2 + f2.ic1 + f3.ic1 + f4.ic1))
             active = false;
     }
 
@@ -555,7 +560,7 @@ private:
     }
 
     Params p {};
-    Svf f1, f2;
+    Svf f1, f2, f3, f4;
     float sr = 48000, masterTune = 440, tune = 0, semi = 60, targetSemi = 60, glideCoef = 1, ratio = 1, sweep = 0;
     float lfoHz = 1, trem = 0, lfoDelayS = 0, noiseAmt = 0, noiseLp = 1, noiseHp = 0, nLp = 0, nSlow = 0, subAmt = 0;
     float spreadAmt = 0, spreadMul = 1, driveGain = 1, k = 1, modCoef = 0, modAtkS = 0, mod = 1, modScale = 1;

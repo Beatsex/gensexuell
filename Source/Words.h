@@ -149,7 +149,7 @@ inline const std::vector<Word>& lexicon()
         { "langsam|slow|schwellend|swell", { { dAttack, 0.8f, 1 } } },
         { "schnell|fast|direkt|immediate", { { dAttack, 0, 1 } } },
         { "luftig|airy|hauchig|breathy|rauschig|noisy", { { dNoise, 0.7f, 1 }, { dBright, 0.7f, 0.4f } } },
-        { "hohl|hollow|nasal", { { dBright, 0.5f, 0.4f }, { dTonal, 0.85f, 0.5f } }, { { waveA, 0.7f, 0.81f }, { fltType, 0, 0.25f } } },
+        { "hohl|hollow|nasal", { { dBright, 0.5f, 0.4f }, { dTonal, 0.85f, 0.5f } }, { { waveA, 0.7f, 0.81f }, { fltType, 0, 0.2f } } },
         { "wobbel|wobble|wabern|wobbly|schwebend|wavy|vibrato", { { dMotion, 0.8f, 1 } }, { { lfoAmt, 0.4f, 0.9f } } },
         { "bewegt|moving|lebendig|evolving|organisch|organic", { { dMotion, 0.7f, 1 } } },
         { "statisch|static|steady", { { dMotion, 0.05f, 1 } } },
@@ -182,7 +182,7 @@ inline const std::vector<Word>& lexicon()
         { "cello|violine|geige|violin|viola|bratsche|arco|bowed|gestrichen|gambe", { { dAttack, 0.55f, 0.9f }, { dSustain, 0.85f, 1 }, { dTonal, 0.95f, 1 }, { dMotion, 0.5f, 0.7f } }, { { attack, 0.35f, 0.7f }, { sustain, 0.7f, 0.95f }, { waveA, 0.47f, 0.67f } }, 60 },
         { "floete|flute|shakuhachi|panfloete|ocarina|whistle|duduk|geblasen|blown", { { dAttack, 0.3f, 0.8f }, { dSustain, 0.8f, 0.9f }, { dNoise, 0.45f, 0.8f }, { dTonal, 0.85f, 0.8f }, { dBright, 0.45f, 0.7f } }, { { noise, 0.2f, 0.45f }, { waveA, 0, 0.26f }, { attack, 0.15f, 0.4f }, { sustain, 0.65f, 0.9f } }, 67 },
         { "brass|blaeser|trompete|trumpet|horn|waldhorn|posaune|trombone|tuba|braaam", { { dAttack, 0.2f, 0.8f }, { dSustain, 0.75f, 0.9f }, { dBright, 0.6f, 0.8f }, { dTonal, 0.95f, 0.9f } }, { { waveA, 0.47f, 0.67f }, { fltEnv, 0.5f, 0.85f }, { modAttack, 0.55f, 0.8f }, { attack, 0.08f, 0.25f } }, 55 },
-        { "chor|choir|vocal|stimme|voice|formant|vowel|aah|ooh", { { dAttack, 0.55f, 0.8f }, { dSustain, 0.85f, 0.9f }, { dTonal, 0.9f, 0.8f }, { dBright, 0.45f, 0.7f } }, { { fltType, 0.2f, 0.4f }, { fltSpread, 0.65f, 0.9f }, { reso, 0.5f, 0.8f }, { chorus, 0.55f, 0.9f }, { attack, 0.35f, 0.7f } }, 60 },
+        { "chor|choir|vocal|stimme|voice|formant|vowel|aah|ooh", { { dAttack, 0.55f, 0.8f }, { dSustain, 0.85f, 0.9f }, { dTonal, 0.9f, 0.8f }, { dBright, 0.45f, 0.7f } }, { { fltType, 0.15f, 0.33f }, { fltSpread, 0.65f, 0.9f }, { reso, 0.5f, 0.8f }, { chorus, 0.55f, 0.9f }, { attack, 0.35f, 0.7f } }, 60 },
         { "gong|gamelan|klangschale|singing-bowl|bowl|waterphone|cristal|baschet|crotales", { { dAttack, 0.05f, 0.8f }, { dLength, 0.9f, 1 }, { dInharm, 0.75f, 1 }, { dSustain, 0.45f, 0.7f } }, { { fm, 0.35f, 0.75f }, { sub, 0, 0.25f }, { decay, 0.75f, 0.98f }, { space, 0.55f, 0.95f } }, 64 },
         // materials and effects
         { "holzig|holz|wood|wooden|bambus|bamboo", { { dBright, 0.35f, 0.8f }, { dInharm, 0.35f, 0.6f }, { dLength, 0.3f, 0.6f } }, { { cutoff, 0.25f, 0.5f }, { reso, 0.3f, 0.55f } } },

@@ -507,7 +507,7 @@ const GENE_INFO={
   fm:['FM','How much B bends the frequency of A'],mix:['MIX','Balance between A and B'],noise:['NOISE','Noise level'],noiseColor:['NOISE COLOR','Dark → white → bright'],
   sub:['SUB','Ring modulation (below 0.3) · sub oscillator an octave down (above 0.5)'],pitchMod:['SWEEP','Pitch sweep from the mod envelope (0.5 = none)'],
   cutoff:['CUTOFF','Filter cutoff, relative to the note'],reso:['RESONANCE','Filter resonance'],fltEnv:['FILTER ENV','How far the mod envelope opens the filter'],
-  fltType:['FILTER TYPE','Band-pass → low-pass → notch'],fltSpread:['SPREAD','A second filter stage below or above the first'],fltKey:['KEY TRACK','Cutoff follows the key (0.5 = exactly)'],
+  fltType:['FILTER TYPE','Band-pass (0) → steep low-pass (0.33) → two low-pass peaks an octave apart (0.67) → notch (1)'],fltSpread:['SPREAD','A second filter stage below or above the first'],fltKey:['KEY TRACK','Cutoff follows the key (0.5 = exactly)'],
   drive:['DRIVE','Saturation inside the voice (above 0.5) · wavefolding (above 0.8)'],space:['ROOM','Haze reverb: room / plate / hall / swell'],damp:['DUSK','Low-pass on the output (above 0.5)'],
   chorus:['CHORUS','Chorus (above 0.5)'],bass:['BASS','Low shelf ±12 dB'],treble:['TREBLE','High shelf ±12 dB'],spread:['PAN','How wide branches pan around the seed'],
   envTime:['ENV TIME','Overall envelope time scale'],envTilt:['ENV TILT','Envelope tilt'],modHold:['MOD HOLD','Mod envelope hold'],
@@ -893,7 +893,9 @@ function drawGraph(){
   }else{ // filter response, cutoff as if played at C4
     const fc=261.6*.5*40**b.cutoff,q=Math.max(.707,10**(.5*30**b.reso/20)),k=1/q;
     for(let i=0;i<=200;i++){const f=20*1000**(i/200),w=f/fc,den=Math.hypot(1-w*w,k*w);
-      const lp=1/den,bp=k*w/den,hp=w*w/den,t=b.fltType,y=t<.4?bp*(1-t/.4)+lp*t/.4:t>.6?Math.abs(lp+hp*(t-.6)/.4*(w>1?1:-1)):lp;
+      const lp=1/den,bp=k*w/den,hp=w*w/den,ser=lp/Math.hypot(1-w*w,1.414*w),w2=w/2,par=.5*(lp+1/Math.hypot(1-w2*w2,k*w2)),
+        notch=Math.abs(1-w*w)/den,seg=Math.min(b.fltType*3,2.999),u=seg-Math.floor(seg); // same morph as Engine.h (magnitudes only)
+      const y=seg<1?bp*(1-u)+ser*u:seg<2?ser*(1-u)+par*u:par*(1-u)+notch*u;
       pts.push(`${i*4},${clamp(H*.35-20*Math.log10(y+1e-6)*1.6,4,H-4)}`)}
     line('M'+pts.join('L'));
   }

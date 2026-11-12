@@ -334,6 +334,19 @@ int main()
         check (effectiveLen (cc, 0) == 1.0f, "Growth + wheel grows every branch");
     }
 
+    {
+        // filter type: band-pass, serial low-pass, parallel low-pass and notch sound different from each other
+        Params p = neutralGenes();
+        p[waveA] = 0.57f; p[noise] = 0.3f; p[reso] = 0.6f; p[cutoff] = 0.5f; p[fltEnv] = 0; p[attack] = 0; p[sustain] = 1;
+        std::array<Features, 4> fs;
+        for (int i = 0; i < 4; ++i) { p[fltType] = i / 3.0f; fs[size_t (i)] = patchFeatures (p, 60); }
+        float closest = 1e9f;
+        for (int i = 0; i < 4; ++i)
+            for (int j = i + 1; j < 4; ++j) closest = std::min (closest, distance (fs[size_t (i)], fs[size_t (j)]));
+        std::printf ("filter types: closest pair %.3f apart\n", closest);
+        check (closest > 0.02f, "the four filter types sound different");
+    }
+
     // ---- sound -> seed
     {
         const auto f1 = patchFeatures (base, 60), f2 = patchFeatures (base, 60);
