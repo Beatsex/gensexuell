@@ -5,6 +5,7 @@
 - The oscillator wave morphs sine (0) → saw (0.57) → square (0.81) → pulse (1.0); over the last stretch the pulse narrows from 50 % to 12.5 % and keeps the square's loudness. The triangle stage is gone. Factory patches and the describe words were moved to the new positions so they keep their sound; saved patches with a wave above 0.81 now play a pulse.
 - Oscillator pitch has its own genes: OCT A (−2…+2 octaves), SEMI A (±12), CENT A (±50) and, on top of RATIO B, SEMI B and CENT B. B, FM and the sub follow A. New seeds start in tune; below 50 % atonality, branches keep the octave and semitones and only drift in cents. The old PITCH A gene never changed the pitch and is gone from the editor (old patches still load), so the editor shows 58 genes.
 - FILTER TYPE morphs through four filters: band-pass (0) → steep 24 dB low-pass (0.33) → two low-pass peaks an octave apart (0.67) → notch (1). Saved patches with a filter type other than 0 or 1 sound different; the describe words for hollow and vocal sounds were moved to the new positions.
+- New gene MOD S&H (in Envelope & LFO): above 0.6 the mod envelope moves in steps, 1 to 64 per second, so pitch sweeps, filter envelopes and FM jump instead of gliding. Seeds start without it; branches can grow into it. The editor now shows 59 genes.
 - Both manuals are on the website: https://beatsex.github.io/gensexuell/manual.html and https://beatsex.github.io/gensexuell/handbuch.html.
 
 ## 0.3.1

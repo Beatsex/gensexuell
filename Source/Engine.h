@@ -23,6 +23,7 @@ enum Gene
     rvbSize, rvbAttack, rvbLength, fxMix, fxSize, fxLength, fxDamp, fxChorus,
     // E2 pitch split, appended for index stability; pitchA above is retired (silent) so old patches keep their pitch
     octA, semiA, centA, semiB, centB,
+    modSH, // E4: sample & hold on the mod envelope
     NP
 };
 // genes that existed before the expansion; the seed/dirs stream covers exactly these
@@ -33,7 +34,8 @@ inline const char* const KEYS[NP] = {
     "space", "damp", "chorus", "bass", "treble", "spread",
     "envTime", "envTilt", "modHold", "lfoBalance", "pitchA", "noiseB", "modB", "holdB", "fmMod", "mixMod", "shaper",
     "rvbSize", "rvbAttack", "rvbLength", "fxMix", "fxSize", "fxLength", "fxDamp", "fxChorus",
-    "octA", "semiA", "centA", "semiB", "centB"
+    "octA", "semiA", "centA", "semiB", "centB",
+    "modSH"
 };
 // effect genes act on the shared master bus, so they always come from the seed, never from a branch
 inline bool isMasterGene (int k)
@@ -131,6 +133,7 @@ inline Params seedParams (uint32_t n, float atonality)
     p[treble] = 0.3f + p[treble] * 0.4f;
     p[spread] = 0.3f + p[spread] * 0.5f;
     for (int k = octA; k <= centB; ++k) p[size_t (k)] = 0.5f; // seeds start in tune
+    p[modSH] = 0.5f;                                                // and with a smooth mod envelope
     if (atonality < 50) p[ratioB] = snap (p[ratioB]);
     return p;
 }
@@ -413,13 +416,15 @@ public:
         shaperAmt = std::max (0.0f, p[shaper] - 0.5f) * 2.0f;
         envTiltVal = (p[envTilt] - 0.5f) * 2.0f;
         modHoldLevel = std::max (0.0f, p[modHold] - 0.5f) * 2.0f;
+        modShS = p[modSH] > 0.6f ? sr / std::pow (64.0f, (p[modSH] - 0.6f) / 0.4f) : 0.0f; // above 0.6: 1 .. 64 steps per second
         lfoBal = (p[lfoBalance] - 0.5f) * 2.0f;
         modBAmt = (p[modB] - 0.5f) * 2.0f;
         holdBAmt = std::max (0.0f, p[holdB] - 0.5f) * 2.0f;
 
         phA = phB = phL = phS = 0;
         shHold = 0;
-        mod = modAtkS > 0 ? 0.0f : 1.0f;
+        mod = modEnv = modAtkS > 0 ? 0.0f : 1.0f;
+        modShT = 0;
         amp = ampStart = 0;
         fade = 1;
         t = tAll = 0;
@@ -466,7 +471,8 @@ public:
             {
                 t = 0;
                 ampStart = amp;
-                mod = modAtkS > 0 ? 0.0f : 1.0f;
+                mod = modEnv = modAtkS > 0 ? 0.0f : 1.0f;
+                modShT = 0;
             }
 
             if (releasing)
@@ -479,9 +485,11 @@ public:
                 fade *= fadeCoef;
             }
 
-            if (modAtkS > 0 && t < modAtkS) mod = (t + 1) / modAtkS;
-            else mod *= modCoef;
-            if (mod < modHoldLevel) mod = modHoldLevel; // expansion gene: mod-envelope hold floor
+            if (modAtkS > 0 && t < modAtkS) modEnv = (t + 1) / modAtkS;
+            else modEnv *= modCoef;
+            if (modEnv < modHoldLevel) modEnv = modHoldLevel; // expansion gene: mod-envelope hold floor
+            if (modShS <= 0) mod = modEnv;
+            else if (++modShT >= modShS) { modShT -= modShS; mod = modEnv; } // sample & hold: mod moves in steps
 
             semi += (targetSemi - semi) * glideCoef;
             const float lfoFade = lfoDelayS > 0 ? std::min (1.0f, tAll / lfoDelayS) : 1.0f;
@@ -563,7 +571,7 @@ private:
     Svf f1, f2, f3, f4;
     float sr = 48000, masterTune = 440, tune = 0, semi = 60, targetSemi = 60, glideCoef = 1, ratio = 1, sweep = 0;
     float lfoHz = 1, trem = 0, lfoDelayS = 0, noiseAmt = 0, noiseLp = 1, noiseHp = 0, nLp = 0, nSlow = 0, subAmt = 0;
-    float spreadAmt = 0, spreadMul = 1, driveGain = 1, k = 1, modCoef = 0, modAtkS = 0, mod = 1, modScale = 1;
+    float spreadAmt = 0, spreadMul = 1, driveGain = 1, k = 1, modCoef = 0, modAtkS = 0, mod = 1, modEnv = 1, modShS = 0, modShT = 0, modScale = 1;
     float decCoef = 0, relCoef = 0, sus = 0, peak = 0, amp = 0, ampStart = 0, fade = 1, fadeCoef = 1, loopS = 0;
     float atkS = 1, oneShotEnd = -1, gl = 0.7f, gr = 0.7f, phA = 0, phB = 0, phL = 0, phS = 0, t = 0, tAll = 0;
     float shMix = 0, shHold = 0, ringAmt = 0, foldAmt = 0;

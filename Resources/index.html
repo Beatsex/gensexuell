@@ -491,12 +491,12 @@ const KEYS=['waveA','waveB','ratioB','fm','mix','noise','cutoff','reso','fltEnv'
   'space','damp','chorus','bass','treble','spread',
   'envTime','envTilt','modHold','lfoBalance','pitchA','noiseB','modB','holdB','fmMod','mixMod','shaper',
   'rvbSize','rvbAttack','rvbLength','fxMix','fxSize','fxLength','fxDamp','fxChorus',
-  'octA','semiA','centA','semiB','centB']; // pitchA is retired: kept so old patches load, not shown
+  'octA','semiA','centA','semiB','centB','modSH']; // pitchA is retired: kept so old patches load, not shown
 const BASE=KEYS.slice(0,35); // genes seeded/streamed before the expansion (keep in sync with Engine.h BASE_GENES)
 const PITCH=['octA','semiA','centA','semiB','centB'];
 const pitchSteps=(p,range)=>Math.floor((p-.5)*range+.5); // same rounding as Engine.h pitchSteps()
 const sgn=v=>(v>0?'+':v<0?'−':'')+Math.abs(v);
-const PITCH_FMT={octA:v=>sgn(pitchSteps(v,4))+' oct',semiA:v=>sgn(pitchSteps(v,24))+' st',centA:v=>sgn(Math.round((v-.5)*100))+' ct',semiB:v=>sgn(pitchSteps(v,24))+' st',centB:v=>sgn(Math.round((v-.5)*100))+' ct'};
+const GENE_FMT={modSH:v=>v>.6?Math.round(64**((v-.6)/.4))+' /s':'OFF',octA:v=>sgn(pitchSteps(v,4))+' oct',semiA:v=>sgn(pitchSteps(v,24))+' st',centA:v=>sgn(Math.round((v-.5)*100))+' ct',semiB:v=>sgn(pitchSteps(v,24))+' st',centB:v=>sgn(Math.round((v-.5)*100))+' ct'};
 const MASTER=new Set(['space','damp','chorus','bass','treble','rvbSize','rvbAttack','rvbLength','fxMix','fxSize','fxLength','fxDamp','fxChorus']);
 const GENE_INFO={
   attack:['ATTACK','Volume attack time'],decay:['DECAY','Volume decay time'],sustain:['SUSTAIN','Level held while the key is down (below 0.08: none)'],
@@ -517,8 +517,9 @@ const GENE_INFO={
   rvbAttack:['ROOM ATTACK','Reverb attack'],rvbLength:['ROOM LENGTH','Reverb length'],fxMix:['FX MIX GENE','Extra FX mix'],
   fxSize:['FX SIZE','Extra FX size'],fxLength:['FX LENGTH','Extra FX length'],fxDamp:['FX DAMP','Extra FX damping'],fxChorus:['FX CHORUS','Extra FX chorus'],
   octA:['OCT A','Oscillator A octave, −2 to +2 (B, FM and sub follow A)'],semiA:['SEMI A','Oscillator A semitones, ±12'],centA:['CENT A','Oscillator A fine tune, ±50 cents'],
+  modSH:['MOD S&H','Above 0.6: the mod envelope moves in steps, 1 to 64 per second'],
   semiB:['SEMI B','Oscillator B semitones on top of RATIO B, ±12'],centB:['CENT B','Oscillator B fine tune on top of RATIO B, ±50 cents']};
-const SECTIONS=[['ENVELOPE & LFO',['attack','decay','sustain','volFade','envLoop','envKey','modAttack','modDecay','modVel','lfoRate','lfoAmt','lfoShape','lfoDelay']],
+const SECTIONS=[['ENVELOPE & LFO',['attack','decay','sustain','volFade','envLoop','envKey','modAttack','modDecay','modVel','modSH','lfoRate','lfoAmt','lfoShape','lfoDelay']],
   ['OSCILLATORS',['waveA','waveB','ratioB','fm','mix','noise','noiseColor','sub','pitchMod','octA','semiA','centA','semiB','centB']],
   ['FILTER & EFFECT',['cutoff','reso','fltEnv','fltType','fltSpread','fltKey','drive','space','damp','chorus','bass','treble','spread']],
   ['EXTRA',['envTime','envTilt','modHold','lfoBalance','noiseB','modB','holdB','fmMod','mixMod','shaper','rvbSize','rvbAttack','rvbLength','fxMix','fxSize','fxLength','fxDamp','fxChorus']]];
@@ -560,6 +561,7 @@ function seedParams(n){
   p.volFade*=.8;p.envLoop=.6+p.envLoop*.4;p.modAttack*=.6;p.lfoShape*=.7;p.sub=.3+p.sub*.5;p.fltType=.3+p.fltType*.4;
   p.fltSpread=.5+(p.fltSpread-.5)*.6;p.fltKey=.35+p.fltKey*.3;p.drive=.3+p.drive*.4;p.bass=.3+p.bass*.4;p.treble=.3+p.treble*.4;p.spread=.3+p.spread*.5;
   for(const k of PITCH)p[k]=.5; // seeds start in tune
+  p.modSH=.5;                    // and with a smooth mod envelope
   if(S.atonality<50)p.ratioB=snap(p.ratioB);
   return p;
 }
@@ -864,7 +866,7 @@ function renderGenes(){
   for(let i=SLIDERS.length-1;i>=0;i--)if(SLIDERS[i].gene)SLIDERS.splice(i,1);
   $('geneGrid').replaceChildren();
   for(const k of SECTIONS[geneTab][1]){
-    const s=mkSlider($('geneGrid'),{name:GENE_INFO[k][0],min:0,max:1,step:.001,fmt:PITCH_FMT[k]||unit,get:()=>S.base[k],set:v=>{S.base[k]=v;drawGraph()}});
+    const s=mkSlider($('geneGrid'),{name:GENE_INFO[k][0],min:0,max:1,step:.001,fmt:GENE_FMT[k]||unit,get:()=>S.base[k],set:v=>{S.base[k]=v;drawGraph()}});
     s.gene=k;s.reset=k==='space'?.3:.5;
     s.el.addEventListener('pointerenter',()=>$('geneFoot').textContent=GENE_INFO[k][1].toUpperCase());
   }

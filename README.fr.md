@@ -44,7 +44,7 @@ Redémarrez ensuite votre DAW (ou relancez le scan des plugins) et insérez-le c
   - **Apportez un sample** : déposez un one-shot. Un réseau de neurones estime les gènes, quatre brins affinent le résultat pendant que vous écoutez.
 - **Interprétation → graine** : déposez un enregistrement monophonique (voix, fredonnement, basse). Notes, timing, dynamique et bends sont détectés puis joués avec la graine actuelle. Glissez le résultat dans votre DAW en WAV ou MIDI.
 - **Entrée live** : envoyez de l'audio sur le sidechain et jouez du synthé avec votre voix ou un instrument en temps réel.
-- **58 gènes** dans un éditeur, avec modulation en anneau, wavefolding et hauteur aléatoire par paliers à leurs extrémités
+- **59 gènes** dans un éditeur, avec modulation en anneau, wavefolding et hauteur aléatoire par paliers à leurs extrémités
 - **Modes de bulbe** (standard, vélocité, zones, couches), poly / mono / legato avec glide, volume par branche
 - **Anneau de molette de modulation** avec dix cibles, synchro au tempo, bases MPE
 - **Effets granulaires** de [grainsexuell](https://github.com/Beatsex/grainsexuell) : Mosaic, Cloud, Shard, Tap, plus la réverbe Haze et le passe-bas Dusk

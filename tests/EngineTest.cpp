@@ -335,6 +335,29 @@ int main()
     }
 
     {
+        // mod S&H: a pitch sweep from the mod envelope holds its first step instead of falling
+        auto pitches = [&] (float sh) {
+            Params p = neutralGenes();
+            p[waveA] = 0; p[mix] = 0; p[noise] = 0; p[fm] = 0; p[cutoff] = 1; p[fltEnv] = 0; p[attack] = 0; p[sustain] = 1;
+            p[lfoAmt] = 0; p[pitchMod] = 1; p[modSH] = sh;
+            Controls cs = defaults();
+            cs.base = p;
+            cs.len.fill (0);
+            Engine e;
+            e.prepare (48000);
+            e.noteOn (1, 60, 0.9f, -1, g, cs, s);
+            play (e, g, cs, s, 10);
+            const auto a = play (e, g, cs, s, 30);
+            play (e, g, cs, s, 20);
+            const auto b = play (e, g, cs, s, 30);
+            return std::pair { detectPitch (a.data(), int (a.size()), 48000), detectPitch (b.data(), int (b.size()), 48000) };
+        };
+        const auto [smoothA, smoothB] = pitches (0.5f);
+        const auto [heldA, heldB] = pitches (0.61f); // about one step per second
+        std::printf ("mod S&H: smooth %.0f -> %.0f Hz, stepped %.0f -> %.0f Hz\n", smoothA, smoothB, heldA, heldB);
+        check (smoothB < smoothA * 0.97f && near (heldA, heldB, 2) && heldA > 600, "S&H holds the mod envelope in steps");
+    }
+    {
         // filter type: band-pass, serial low-pass, parallel low-pass and notch sound different from each other
         Params p = neutralGenes();
         p[waveA] = 0.57f; p[noise] = 0.3f; p[reso] = 0.6f; p[cutoff] = 0.5f; p[fltEnv] = 0; p[attack] = 0; p[sustain] = 1;

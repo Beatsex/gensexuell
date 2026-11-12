@@ -44,7 +44,7 @@ Dann die DAW neu starten (oder Plugins neu scannen) und als Instrument einfügen
   - **Sample mitbringen**: One-Shot reinziehen. Ein neuronales Netz schätzt die Gene, vier Stränge verfeinern den Treffer, während du zuhörst.
 - **Performance → Seed**: Eine einstimmige Aufnahme reinziehen (Gesang, Summen, Bass). Noten, Timing, Dynamik und Bends werden erkannt und mit dem aktuellen Samen gespielt. Das Ergebnis als WAV oder MIDI in die DAW ziehen.
 - **Live-Eingang**: Audio auf den Sidechain routen und den Synth in Echtzeit mit Stimme oder Instrument spielen.
-- **58 Gene** im Gen-Editor, an ihren Enden mit Ringmodulation, Wavefolding und gestufter Zufallstonhöhe
+- **59 Gene** im Gen-Editor, an ihren Enden mit Ringmodulation, Wavefolding und gestufter Zufallstonhöhe
 - **Bulb-Modi** (Standard, Velocity, Bereiche, Layer), Poly / Mono / Legato mit Glide, Ast-Lautstärken
 - **Mod-Wheel-Ring** mit zehn Zielen, Tempo-Sync, MPE-Grundlagen
 - **Grain-Effekte** aus [grainsexuell](https://github.com/Beatsex/grainsexuell): Mosaic, Cloud, Shard, Tap, dazu Haze-Hall und Dusk-Tiefpass
