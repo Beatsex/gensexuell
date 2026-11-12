@@ -659,7 +659,7 @@ public:
                 lastNote = midi;
                 return;
             }
-            const float from = c.glide > 0 && monoActive() ? float (lastNote) : -1.0f;
+            const float from = c.glide > 0 && anyHeld && monoActive() ? float (lastNote) : -1.0f; // glide only while a key is held
             for (int j = 0; j < MAXV; ++j) if (j >= nb) voices[size_t (j)].active = false;
             for (int j = 0; j < nb; ++j)
                 voices[size_t (j)].start (midi, ch, brs[size_t (j)], vel, g, c, s, sr, rng, from, layered ? layerCents (g, brs[size_t (j)], a) : 0.0f),
@@ -672,7 +672,8 @@ public:
             if (v.active && v.held && v.note == midi && v.channel == ch) v.release (0.015f, bend[size_t (ch)]);
 
         const int limit = std::min (MAXV, layered ? std::min (s.maxPoly, s.minPoly * nb) : s.minPoly);
-        const float from = c.glide > 0 && lastNote >= 0 ? float (lastNote) : -1.0f;
+        const bool keyHeld = std::any_of (voices.begin(), voices.end(), [] (const Voice& v) { return v.active && v.held; });
+        const float from = c.glide > 0 && keyHeld && lastNote >= 0 ? float (lastNote) : -1.0f; // glide only while a key is held
         for (int j = 0; j < nb; ++j)
         {
             Voice* pick = oldestOrFree (limit);

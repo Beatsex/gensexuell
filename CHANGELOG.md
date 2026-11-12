@@ -17,6 +17,8 @@
 - The FX CHORUS gene now sets the chorus speed (CHORUS RATE, 0.04 … 2.8 Hz, when CHORUS is on); before, it did nothing. Saved patches use the value they already hold, so their chorus can move faster or slower than before. ROOM ATTACK and ROOM LENGTH still do nothing and say NOT USED.
 - New FX tab with three effects from the beatsexuell plugins, after the grain FX and Haze: DRIVE (drivesexuell), TAPE (tapesexuell) and VERB (verbsexuell, 21 modes). Each has an ON switch and its main controls, is saved with the patch and can be automated. Their DSP is copied unchanged into Source/retro.
 - MPE: a new switch in the MIDI settings. Channel 1 is the master, channels 2–16 play one note each with its own pitch bend (MPE NOTE BEND RANGE, default 48 semitones), pressure (opens the note's filter) and slide on CC74 (brighter or darker). The on-screen keyboard and live input no longer share MIDI channels 16 and 15 with your controller.
+- GLIDE is gentler: a note only slides while you still hold the previous one (before, in poly every note slid from the last one, even after a pause), and the slider is finest at the short end (halfway is about 1.25 s instead of 5 s).
+- 14 new factory sounds (26 in all) that use the new pulse, pitch, filter-type and MOD S&H genes: SQUARE KEYS, THIN PULSE LEAD, OCTAVE BASS, FIFTH STAB, STEP FILTER, TWO PEAK VOX, NOTCH PAD, BAND PLUCK, LASER ZAP, FM PIANO, RING BELLS, DUST ORGAN, SWELL CHOIR, KICK DRUM.
 - Both manuals are on the website: https://beatsex.github.io/gensexuell/manual.html and https://beatsex.github.io/gensexuell/handbuch.html.
 
 ## 0.3.1

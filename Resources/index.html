@@ -588,6 +588,20 @@ const PRESETS=[
 {name:"SOLO LEAD",params:{waveA:.57,waveB:.57,ratioB:.5,fm:0,mix:.3,noise:0,cutoff:.6,reso:.3,fltEnv:.3,attack:.05,decay:.4,sustain:.8,modDecay:.5,pitchMod:.5,lfoRate:.4,lfoAmt:.25,lfoDelay:.75,space:.3},atonality:.1},
 {name:"DARK DRONE",params:{waveA:.57,waveB:.81,ratioB:0,fm:.15,mix:.5,noise:.1,cutoff:.3,reso:.5,fltEnv:.2,attack:.7,decay:.9,sustain:.9,modDecay:.8,pitchMod:.4,lfoRate:.1,lfoAmt:.3,space:.95,damp:.7},atonality:.4},
 {name:"NOISE SWEEP",params:{waveA:0,waveB:0,ratioB:.5,fm:0,mix:0,noise:.8,cutoff:.4,reso:.6,fltEnv:.8,attack:.2,decay:.6,sustain:0,modDecay:.7,pitchMod:.7,lfoRate:.6,lfoAmt:.2,space:.7},atonality:.5},
+{name:"SQUARE KEYS",params:{waveA:.81,waveB:.57,ratioB:.75,mix:.3,cutoff:.55,reso:.2,fltEnv:.35,fltType:.333,attack:0,decay:.55,sustain:.55,modDecay:.35,lfoAmt:.05,chorus:.7,space:.35},atonality:.1},
+{name:"THIN PULSE LEAD",params:{waveA:1,waveB:.9,ratioB:.5,centB:.56,mix:.45,cutoff:.6,reso:.35,fltEnv:.4,fltType:.333,attack:.02,decay:.5,sustain:.75,modDecay:.45,lfoRate:.45,lfoAmt:.2,lfoDelay:.7,space:.3},atonality:.05},
+{name:"OCTAVE BASS",params:{waveA:.57,waveB:.81,ratioB:.5,octA:.25,mix:.3,sub:.8,cutoff:.3,reso:.3,fltEnv:.5,fltType:.333,attack:0,decay:.45,sustain:.6,modDecay:.3,drive:.65,space:.05},atonality:0},
+{name:"FIFTH STAB",params:{waveA:.57,waveB:.57,ratioB:.5,semiB:.7917,mix:.45,cutoff:.5,reso:.3,fltEnv:.55,fltType:.333,attack:0,decay:.4,sustain:.3,modDecay:.3,chorus:.65,space:.5},atonality:.05},
+{name:"STEP FILTER",params:{waveA:.57,waveB:.81,ratioB:.5,mix:.35,cutoff:.3,reso:.65,fltEnv:.8,fltType:.333,attack:0,decay:.6,sustain:.8,modDecay:.85,modSH:.8,space:.4},atonality:.1},
+{name:"TWO PEAK VOX",params:{waveA:.57,waveB:.57,ratioB:.5,centB:.55,mix:.4,cutoff:.35,reso:.75,fltEnv:.25,fltType:.667,attack:.25,decay:.7,sustain:.8,modDecay:.6,lfoRate:.35,lfoAmt:.15,chorus:.6,space:.6},atonality:.1},
+{name:"NOTCH PAD",params:{waveA:.57,waveB:.81,ratioB:.5,mix:.4,cutoff:.4,reso:.5,fltEnv:.5,fltType:1,attack:.7,decay:.9,sustain:.85,modDecay:.85,modAttack:.8,lfoRate:.15,lfoAmt:.1,chorus:.65,space:.75},atonality:.15},
+{name:"BAND PLUCK",params:{waveA:.57,waveB:.57,ratioB:.75,mix:.3,noise:.05,cutoff:.55,reso:.5,fltEnv:.5,fltType:0,attack:0,decay:.4,sustain:0,modDecay:.25,space:.35},atonality:.1},
+{name:"LASER ZAP",params:{waveA:.81,waveB:.57,ratioB:.5,mix:.3,cutoff:.6,reso:.3,fltEnv:.4,fltType:.333,attack:0,decay:.35,sustain:0,modDecay:.3,pitchMod:1,space:.3},atonality:.3},
+{name:"FM PIANO",params:{waveA:0,waveB:0,ratioB:.75,fm:.35,fmMod:.8,mix:.2,cutoff:.6,reso:.1,fltEnv:.2,attack:0,decay:.65,sustain:.35,modDecay:.35,lfoShape:.65,lfoRate:.45,lfoAmt:.2,chorus:.7,space:.35},atonality:.05},
+{name:"RING BELLS",params:{waveA:0,waveB:0,ratioB:.85,sub:.1,mix:.5,cutoff:.7,reso:.15,fltEnv:.3,attack:0,decay:.75,sustain:0,modDecay:.5,space:.7},atonality:.4},
+{name:"DUST ORGAN",params:{waveA:.81,waveB:.81,ratioB:.75,mix:.4,noise:.08,noiseColor:.2,cutoff:.5,reso:.15,fltEnv:.1,fltType:.333,attack:.05,decay:.5,sustain:1,lfoShape:.6,lfoRate:.55,lfoAmt:.15,chorus:.75,space:.4},atonality:0},
+{name:"SWELL CHOIR",params:{waveA:.57,waveB:.57,ratioB:.5,centA:.45,centB:.56,mix:.5,cutoff:.4,reso:.55,fltEnv:.2,fltType:.667,attack:.75,decay:.9,sustain:.9,modDecay:.7,lfoRate:.3,lfoAmt:.15,chorus:.75,space:1},atonality:.1},
+{name:"KICK DRUM",params:{waveA:0,waveB:0,ratioB:.5,octA:.25,mix:0,sub:.8,cutoff:.4,reso:.1,fltEnv:.2,attack:0,decay:.35,sustain:0,modDecay:.15,pitchMod:.9,drive:.65,space:0},atonality:0},
 {name:"METAL HIT",params:{waveA:.81,waveB:.57,ratioB:.75,fm:.5,mix:.5,noise:.2,cutoff:.7,reso:.5,fltEnv:.5,attack:0,decay:.4,sustain:0,modDecay:.2,pitchMod:.6,lfoRate:.7,lfoAmt:.1,space:.4},atonality:.6}];
 
 const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
@@ -780,7 +794,7 @@ svg.addEventListener('pointerup',endDrag);svg.addEventListener('pointercancel',e
 // what each main control does: tooltip and help line
 const HELP={tuning:'Tunes the whole sound, ±12 semitones',effect:'How much reverb and grain effect you hear',volume:'Output level of gensexuell',
   release:'How long notes ring after you let go: 20 ms … 4 s',atonality:'How wild new branches grow: low stays in tune and close to the seed, above 50 % ratios go free, metallic and noisy',
-  glide:'Portamento: how long the pitch slides from one note to the next',wheelScale:'How far the mod wheel reaches',velSens:'How much playing harder makes it louder',
+  glide:'Portamento: how long the pitch slides to the next note while you still hold the previous one',wheelScale:'How far the mod wheel reaches',velSens:'How much playing harder makes it louder',
   liveGate:'Live input quieter than this counts as silence: raise it if breaths or room noise trigger notes',liveGlide:'How smoothly the live pitch follows you between notes',liveOctave:'Plays the live input up to two octaves higher or lower',
   fxSwarm:'Grain density: how many grains per second',fxTail:'Feedback: how long the grain effect keeps going',fxSpan:'Grain length',fxScatter:'Randomness: where grains start, their pitch and their place in the stereo field',fxMix:'How much of the grain effect you hear',
   HAZE:'Reverb type: Room, Plate, Hall or Swell (EFFECT sets how much)',DUSK:'Low-pass on the whole sound: off up to 50, darker above',
@@ -812,7 +826,7 @@ const pct=v=>Math.round(v)+' %',unit=v=>v.toFixed(2);
  {key:'volume',name:'VOLUME',min:-24,max:6,step:.5,fmt:v=>v.toFixed(1)+' dB'},{key:'release',name:'RELEASE',min:0,max:100,step:1,fmt:pct},
  {key:'atonality',name:'ATONALITY',min:0,max:100,step:1,fmt:pct}].forEach(c=>mkSlider($('ctls'),c,true));
 {const b=document.createElement('button');b.id='bGenes';b.className='geneCell';b.title='Edit every gene of the seed (Ctrl+G)';b.innerHTML='EDIT GENES <small>'+SECTIONS.flatMap(s=>s[1]).length+'</small> ›';$('ctls').append(b)}
-mkSlider($('lower'),{key:'glide',name:'GLIDE',min:0,max:10,step:.01,fmt:v=>v.toFixed(2)+' s'});
+mkSlider($('lower'),{key:'glide',name:'GLIDE',min:0,max:1,step:.001,get:()=>Math.cbrt(S.glide/10),set:v=>S.glide=+(10*v**3).toFixed(3),fmt:v=>sec(10*v**3)}).reset=0; // cubic: fine control of short glides
 mkSlider($('lower'),{key:'wheelScale',name:'WHEEL DEPTH',min:0,max:100,step:1,fmt:pct});
 mkSlider($('lower'),{key:'velSens',name:'VELOCITY',min:0,max:100,step:1,fmt:pct});
 for(const [k,n] of [['fxSwarm','SWARM'],['fxTail','TAIL'],['fxSpan','SPAN'],['fxScatter','SCATTER'],['fxMix','MIX']])
