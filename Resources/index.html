@@ -153,6 +153,12 @@ dialog::backdrop{background:#f2b8c633;-webkit-backdrop-filter:blur(3px);backdrop
 .tabs button[aria-selected=true]{background:var(--ink);color:var(--cream)}
 .geneGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px 22px;margin-top:14px}
 .graph{display:block;width:100%;height:120px;background:#ffffff40;border:1px solid var(--line)}
+.lib{display:grid;grid-template-columns:180px 1fr;height:min(480px,62vh);border:1.5px solid var(--ink)}
+.lib>div{overflow:auto;padding:4px 0}
+.lib>div:first-child{border-right:1.5px solid var(--ink)}
+.lib button{display:block;width:100%;text-align:left;padding:6px 14px;font:400 12px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.08em}
+.lib button:hover{background:#0000000d}
+.lib button[aria-current=true]{background:var(--ink);color:var(--cream)}
 .foot{margin-top:12px;min-height:1.4em;font-size:11px;color:var(--mute)}
 .btnRow{display:flex;flex-wrap:wrap;gap:8px}
 .btn{border:1.5px solid var(--ink);padding:8px 12px;font-size:11px;letter-spacing:.1em;transition:background .2s}
@@ -249,10 +255,10 @@ footer{display:grid;grid-template-columns:260px minmax(0,1fr) 340px;border-top:1
       <b>GENSEXUELL</b>
     </div>
     <div class="patchNav">
-      <button id="prevPatch" aria-label="Previous patch" title="Previous patch in the folder">‹</button>
+      <button id="prevPatch" aria-label="Previous patch" title="Previous patch in the preset category or folder">‹</button>
       <button id="patchName" popovertarget="patchMenu" aria-haspopup="menu" title="Patches (Ctrl+click: random)"></button>
       <span class="seedhex mono">SEED <span id="hex"></span></span>
-      <button id="nextPatch" aria-label="Next patch" title="Next patch in the folder">›</button>
+      <button id="nextPatch" aria-label="Next patch" title="Next patch in the preset category or folder">›</button>
       <div class="menu" id="patchMenu" popover role="menu" aria-label="Patches"></div>
     </div>
     <div class="topActions">
@@ -400,6 +406,11 @@ footer{display:grid;grid-template-columns:260px minmax(0,1fr) 340px;border-top:1
 <dialog id="dlgCc" aria-labelledby="hCc">
   <div class="dlgHead"><h2 id="hCc">MIDI CONTROLLERS</h2><button data-close>CLOSE ✕</button></div>
   <div class="dlgBody"><table id="ccTable"></table><p class="foot mono">LEARN, THEN MOVE A CONTROL · EMPTY = NONE · CC1 ALWAYS DRIVES THE MOD WHEEL</p></div>
+</dialog>
+
+<dialog id="dlgPresets" aria-labelledby="hPresets">
+  <div class="dlgHead"><h2 id="hPresets">PRESETS</h2><button data-close>CLOSE ✕</button></div>
+  <div class="dlgBody"><div class="lib"><div id="libCats"></div><div id="libNames"></div></div><p class="foot mono" id="libFoot">CLICK OR ↑ ↓ TO LOAD · ← → CATEGORY · ‹ › STEP THROUGH THE CATEGORY · FILES IN DOCUMENTS/SEEDLING SHOW UP TOO</p></div>
 </dialog>
 
 <dialog id="dlgPrograms" aria-labelledby="hPrograms">
@@ -1080,6 +1091,7 @@ async function openPatch(){
   inp.onchange=async()=>{try{applyPatch(JSON.parse(await inp.files[0].text()))}catch{toast('NOT A PATCH')}};inp.click();
 }
 async function stepPatch(step){
+  if(S.patchPath&&HOST&&(LIB.list||await libList()).some(p=>p.key===S.patchPath))return libStep(step);
   if(S.patchPath&&HOST){const f=await native('siblingPatch',S.patchPath,step);if(f)try{applyPatch(JSON.parse(f.json),f.path)}catch{}return}
   const i=PRESETS.findIndex(p=>p.name===S.name);
   loadPreset(PRESETS[step===0?Math.floor(Math.random()*PRESETS.length):((i<0?-1+(step>0?0:1):i)+step+PRESETS.length)%PRESETS.length]);
@@ -1090,12 +1102,45 @@ $('patchMenu').addEventListener('beforetoggle',async e=>{
   if(e.newState!=='open')return;
   const m=$('patchMenu'),item=(t,f,cur)=>{const b=document.createElement('button');b.role='menuitem';b.textContent=t;b.setAttribute('aria-current',!!cur);b.onclick=()=>{m.hidePopover();f()};return b};
   const sub=t=>{const d=document.createElement('div');d.className='sub';d.textContent=t;return d};
-  m.replaceChildren(sub('FACTORY'),...PRESETS.map(p=>item(p.name,()=>loadPreset(p),p.name===S.name)));
+  m.replaceChildren(item('PRESETS…',openPresets),document.createElement('hr'),sub('FACTORY'),...PRESETS.map(p=>item(p.name,()=>loadPreset(p),p.name===S.name)));
   anchorFallback(m,$('patchName'));
   const files=HOST?await native('siblingPatch',S.patchPath,99):null;
   if(files?.length)m.append(document.createElement('hr'),sub('FOLDER'),...files.map(path=>item(path.split(/[\\/]/).pop().replace(/\.seedling$/,'').toUpperCase(),
     async()=>{const f=await native('siblingPatch',path,100);if(f)try{applyPatch(JSON.parse(f.json),f.path)}catch{}},path===S.patchPath)));
   m.append(document.createElement('hr'),item('OPEN…',openPatch),item('SAVE…',savePatch));
+});
+
+// ---------------- preset browser: factory presets built into the plugin plus the user's own files, by category
+const LIB={list:null,cat:''};
+async function libList(){LIB.list=(await native('presetList'))||[];return LIB.list}
+const libCats=()=>[...new Set(LIB.list.map(p=>p.cat))];
+async function libLoad(p){
+  const f=await native('presetLoad',p.key);
+  if(f)try{applyPatch(JSON.parse(f.json),f.path);LIB.cat=p.cat}catch{toast('NOT A PATCH')}
+  if($('dlgPresets').open)renderLib();
+}
+// next/previous (random with step 0) preset in `cat`, by default the category of the current preset
+function libStep(step,cat){
+  const cur=LIB.list.find(p=>p.key===S.patchPath),list=LIB.list.filter(p=>p.cat===(cat??cur?.cat??LIB.cat)),i=list.indexOf(cur);
+  if(list.length)return libLoad(list[step===0?Math.floor(Math.random()*list.length):i<0?(step>0?0:list.length-1):(i+step+list.length)%list.length]);
+}
+function renderLib(){
+  const btn=(t,cur,f)=>{const b=document.createElement('button');b.textContent=t;b.setAttribute('aria-current',cur);b.onclick=f;return b};
+  $('libCats').replaceChildren(...libCats().map(c=>btn(c,c===LIB.cat,()=>{LIB.cat=c;renderLib()})));
+  $('libNames').replaceChildren(...LIB.list.filter(p=>p.cat===LIB.cat).map(p=>btn(p.name,p.key===S.patchPath,()=>libLoad(p))));
+  $('libNames').querySelector('[aria-current=true]')?.scrollIntoView({block:'nearest'});
+}
+async function openPresets(){
+  openDlg('dlgPresets');await libList();
+  const cats=libCats();LIB.cat=LIB.list.find(p=>p.key===S.patchPath)?.cat??(cats.includes(LIB.cat)?LIB.cat:cats[0]??'');
+  if(!HOST)$('libFoot').textContent='THE PRESET LIBRARY OPENS INSIDE THE GENSEXUELL PLUGIN OR STANDALONE';
+  renderLib();
+}
+// on the window: a click re-renders the lists, which drops focus out of the dialog
+addEventListener('keydown',e=>{
+  if(!$('dlgPresets').open||!LIB.list?.length)return;
+  if(e.key==='ArrowUp'||e.key==='ArrowDown'){e.preventDefault();libStep(e.key==='ArrowDown'?1:-1,LIB.cat)}
+  else if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();const c=libCats();LIB.cat=c[(c.indexOf(LIB.cat)+(e.key==='ArrowRight'?1:-1)+c.length)%c.length];renderLib()}
 });
 
 // ---------------- measurements
@@ -1127,7 +1172,7 @@ function setZoom(z){S.zoom=z;if(!HOST){document.documentElement.style.zoom=z;uiZ
 // the plugin window scales the whole 1280 x 800 layout, however it is sized
 function fitWindow(){if(!HOST)return;const r=document.documentElement,z=Math.min(innerWidth/1280,innerHeight/800);r.style.zoom=z;r.style.setProperty('--z',z);uiZoom=z}
 addEventListener('resize',fitWindow);fitWindow();
-const MAIN=[['UNDO',doUndo,'Ctrl+Z'],['REDO',doRedo,'Ctrl+Shift+Z'],null,['OPEN PATCH…',openPatch,'Ctrl+O'],['SAVE PATCH…',savePatch,'Ctrl+S'],['COPY PATCH',copyPatch],['PASTE PATCH',pastePatch],null,
+const MAIN=[['UNDO',doUndo,'Ctrl+Z'],['REDO',doRedo,'Ctrl+Shift+Z'],null,['PRESETS…',openPresets],['OPEN PATCH…',openPatch,'Ctrl+O'],['SAVE PATCH…',savePatch,'Ctrl+S'],['COPY PATCH',copyPatch],['PASTE PATCH',pastePatch],null,
   ['SOW',sow],['NEW RANDOM SEED',newSeed],['CLONE BRANCH TO ALL',clone],['GROW NEW RANDOM BRANCH',()=>reroll()],null,
   ['GENES',()=>showView('genes'),'Ctrl+G'],['EFFECTS',()=>showView('fx')],['SOUND → SEED…',()=>openDlg('dlgSound')],['TEXT → SEED',()=>$('desc').focus()],['HOW TO DESCRIBE…',()=>openDlg('dlgDescribe')],['PERFORMANCE → SEED…',()=>openDlg('dlgPerf')],null,
   ['CORRECT TUNING',correctTuning],['NORMALIZE VOLUME',normalizeVolume],['NORMALIZE BRANCH VOLUMES',normalizeBranches],['BRANCH VOLUMES…',()=>{openDlg('dlgBranches');renderBranches()}],null,

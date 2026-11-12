@@ -42,6 +42,10 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/Resources/net.bin")
 endif()
 juce_add_binary_data(SeedlingData SOURCES ${binary_sources})
 
+# the factory presets live inside the plugin too, so the browser works without the installer; each file names its own category
+file(GLOB_RECURSE preset_sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/presets/*.seedling")
+juce_add_binary_data(SeedlingPresets NAMESPACE PresetData HEADER_NAME PresetData.h SOURCES ${preset_sources})
+
 file(GLOB grain_sources CONFIGURE_DEPENDS Source/grain/*.cpp)
 target_sources(Seedling PRIVATE Source/Plugin.cpp ${grain_sources})
 target_include_directories(Seedling PRIVATE Source)
@@ -51,7 +55,7 @@ target_compile_definitions(Seedling PUBLIC
     JUCE_USE_CURL=0
     JUCE_VST3_CAN_REPLACE_VST2=0)
 target_link_libraries(Seedling
-    PRIVATE SeedlingData juce::juce_audio_utils juce::juce_gui_extra juce::juce_dsp
+    PRIVATE SeedlingData SeedlingPresets juce::juce_audio_utils juce::juce_gui_extra juce::juce_dsp
     PUBLIC juce::juce_recommended_config_flags juce::juce_recommended_lto_flags juce::juce_recommended_warning_flags)
 
 add_executable(EngineTest tests/EngineTest.cpp)

@@ -2,6 +2,7 @@
 #include <juce_dsp/juce_dsp.h>
 #include <juce_gui_extra/juce_gui_extra.h>
 #include <BinaryData.h>
+#include <PresetData.h>
 #include "Analysis.h"
 #include "Transcribe.h"
 #include "Words.h"
@@ -918,6 +919,8 @@ public:
                    .withNativeFunction ("savePatch", [this] (auto& a, auto done) { savePatch (a[0].toString(), a[1].toString(), std::move (done)); })
                    .withNativeFunction ("openPatch", [this] (auto&, auto done) { openFile ("*.seedling", std::move (done)); })
                    .withNativeFunction ("siblingPatch", [] (auto& a, auto done) { done (siblingPatch (a[0].toString(), int (a[1]))); })
+                   .withNativeFunction ("presetList", [] (auto&, auto done) { done (presetList()); })
+                   .withNativeFunction ("presetLoad", [] (auto& a, auto done) { done (presetLoad (a[0].toString())); })
                    .withNativeFunction ("saveMidi", [this] (auto& a, auto done) { saveMidi (a[0].toString(), bool (a[1]), std::move (done)); })
                    .withNativeFunction ("openMidi", [this] (auto&, auto done) { openFile ("*.seedmidi", std::move (done)); })
                    .withNativeFunction ("learn", [this] (auto& a, auto done) { proc.learning = paramIndex (a[0].toString()); done ({}); })
@@ -1207,7 +1210,7 @@ private:
     // next/previous (or random with step 0) .seedling file next to `path`, or the folder listing with step 99
     static var siblingPatch (const String& path, int step)
     {
-        const File cur (path);
+        const File cur = File::isAbsolutePath (path) ? File (path) : File(); // a factory preset has no file
         const File dir = cur.existsAsFile() ? cur.getParentDirectory() : userDir();
         auto files = dir.findChildFiles (File::findFiles, false, "*.seedling");
         files.sort();
@@ -1222,6 +1225,53 @@ private:
         int i = files.indexOf (cur);
         i = step == 0 ? Random::getSystemRandom().nextInt (files.size()) : (i < 0 ? 0 : (i + step + files.size()) % files.size());
         return fileResult (files[i]);
+    }
+
+    // the preset browser: the factory presets built into the plugin, then the user's .seedling files under Documents/Seedling.
+    // A file in a folder named like a category sorts there; a copy of a factory preset (the installer puts them in Presets) is left out
+    static var presetList()
+    {
+        Array<var> list;
+        StringArray seen;
+        const auto add = [&] (const String& cat, const String& name, const String& key)
+        {
+            DynamicObject::Ptr o = new DynamicObject();
+            o->setProperty ("cat", cat);
+            o->setProperty ("name", name);
+            o->setProperty ("key", key);
+            list.add (var (o.get()));
+            seen.add (cat + "/" + name);
+        };
+        for (int i = 0; i < PresetData::namedResourceListSize; ++i)
+        {
+            int size = 0;
+            const auto* data = PresetData::getNamedResource (PresetData::namedResourceList[i], size);
+            const auto p = JSON::parse (String::fromUTF8 (data, size));
+            add (p["cat"].toString(), p["name"].toString(), String ("factory:") + PresetData::namedResourceList[i]);
+        }
+        auto files = userDir().findChildFiles (File::findFiles, true, "*.seedling");
+        files.sort();
+        for (auto& f : files)
+        {
+            const auto dir = f.getParentDirectory();
+            const String cat = dir == userDir() || dir.getFileName() == "Presets" ? String ("USER") : dir.getFileName().toUpperCase();
+            const auto name = f.getFileNameWithoutExtension().toUpperCase();
+            if (! seen.contains (cat + "/" + name)) add (cat, name, f.getFullPathName());
+        }
+        return list;
+    }
+
+    // a preset by its key from presetList: "factory:<resource>" or a file path; the key comes back as the patch path
+    static var presetLoad (const String& key)
+    {
+        if (! key.startsWith ("factory:")) return File::isAbsolutePath (key) ? fileResult (File (key)) : var();
+        int size = 0;
+        const auto* data = PresetData::getNamedResource (key.fromFirstOccurrenceOf (":", false, false).toRawUTF8(), size);
+        if (data == nullptr) return {};
+        DynamicObject::Ptr o = new DynamicObject();
+        o->setProperty ("path", key);
+        o->setProperty ("json", String::fromUTF8 (data, size));
+        return var (o.get());
     }
 
     void setZoom (float z)
