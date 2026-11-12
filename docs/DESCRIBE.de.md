@@ -24,20 +24,22 @@ In der App steckt dieser Leitfaden auch: Klick auf **HOW TO ?** neben DESCRIBE.
 ## Was du eintippen kannst
 
 **Klangarten** bestimmen die Grundform und meist auch das Spielregister:
-Pad / Fläche / Strings · Bass · Sub / 808 · Pluck / Zupf / Pizz · Lead / Solo · Glocke / Bell / Chime · Mallet / Marimba · Kick · Snare / Clap · Hat / Becken · Drone · FX / Riser / Sweep · Textur / Atmo / Ambient · Orgel · Chord / Akkord / Stab
+Pad / Fläche / Strings · Bass · Sub / 808 · Pluck / Zupf / Pizz · Lead / Solo · Glocke / Bell / Chime · Mallet / Marimba · Kick · Snare / Clap · Hat / Becken · Drone · FX / Riser / Sweep · Textur / Atmo / Ambient · Orgel · Chord / Akkord / Stab · Klavier / Piano / Tasten · Gitarre, Banjo, Ukulele · Percussion / Trommel / Conga · Arp / Sequenz · Reese / Growl
 
 **Eigenschaften**
 
 | Richtung | Wörter |
 |---|---|
 | Helligkeit | hell, bright, crisp, spitz · dunkel, dark, dumpf, muffled |
-| Charakter | warm, weich, soft, rund · hart, aggressiv, harsh, scharf |
+| Charakter | warm, weich, soft, rund · hart, aggressiv, harsh, scharf · druckvoll, punchy · rau, kratzig · zart, zerbrechlich · funkelnd, glitzernd |
+| Atmosphäre | himmlisch, ätherisch, verträumt · gruselig, unheimlich, düster, bedrohlich |
 | Material | glasig, glassy, Kristall · metallisch, metallic · holzig, wood · eisig, kalt, cold |
 | Schmutz | dreckig, dirty, gritty, kaputt, lofi · verzerrt, distorted, crunch · sauber, clean, pur |
 | Länge | kurz, short, staccato, snappy, tight · lang, long, endlos, sustained |
 | Einschwingen | langsam, slow, schwellend, swell · schnell, fast, direkt |
-| Luft | luftig, airy, hauchig, breathy, rauschig, noisy |
-| Bewegung | wobbel, wobble, schwebend, vibrato · bewegt, lebendig, evolving, organisch · statisch, steady |
+| Luft | luftig, airy, hauchig, breathy, rauschig, noisy · Rauschen, noise |
+| Welle | Sinus, sine · Sägezahn, saw · Rechteck, square · Puls, pulse, PWM |
+| Bewegung | wobbel, wobble, schwebend, vibrato · bewegt, lebendig, evolving, organisch · statisch, steady · Glitch, stotternd, zerhackt · pulsierend, rhythmisch, Tremolo · stufig, gestuft · wiederholend, Loop |
 | Stimmung | verstimmt, detuned, schief, atonal · tonal, melodisch, musikalisch |
 | Körper | fett, dick, voll, breit, wide · dünn, thin · tief, low, deep · hoch, high · hohl, hollow, nasal |
 | Raum | Raum, Hall, reverb, spacey, weit · trocken, dry, nah · Shimmer, Kathedrale, Kirche |
@@ -70,7 +72,7 @@ Nennst du mehrere Klangarten, bestimmt die **letzte** das Register. Enden wie �
 
 Zwei Eigenheiten der Prozentzahl:
 - Raum- und Hall-Wörter stellen den Effekt direkt ein und zählen nicht mit. `viel Raum` allein zeigt deshalb immer 100 %, egal wie es klingt.
-- Eine niedrige Zahl heißt oft, dass die Wörter schwer zusammenpassen. `langsamer dreckiger Drone ohne Hall` kam im Test nur auf 26 %, `dunkler weicher Bass` auf 87 %. Die genauen Zahlen ändern sich von Klick zu Klick.
+- Eine niedrige Zahl heißt oft, dass die Wörter schwer zusammenpassen. `langsamer dreckiger Drone ohne Hall` kam im Test auf 60 %, `dunkler weicher Bass` auf 89 %. Die genauen Zahlen ändern sich von Klick zu Klick.
 
 ## Wenn es nicht passt
 

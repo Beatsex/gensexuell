@@ -24,20 +24,22 @@ The app has this guide built in: click **HOW TO ?** next to DESCRIBE.
 ## What you can type
 
 **Kinds of sound** set the basic shape and usually the register too:
-pad / strings · bass · sub / 808 · pluck / pizz · lead / solo · bell / chime · mallet / marimba · kick · snare / clap · hat / cymbal · drone · fx / riser / sweep · texture / atmo / ambient · organ · chord / stab
+pad / strings · bass · sub / 808 · pluck / pizz · lead / solo · bell / chime · mallet / marimba · kick · snare / clap · hat / cymbal · drone · fx / riser / sweep · texture / atmo / ambient · organ · chord / stab · piano / keys · guitar, banjo, ukulele · percussion / drums / conga · arp / sequence · reese / growl
 
 **Qualities**
 
 | Direction | Words |
 |---|---|
 | Brightness | bright, crisp · dark, muffled |
-| Character | warm, soft, smooth, mellow · hard, aggressive, harsh |
+| Character | warm, soft, smooth, mellow · hard, aggressive, harsh · punchy · rough, raspy · delicate, fragile · sparkly, shiny |
+| Mood | heavenly, ethereal, dreamy · creepy, scary, ominous |
 | Material | glassy, crystal · metallic · wood, bamboo · icy, cold, cool |
 | Dirt | dirty, gritty, broken, lofi · distorted, crunch · clean, pure |
 | Length | short, staccato, percussive, snappy, tight · long, endless, sustained |
 | Attack | slow, swell · fast, immediate |
-| Air | airy, breathy, noisy |
-| Motion | wobble, wavy, vibrato · moving, evolving, organic · static, steady |
+| Air | airy, breathy, noisy · noise |
+| Wave | sine · saw, sawtooth · square · pulse, PWM |
+| Motion | wobble, wavy, vibrato · moving, evolving, organic · static, steady · glitch, stutter, gated · pulsing, rhythmic, tremolo · stepped · looping, repeating |
 | Tuning | detuned, wonky, atonal · tonal, melodic |
 | Body | fat, thick, full, wide · thin · low, deep · high · hollow, nasal |
 | Space | reverb, spacey, roomy · dry, close · shimmer, cathedral, church |
@@ -70,7 +72,7 @@ If you name several kinds of sound, the **last** one sets the register. Single t
 
 Two quirks of the percentage:
 - Room and reverb words set the effect directly and do not count. `viel Raum` on its own therefore always shows 100 %, however it sounds.
-- A low number often means the words are hard to combine. In testing, `langsamer dreckiger Drone ohne Hall` only reached 26 %, `dunkler weicher Bass` 87 %. The exact numbers change from click to click.
+- A low number often means the words are hard to combine. In testing, `slow dirty drone without reverb` reached 60 %, `dark soft bass` 89 %. The exact numbers change from click to click.
 
 ## When it doesn't fit
 
