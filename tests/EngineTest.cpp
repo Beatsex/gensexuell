@@ -425,6 +425,30 @@ int main()
         check (near (own, 523.25f, 4) && near (other, 261.63f, 3) && near (master, 293.66f, 3), "MPE bends per note, the master bends all");
     }
 
+    {
+        // low CPU mode: no oversampling, same pitch and level (a saw at C4 with some noise)
+        Params p = neutralGenes();
+        p[waveA] = 0.57f; p[mix] = 0; p[noise] = 0.2f; p[fm] = 0; p[cutoff] = 1; p[fltEnv] = 0; p[attack] = 0; p[sustain] = 1; p[lfoAmt] = 0;
+        auto run = [&] (bool low) {
+            Controls cs = defaults();
+            cs.base = p;
+            cs.len.fill (0);
+            cs.lowCpu = low;
+            Engine e;
+            e.prepare (48000);
+            e.noteOn (1, 60, 0.9f, -1, g, cs, s);
+            play (e, g, cs, s, 20);
+            const auto x = play (e, g, cs, s, 40);
+            double sum = 0;
+            for (float v : x) sum += double (v) * v;
+            return std::pair { detectPitch (x.data(), int (x.size()), 48000), float (10 * std::log10 (sum / double (x.size()))) };
+        };
+        const auto [fHi, dbHi] = run (false);
+        const auto [fLo, dbLo] = run (true);
+        std::printf ("low cpu: %.1f Hz %.1f dB, oversampled %.1f Hz %.1f dB\n", fLo, dbLo, fHi, dbHi);
+        check (near (fLo, 261.63f, 3) && std::abs (dbLo - dbHi) < 1, "low CPU mode keeps pitch and level");
+    }
+
     // ---- sound -> seed
     {
         const auto f1 = patchFeatures (base, 60), f2 = patchFeatures (base, 60);

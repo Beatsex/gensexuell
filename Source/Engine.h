@@ -73,6 +73,7 @@ struct Controls // host parameters, snapshotted once per block
     float velSens = 100, glide = 0, wheel = 0, wheelScale = 100;
     int wheelTarget = growthUp, bulbMode = bulbStandard, voiceMode = voicePoly, rotation = 0, tempoSync = 0;
     float bpm = 120;
+    bool lowCpu = false; // voices run at the host rate, without oversampling
 };
 
 struct Settings // per-instance MIDI settings
@@ -381,7 +382,9 @@ public:
     void start (int midi, int ch, int br, float vel, const Genome& g, const Controls& c, const Settings& s, float sampleRate,
                 uint32_t& rng, float glideFrom, float layerCents)
     {
-        sr = sampleRate * OS;
+        osStages = c.lowCpu ? 0 : OS_STAGES;
+        os = 1 << osStages;
+        sr = sampleRate * float (os);
         for (auto& h : down) h = {};
         note = midi;
         channel = ch;
@@ -417,8 +420,8 @@ public:
         trem = p[lfoShape] > 0.5f ? (std::min (p[lfoShape], 0.85f) - 0.5f) * 2 * (1 - shMix) : 0.0f;
         lfoDelayS = p[lfoDelay] > 0.5f ? (p[lfoDelay] - 0.5f) * 2 * 2 * sr : 0.0f;
         noiseAmt = std::pow (p[noise], 1.5f) * 0.8f;
-        noiseLp = 1 - std::pow (1 - (p[noiseColor] < 0.5f ? 0.02f + 1.96f * p[noiseColor] : 1.0f), 1.0f / OS); // same colour at the oversampled rate
-        noiseSlow = 1 - std::pow (0.95f, 1.0f / OS);
+        noiseLp = 1 - std::pow (1 - (p[noiseColor] < 0.5f ? 0.02f + 1.96f * p[noiseColor] : 1.0f), 1.0f / float (os)); // same colour at the oversampled rate
+        noiseSlow = 1 - std::pow (0.95f, 1.0f / float (os));
         noiseHp = p[noiseColor] > 0.5f ? (p[noiseColor] - 0.5f) * 2 : 0.0f;
         subAmt = p[sub] > 0.5f ? (p[sub] - 0.5f) * 1.4f : 0.0f;
         ringAmt = p[sub] < 0.3f ? (0.3f - p[sub]) / 0.3f : 0.0f; // below every seed's range: ring modulation, 0.3 .. 0.5 is neither
@@ -503,7 +506,7 @@ public:
         const float lfoA = clamp01 (p[lfoAmt] + live.lfoAdd), lfoCents = lfoA * lfoA * 100 * (1 - trem) * (1 - 0.5f * lfoBal), tremDepth = lfoA * trem * 0.5f * (1 + 0.5f * lfoBal);
         const float fltT = p[fltType];
 
-        for (int s = 0; s < n * OS; ++s)
+        for (int s = 0; s < n * os; ++s)
         {
             if (loopS > 0 && t >= loopS && ! releasing)
             {
@@ -550,7 +553,7 @@ public:
             const float w = rand (rng) * 2 - 1;
             nLp += (w - nLp) * noiseLp;
             nSlow += (w - nSlow) * noiseSlow;
-            const float nz = (nLp - noiseHp * nSlow) * std::sqrt (float (OS)); // decimation keeps 1/OS of the white noise power
+            const float nz = (nLp - noiseHp * nSlow) * std::sqrt (float (os)); // decimation keeps 1/os of the white noise power
 
             const float a = lookup (ta, phA);
             const float mixB = clamp01 (p[mix] + mixModAmt * mod * 0.5f), mixA = 1 - mixB; // expansion gene: mix can follow the mod envelope
@@ -591,7 +594,7 @@ public:
             // decimate back to the host rate: every stage keeps every second sample
             float d = out;
             bool ready = true;
-            for (int st = 0, m = s; st < OS_STAGES && ready; ++st, m >>= 1)
+            for (int st = 0, m = s; st < osStages && ready; ++st, m >>= 1)
             {
                 down[size_t (st)].push (d);
                 ready = (m & 1) != 0;
@@ -599,8 +602,8 @@ public:
             }
             if (ready)
             {
-                L[s >> OS_STAGES] += d * gl;
-                R[s >> OS_STAGES] += d * gr;
+                L[s >> osStages] += d * gl;
+                R[s >> osStages] += d * gr;
             }
         }
 
@@ -620,6 +623,7 @@ private:
     Params p {};
     Svf f1, f2, f3, f4;
     std::array<HalfBand, OS_STAGES> down;
+    int os = OS, osStages = OS_STAGES;
     float sr = 48000, masterTune = 440, tune = 0, semi = 60, targetSemi = 60, glideCoef = 1, ratio = 1, sweep = 0;
     float lfoHz = 1, trem = 0, lfoDelayS = 0, noiseAmt = 0, noiseLp = 1, noiseSlow = 0.05f, noiseHp = 0, nLp = 0, nSlow = 0, subAmt = 0;
     float spreadAmt = 0, spreadMul = 1, driveGain = 1, k = 1, modCoef = 0, modAtkS = 0, mod = 1, modEnv = 1, modShS = 0, modShT = 0, modScale = 1;

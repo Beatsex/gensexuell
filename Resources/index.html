@@ -72,6 +72,7 @@ main{display:grid;grid-template-columns:260px minmax(0,1fr) 340px;min-height:0}
 .genesView .tabs button{white-space:nowrap;padding:12px 14px}
 .genesView .geneFind{width:auto;flex:1;min-width:110px}
 .fxCards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.fxFlow{padding:0 0 12px;grid-template-columns:auto auto;justify-content:start;gap:4px 28px}
 .fxCard{border:1.5px solid var(--ink);padding:10px 12px;background:#ffffff40}
 .fxHead{display:flex;align-items:center;justify-content:space-between;gap:8px;font:600 12px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.14em}
 .fxCard .selects{grid-template-columns:minmax(0,1fr);padding:8px 0 4px}
@@ -312,7 +313,7 @@ footer{display:grid;grid-template-columns:260px minmax(0,1fr) 340px;border-top:1
       <div class="helpLine" id="helpLine" aria-live="polite"></div>
       <div class="preview mono" id="previewNote" hidden>UI PREVIEW · SOUND COMES FROM THE GENSEXUELL PLUGIN OR STANDALONE</div>
       <div class="genesView" id="fxView" role="tabpanel" aria-labelledby="vFx" hidden>
-        <div class="dlgBody"><div class="fxCards" id="fxCards"></div><div class="foot mono">DRIVE → TAPE → VERB, AFTER THE GRAIN FX AND HAZE · SAVED WITH THE PATCH · FROM DRIVESEXUELL, TAPESEXUELL AND VERBSEXUELL</div></div>
+        <div class="dlgBody"><div class="selects fxFlow" id="fxFlow"></div><div class="fxCards" id="fxCards"></div><div class="foot mono">SAVED WITH THE PATCH · FROM DRIVESEXUELL, TAPESEXUELL AND VERBSEXUELL</div></div>
       </div>
       <div class="genesView" id="genesView" role="tabpanel" aria-labelledby="vGenes" hidden>
         <div class="tabs" role="tablist" id="geneTabs"></div>
@@ -573,7 +574,7 @@ const SECTIONS=[['ENVELOPE & LFO',['attack','decay','sustain','volFade','envLoop
 const NOTE=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 const HARM=[0,.5,.75,.5+Math.log2(3)/4,1]; // ratio positions for 0.5x 1x 2x 3x 4x
 const PATCH_FIELDS=['name','seed','base','br','len','gain','layers','tuning','effect','volume','release','atonality','fxType','fxVariant','fxSwarm','fxTail','fxSpan','fxScatter','fxMix',
-  'drvOn','drvStyle','drvAmt','drvTone','drvMix','tapeOn','tapeSpeed','tapeDrive','tapeWow','tapeHiss','tapeMix','verbOn','verbMode','verbDecay','verbSize','verbPre','verbDamp','verbMix',
+  'fxOrder','fxPlace','drvOn','drvStyle','drvAmt','drvTone','drvMix','tapeOn','tapeSpeed','tapeDrive','tapeWow','tapeHiss','tapeMix','verbOn','verbMode','verbDecay','verbSize','verbPre','verbDamp','verbMix',
   'bulbMode','voiceMode','wheelTarget','wheelScale','tempoSync','glide','velSens','rotation'];
 // presets drafted by DeepSeek v4.1 Flash, checked and adjusted by hand; genes they don't name stay neutral (0.5)
 const PRESETS=[
@@ -652,9 +653,9 @@ function branchParams(i){
 // ================================================================ state
 const MIDI_DEFAULT={inChannel:0,velCurve:1,pressure:3,minPoly:16,maxPoly:32,pbRange:2,masterTune:440,pbHeldOnly:false,selectBranches:true,programChange:true,computerKeys:false,mpe:false,mpeRange:48};
 // FX tab defaults: what a patch or preset without FX settings plays with
-const FX_DEFAULT={drvOn:0,drvStyle:0,drvAmt:.35,drvTone:.5,drvMix:1,tapeOn:0,tapeSpeed:1,tapeDrive:.35,tapeWow:.25,tapeHiss:.1,tapeMix:1,
+const FX_DEFAULT={fxOrder:0,fxPlace:0,drvOn:0,drvStyle:0,drvAmt:.35,drvTone:.5,drvMix:1,tapeOn:0,tapeSpeed:1,tapeDrive:.35,tapeWow:.25,tapeHiss:.1,tapeMix:1,
   verbOn:0,verbMode:0,verbDecay:.5,verbSize:.55,verbPre:10,verbDamp:.45,verbMix:.3};
-let S={seed:0x5EED1E55,name:'',sel:2,tuning:0,effect:35,volume:-8,release:40,atonality:20,velSens:100,glide:0,wheel:0,wheelScale:100,rotation:0,
+let S={lowCpu:0,seed:0x5EED1E55,name:'',sel:2,tuning:0,effect:35,volume:-8,release:40,atonality:20,velSens:100,glide:0,wheel:0,wheelScale:100,rotation:0,
   bulbMode:0,voiceMode:0,wheelTarget:0,tempoSync:0,fxType:0,fxVariant:0,fxSwarm:.5,fxTail:.5,fxSpan:.5,fxScatter:0,fxMix:.35,
   ...FX_DEFAULT,
   liveOn:0,liveGate:-45,liveGlide:.03,liveFollow:0,liveOctave:0,
@@ -722,7 +723,7 @@ if(HOST){
       const db=m.out>0?20*Math.log10(m.out):-90;
       $('outText').textContent=db>-90?`OUT ${db.toFixed(1).replace('-','−')} dB`:'OUT — dB';
       $('outMeter').style.width=clamp((db+60)/60)*100+'%';
-      $('stVoices').textContent='VOICES '+m.voices;
+      $('stVoices').textContent='VOICES '+m.voices+(S.lowCpu?' · LOW CPU':'');
     }
   });
   HOST.emitEvent('ui',{type:'hello'});
@@ -804,6 +805,8 @@ const HELP={tuning:'Tunes the whole sound, ±12 semitones',effect:'How much reve
   bulbMode:'Which branch a key plays: Standard (one per note), Velocity (by how hard), Ranges (keyboard split), Layered (all switched-on branches)',
   voiceMode:'Poly (up to 32 voices), Mono, or Legato (notes slide without a new attack)',wheelTarget:'What the mod wheel does: grow branches, open or close the filter, change envelope times, FM, LFO, effect or volume',
   tempoSync:'Locks the LFO and looping envelopes to the song tempo',fxType:'Grain effect on the whole sound: Mosaic, Cloud, Shard or Tap',
+  fxOrder:'Order of drive, tape and verb; the cards below follow it',fxPlace:'After or before the grain FX, Haze and Dusk',
+  lowCpu:'Low CPU mode: voices run without oversampling, about half the CPU; driven sounds on high notes alias more',
   drvOn:'Drive (from drivesexuell): distortion and saturation after the sound',drvStyle:'Distortion character: five styles from soft to hard',drvAmt:'How hard the drive pushes (1 … 25×)',drvTone:'Brighter or darker after the drive, ±12 dB above 800 Hz',drvMix:'Dry against driven sound',
   tapeOn:'Tape (from tapesexuell): tape colour, head bump, wow and flutter, hiss',tapeSpeed:'Tape speed: slower has more low end and less top',tapeDrive:'How hard the tape saturates',tapeWow:'Pitch wobble of the tape',tapeHiss:'Tape noise',tapeMix:'Dry against taped sound',
   verbOn:'Verb (from verbsexuell): a second, bigger reverb at the end of the chain',verbMode:'Reverb type: halls, plates, chambers, rooms and special spaces',verbDecay:'How long the reverb rings',verbSize:'Size of the space',verbPre:'Time before the reverb starts',verbDamp:'Darker reverb tail',verbMix:'Dry against reverb',fxVariant:'Variant of the grain effect'};
@@ -859,6 +862,9 @@ function fxCard(title,onKey,selects,sliders){
   for(const [k,l,o] of selects)mkSelect(c.querySelector('.selects'),k,l,o);
   for(const s of sliders)mkSlider(c.querySelector('.minis'),{min:0,max:1,step:.001,fmt:v=>Math.round(v*100)+' %',...s});
 }
+const FX_ORDERS=[[0,1,2],[0,2,1],[1,0,2],[1,2,0],[2,0,1],[2,1,0]],FX_NAMES=['DRIVE','TAPE','VERB'];
+mkSelect($('fxFlow'),'fxOrder','ORDER',FX_ORDERS.map(o=>o.map(i=>FX_NAMES[i]).join(' → ')));
+mkSelect($('fxFlow'),'fxPlace','PLACE',['AFTER GRAIN FX + HAZE','BEFORE GRAIN FX + HAZE']);
 fxCard('DRIVE','drvOn',[['drvStyle','STYLE',['A','E','N','T','P']]],
   [{key:'drvAmt',name:'DRIVE',fmt:v=>'×'+(1+v*24).toFixed(1)},{key:'drvTone',name:'TONE',fmt:v=>sgn(+((v-.5)*24).toFixed(1))+' dB'},{key:'drvMix',name:'MIX'}]);
 fxCard('TAPE','tapeOn',[['tapeSpeed','SPEED',['7.5 IPS','15 IPS','30 IPS']]],
@@ -895,7 +901,8 @@ function hud(sync=true){
   for(const s of SELECTS){if(s.key==='tempoSync')$('stSync').textContent='SYNC '+s.opts()[S.tempoSync];if(s.key==='wheelTarget')$('wheelLabel').textContent='MOD WHEEL · '+s.opts()[S.wheelTarget]}
   if(sync)queueSync();
 }
-function syncAll(){syncCtls();hud();if(!$('genesView').hidden)renderGenes();if($('dlgBranches').open)renderBranches();if($('dlgMidi').open)renderMidi()}
+function syncAll(){syncCtls();hud();[...$('fxCards').children].forEach((c,i)=>c.style.order=FX_ORDERS[S.fxOrder].indexOf(i)); // cards follow the signal flow
+  if(!$('genesView').hidden)renderGenes();if($('dlgBranches').open)renderBranches();if($('dlgMidi').open)renderMidi()}
 let last=performance.now();
 function frame(now){
   const dt=Math.min(.033,(now-last)/1000),steps=Math.ceil(dt/.008)||1,h=dt/steps,T=now/1000;
@@ -1123,6 +1130,7 @@ const MAIN=[['UNDO',doUndo,'Ctrl+Z'],['REDO',doRedo,'Ctrl+Shift+Z'],null,['OPEN 
   ['GENES',()=>showView('genes'),'Ctrl+G'],['EFFECTS',()=>showView('fx')],['SOUND → SEED…',()=>openDlg('dlgSound')],['TEXT → SEED',()=>$('desc').focus()],['HOW TO DESCRIBE…',()=>openDlg('dlgDescribe')],['PERFORMANCE → SEED…',()=>openDlg('dlgPerf')],null,
   ['CORRECT TUNING',correctTuning],['NORMALIZE VOLUME',normalizeVolume],['NORMALIZE BRANCH VOLUMES',normalizeBranches],['BRANCH VOLUMES…',()=>{openDlg('dlgBranches');renderBranches()}],null,
   ['MIDI CONTROLLERS…',()=>{openDlg('dlgCc');renderCc()}],['MIDI SETTINGS…',()=>{openDlg('dlgMidi');renderMidi()}],['PROGRAM LIST…',()=>{openDlg('dlgPrograms');renderPrograms()}],null,
+  ['LOW CPU MODE',()=>{S.lowCpu=S.lowCpu?0:1;hud();toast(S.lowCpu?'LOW CPU MODE ON: VOICES WITHOUT OVERSAMPLING':'LOW CPU MODE OFF')}],null,
   ['ZOOM',null],['ABOUT',()=>openDlg('dlgAbout')]];
 $('mainMenu').append(...MAIN.map(m=>{
   if(!m)return document.createElement('hr');

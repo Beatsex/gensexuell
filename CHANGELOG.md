@@ -22,6 +22,8 @@
 - Fixed: the two extra filter stages of FILTER TYPE kept their state from a voice's previous note, which could click at the start of a note.
 - Fixed: ENV TILT used the value of the voice's previous note (or none) for attack and decay; now every note uses its own. Seeds with ENV TILT away from the middle have slightly different attack and decay times than before.
 - Fixed: loading a factory sound or a patch saved before the FX tab kept the current DRIVE, TAPE and VERB settings; they now start off.
+- FX signal flow: ORDER picks one of the six orders of DRIVE, TAPE and VERB (the cards follow it), PLACE puts them after or before the grain FX, Haze and Dusk. Saved with the patch.
+- LOW CPU MODE in ☰: the voices run without oversampling, about half the CPU per voice, with a little more aliasing on driven high notes. It applies from the next note, saved with the project, and the status line shows LOW CPU.
 - Both manuals are on the website: https://beatsex.github.io/gensexuell/manual.html and https://beatsex.github.io/gensexuell/handbuch.html.
 
 ## 0.3.1

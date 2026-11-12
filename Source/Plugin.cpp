@@ -63,6 +63,8 @@ const std::vector<ParamDef>& paramDefs()
         top ("fxScatter", "FX Scatter", 0, 1, 0.001f, 0);
         top ("fxMix", "FX Mix", 0, 1, 0.001f, 0.35f);
         // retro effects (drivesexuell, tapesexuell, verbsexuell): saved per patch, not genes
+        choice ("fxOrder", "FX Order", { "Drive > Tape > Verb", "Drive > Verb > Tape", "Tape > Drive > Verb", "Tape > Verb > Drive", "Verb > Drive > Tape", "Verb > Tape > Drive" });
+        choice ("fxPlace", "FX Place", { "After grain FX", "Before grain FX" });
         choice ("drvOn", "Drive On", { "Off", "On" });
         choice ("drvStyle", "Drive Style", { "A", "E", "N", "T", "P" });
         top ("drvAmt", "Drive Amount", 0, 1, 0.001f, 0.35f);
@@ -83,6 +85,7 @@ const std::vector<ParamDef>& paramDefs()
         top ("verbPre", "Verb Pre-Delay", 0, 200, 0.1f, 10);
         top ("verbDamp", "Verb Damping", 0, 1, 0.001f, 0.45f);
         top ("verbMix", "Verb Mix", 0, 1, 0.001f, 0.3f);
+        choice ("lowCpu", "Low CPU Mode", { "Off", "On" });
         choice ("liveOn", "Live Input", { "Off", "On" });
         top ("liveGate", "Live Gate", -70, -10, 1, -45);
         top ("liveGlide", "Live Glide", 0, 0.5f, 0.001f, 0.03f, 0.5f);
@@ -139,14 +142,15 @@ File userDir() { return File::getSpecialLocation (File::userDocumentsDirectory).
 
 struct RetroSettings
 {
-    bool driveOn = false, tapeOn = false, verbOn = false;
-    int driveStyle = 0, tapeSpeed = 1, verbMode = 0;
+    bool driveOn = false, tapeOn = false, verbOn = false, before = false; // before: ahead of grain FX, Haze and Dusk
+    int driveStyle = 0, tapeSpeed = 1, verbMode = 0, order = 0;           // order: one of the six orders of drive, tape, verb
     float drive = 0.35f, driveTone = 0.5f, driveMix = 1, tapeDrive = 0.35f, tapeWow = 0.25f, tapeHiss = 0.1f, tapeMix = 1;
     float verbDecay = 0.5f, verbSize = 0.55f, verbPreMs = 10, verbDamp = 0.45f, verbMix = 0.3f;
 };
 struct FxSettings { int family = -1, variant = 0; float swarm = 0.5f, tail = 0.5f, span = 0.5f, scatter = 0, mix = 0.35f; RetroSettings retro {}; };
 
-// chorus -> shelves -> grain FX -> Haze -> Dusk -> drive -> tape -> verb -> volume + soft clip; one per output path (live, offline render)
+// chorus -> shelves -> grain FX -> Haze -> Dusk -> drive / tape / verb in the chosen order (or before the grain FX) -> volume + soft clip;
+// one per output path (live, offline render)
 struct MasterChain
 {
     void prepare (double sampleRate, int block)
@@ -174,6 +178,17 @@ struct MasterChain
     // the retro effects, as their plugins run them (fixed: drive low/high cut open, tape bias 0.4 and bump 3 dB, verb width 1)
     void processRetro (float* L, float* R, int n, const RetroSettings& r)
     {
+        static constexpr int orders[6][3] { { 0, 1, 2 }, { 0, 2, 1 }, { 1, 0, 2 }, { 1, 2, 0 }, { 2, 0, 1 }, { 2, 1, 0 } };
+        for (int e : orders[std::clamp (r.order, 0, 5)])
+        {
+            if (e == 0) processDrive (L, R, n, r);
+            else if (e == 1) processTape (L, R, n, r);
+            else processVerb (L, R, n, r);
+        }
+    }
+
+    void processDrive (float* L, float* R, int n, const RetroSettings& r)
+    {
         if (r.driveOn)
         {
             dist.setStyle (r.driveStyle);
@@ -188,6 +203,10 @@ struct MasterChain
                 R[i] += (wr - R[i]) * r.driveMix;
             }
         }
+    }
+
+    void processTape (float* L, float* R, int n, const RetroSettings& r)
+    {
         if (r.tapeOn)
         {
             tape.setDrive (r.tapeDrive);
@@ -204,6 +223,10 @@ struct MasterChain
                 R[i] += (wr - R[i]) * r.tapeMix;
             }
         }
+    }
+
+    void processVerb (float* L, float* R, int n, const RetroSettings& r)
+    {
         if (r.verbOn)
         {
             if (r.verbMode != verbMode) verb.setMode (verbMode = r.verbMode);
@@ -255,6 +278,8 @@ struct MasterChain
             highShelf.process (dsp::ProcessContextReplacing<float> (block));
         }
 
+        if (f.retro.before) processRetro (buffer.getWritePointer (0), buffer.getWritePointer (1), n, f.retro);
+
         grain::dsp::EngineSet::Params fx;
         fx.family = f.family; // -1: every engine disabled (Mix 0, passes the dry signal)
         fx.variant = f.variant;
@@ -276,7 +301,7 @@ struct MasterChain
             haze.process (chans, 2, m, effect * rvbScale, hazeMode);
             dusk.process (chans, 2, m, duskHz);
         }
-        processRetro (buffer.getWritePointer (0), buffer.getWritePointer (1), n, f.retro);
+        if (! f.retro.before) processRetro (buffer.getWritePointer (0), buffer.getWritePointer (1), n, f.retro);
 
         const float vol = c.volume + (c.wheelTarget == volumeAmount ? w * 12 : 0.0f);
         gain.setTargetValue (Decibels::decibelsToGain (vol) * 4);
@@ -400,6 +425,7 @@ public:
         c.voiceMode = int (value ("voiceMode"));
         c.wheelTarget = int (value ("wheelTarget"));
         c.tempoSync = int (value ("tempoSync"));
+        c.lowCpu = value ("lowCpu") > 0.5f;
         if (value ("liveOn") > 0.5f) // a monophonic input plays one legato voice
         {
             c.voiceMode = voiceLegato;
@@ -411,6 +437,8 @@ public:
     FxSettings fxSettings() const
     {
         RetroSettings r;
+        r.order = int (value ("fxOrder"));
+        r.before = value ("fxPlace") > 0.5f;
         r.driveOn = value ("drvOn") > 0.5f;
         r.driveStyle = int (value ("drvStyle"));
         r.drive = value ("drvAmt");
