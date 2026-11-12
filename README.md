@@ -17,8 +17,8 @@ Download the latest build from [Releases](https://github.com/Beatsex/gensexuell/
 
 | System | How |
 |---|---|
-| Windows 10 / 11 (64-bit) | Run `gensexuell-…-win64-setup.exe`. The beta is not code-signed yet: if SmartScreen appears, click *More info* → *Run anyway*. The interface needs the Microsoft WebView2 Runtime; Windows 11 includes it, and the setup tells you if it is missing. |
-| macOS | Copy `gensexuell.vst3` to `~/Library/Audio/Plug-Ins/VST3`, `gensexuell.component` to `~/Library/Audio/Plug-Ins/Components` and `gensexuell.clap` to `~/Library/Audio/Plug-Ins/CLAP`. The macOS build has not been tested by hand yet. |
+| Windows 10 / 11 (64-bit) | Run `gensexuell-…-win64-setup.exe`. The beta is not code-signed yet: if SmartScreen appears, click *More info* → *Run anyway*. The interface needs the Microsoft WebView2 Runtime; Windows 11 includes it, and the setup tells you if it is missing. The 355 presets go to `Documents\Seedling\Presets`. |
+| macOS | Copy `gensexuell.vst3` to `~/Library/Audio/Plug-Ins/VST3`, `gensexuell.component` to `~/Library/Audio/Plug-Ins/Components` and `gensexuell.clap` to `~/Library/Audio/Plug-Ins/CLAP`. Put the `Presets` folder in `~/Documents/Seedling/`. The macOS build has not been tested by hand yet. |
 
 Then restart your DAW (or rescan plugins) and insert it as an instrument: *beatsexuell → gensexuell*.
 
@@ -29,6 +29,7 @@ Then restart your DAW (or rescan plugins) and insert it as an instrument: *beats
 3. Found one you like? Click **SOW** to make it the new seed, and repeat.
 4. Or type *"dark soft bass"* on the left and click **GROW**.
 5. Or drop a one-shot on **Sound → Seed**.
+6. Or click the patch name at the top and open a preset; the arrows next to it step through its folder.
 
 ## Documentation
 
@@ -44,11 +45,13 @@ Then restart your DAW (or rescan plugins) and insert it as an instrument: *beats
   - **Bring a sample**: drop a one-shot. A neural net guesses the genes, four strands refine the match while you listen.
 - **Performance → seed**: drop a monophonic recording (vocals, humming, bass). It finds notes, timing, dynamics and bends and plays them with the current seed. Drag the result into your DAW as WAV or MIDI.
 - **Live input**: route audio to the sidechain and play the synth with your voice or an instrument in real time.
-- **59 genes** in a gene editor, with ring modulation, wavefolding and stepped random pitch at their far ends
+- **59 genes** in the GENES tab, with search, tooltips and real units: a wave that morphs sine → saw → square → narrow pulse, octave / semitone / cent pitch, a filter that morphs band-pass → 24 dB low-pass → two peaks → notch, a stepped mod envelope, and ring modulation, wavefolding and stepped random pitch at their far ends
+- **FX tab**: drive, tape and reverb (21 modes) from the beatsexuell plugins, in any order, after or before the grain effects
 - **Bulb modes** (standard, velocity, ranges, layered), poly / mono / legato with glide, branch volumes
-- **Mod wheel ring** with ten targets, tempo sync, MPE basics
+- **Mod wheel ring** with ten targets, tempo sync, **MPE** (per-note bend, pressure and slide)
 - **Grain effects** from [grainsexuell](https://github.com/Beatsex/grainsexuell): Mosaic, Cloud, Shard, Tap, plus Haze reverb and Dusk low-pass
-- **Patches**: 12 factory sounds, patch files, programs, **MIDI learn**
+- **Patches**: 26 factory sounds and **355 presets** in 12 categories, patch files, programs, **MIDI learn**
+- Voices run at twice the sample rate against aliasing; **LOW CPU MODE** turns that off
 - On-screen keyboard, output meter, resizable window
 
 ## Feedback

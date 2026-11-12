@@ -17,8 +17,8 @@ Den neuesten Build gibt es unter [Releases](https://github.com/Beatsex/gensexuel
 
 | System | So geht's |
 |---|---|
-| Windows 10 / 11 (64 Bit) | `gensexuell-…-win64-setup.exe` starten. Die Beta ist noch nicht signiert: Wenn SmartScreen warnt, *Weitere Informationen* → *Trotzdem ausführen*. Die Oberfläche braucht die Microsoft WebView2 Runtime. Windows 11 hat sie dabei, und das Setup sagt Bescheid, falls sie fehlt. |
-| macOS | `gensexuell.vst3` nach `~/Library/Audio/Plug-Ins/VST3`, `gensexuell.component` nach `~/Library/Audio/Plug-Ins/Components` und `gensexuell.clap` nach `~/Library/Audio/Plug-Ins/CLAP` kopieren. Der macOS-Build ist noch nicht von Hand getestet. |
+| Windows 10 / 11 (64 Bit) | `gensexuell-…-win64-setup.exe` starten. Die Beta ist noch nicht signiert: Wenn SmartScreen warnt, *Weitere Informationen* → *Trotzdem ausführen*. Die Oberfläche braucht die Microsoft WebView2 Runtime. Windows 11 hat sie dabei, und das Setup sagt Bescheid, falls sie fehlt. Die 355 Presets landen in `Dokumente\Seedling\Presets`. |
+| macOS | `gensexuell.vst3` nach `~/Library/Audio/Plug-Ins/VST3`, `gensexuell.component` nach `~/Library/Audio/Plug-Ins/Components` und `gensexuell.clap` nach `~/Library/Audio/Plug-Ins/CLAP` kopieren. Den Ordner `Presets` nach `~/Documents/Seedling/` legen. Der macOS-Build ist noch nicht von Hand getestet. |
 
 Dann die DAW neu starten (oder Plugins neu scannen) und als Instrument einfügen: *beatsexuell → gensexuell*.
 
@@ -29,6 +29,7 @@ Dann die DAW neu starten (oder Plugins neu scannen) und als Instrument einfügen
 3. Etwas Gutes gefunden? Mit **SOW** zum neuen Samen machen und wiederholen.
 4. Oder links *„dunkler weicher Bass“* eintippen und **GROW** klicken.
 5. Oder einen One-Shot auf **Sound → Seed** ziehen.
+6. Oder oben auf den Patch-Namen klicken und ein Preset öffnen; die Pfeile daneben blättern durch seinen Ordner.
 
 ## Dokumentation
 
@@ -44,11 +45,13 @@ Dann die DAW neu starten (oder Plugins neu scannen) und als Instrument einfügen
   - **Sample mitbringen**: One-Shot reinziehen. Ein neuronales Netz schätzt die Gene, vier Stränge verfeinern den Treffer, während du zuhörst.
 - **Performance → Seed**: Eine einstimmige Aufnahme reinziehen (Gesang, Summen, Bass). Noten, Timing, Dynamik und Bends werden erkannt und mit dem aktuellen Samen gespielt. Das Ergebnis als WAV oder MIDI in die DAW ziehen.
 - **Live-Eingang**: Audio auf den Sidechain routen und den Synth in Echtzeit mit Stimme oder Instrument spielen.
-- **59 Gene** im Gen-Editor, an ihren Enden mit Ringmodulation, Wavefolding und gestufter Zufallstonhöhe
+- **59 Gene** im Reiter GENES, mit Suche, Tooltips und echten Einheiten: eine Welle von Sinus über Säge und Rechteck bis zum schmalen Puls, Tonhöhe in Oktave / Halbton / Cent, ein Filter von Bandpass über 24-dB-Tiefpass und zwei Spitzen bis Notch, eine gestufte Mod-Hüllkurve, an ihren Enden Ringmodulation, Wavefolding und gestufte Zufallstonhöhe
+- **Reiter FX**: Drive, Tape und Hall (21 Modi) aus den beatsexuell-Plugins, in beliebiger Reihenfolge, hinter oder vor den Grain-Effekten
 - **Bulb-Modi** (Standard, Velocity, Bereiche, Layer), Poly / Mono / Legato mit Glide, Ast-Lautstärken
-- **Mod-Wheel-Ring** mit zehn Zielen, Tempo-Sync, MPE-Grundlagen
+- **Mod-Wheel-Ring** mit zehn Zielen, Tempo-Sync, **MPE** (Bend, Druck und Slide pro Note)
 - **Grain-Effekte** aus [grainsexuell](https://github.com/Beatsex/grainsexuell): Mosaic, Cloud, Shard, Tap, dazu Haze-Hall und Dusk-Tiefpass
-- **Patches**: 12 Werksklänge, Patch-Dateien, Programme, **MIDI Learn**
+- **Patches**: 26 Werksklänge und **355 Presets** in 12 Kategorien, Patch-Dateien, Programme, **MIDI Learn**
+- Stimmen laufen gegen Aliasing mit doppelter Abtastrate; der **LOW CPU MODE** schaltet das ab
 - Bildschirmtastatur, Ausgangsanzeige, skalierbares Fenster
 
 ## Feedback

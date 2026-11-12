@@ -17,8 +17,8 @@ Téléchargez la dernière version depuis [Releases](https://github.com/Beatsex/
 
 | Système | Comment |
 |---|---|
-| Windows 10 / 11 (64 bits) | Lancez `gensexuell-…-win64-setup.exe`. La bêta n'est pas encore signée : si SmartScreen apparaît, cliquez sur *Informations complémentaires* → *Exécuter quand même*. L'interface a besoin de Microsoft WebView2 Runtime ; Windows 11 l'inclut, et l'installateur vous prévient s'il manque. |
-| macOS | Copiez `gensexuell.vst3` dans `~/Library/Audio/Plug-Ins/VST3`, `gensexuell.component` dans `~/Library/Audio/Plug-Ins/Components` et `gensexuell.clap` dans `~/Library/Audio/Plug-Ins/CLAP`. La version macOS n'a pas encore été testée à la main. |
+| Windows 10 / 11 (64 bits) | Lancez `gensexuell-…-win64-setup.exe`. La bêta n'est pas encore signée : si SmartScreen apparaît, cliquez sur *Informations complémentaires* → *Exécuter quand même*. L'interface a besoin de Microsoft WebView2 Runtime ; Windows 11 l'inclut, et l'installateur vous prévient s'il manque. Les 355 presets vont dans `Documents\Seedling\Presets`. |
+| macOS | Copiez `gensexuell.vst3` dans `~/Library/Audio/Plug-Ins/VST3`, `gensexuell.component` dans `~/Library/Audio/Plug-Ins/Components` et `gensexuell.clap` dans `~/Library/Audio/Plug-Ins/CLAP`. Placez le dossier `Presets` dans `~/Documents/Seedling/`. La version macOS n'a pas encore été testée à la main. |
 
 Redémarrez ensuite votre DAW (ou relancez le scan des plugins) et insérez-le comme instrument : *beatsexuell → gensexuell*.
 
@@ -29,6 +29,7 @@ Redémarrez ensuite votre DAW (ou relancez le scan des plugins) et insérez-le c
 3. Un son vous plaît ? Cliquez sur **SOW** pour en faire la nouvelle graine, et recommencez.
 4. Ou tapez *« dark soft bass »* à gauche et cliquez sur **GROW**.
 5. Ou déposez un one-shot sur **Sound → Seed**.
+6. Ou cliquez sur le nom du patch en haut et ouvrez un preset ; les flèches à côté parcourent son dossier.
 
 ## Documentation
 
@@ -44,11 +45,13 @@ Redémarrez ensuite votre DAW (ou relancez le scan des plugins) et insérez-le c
   - **Apportez un sample** : déposez un one-shot. Un réseau de neurones estime les gènes, quatre brins affinent le résultat pendant que vous écoutez.
 - **Interprétation → graine** : déposez un enregistrement monophonique (voix, fredonnement, basse). Notes, timing, dynamique et bends sont détectés puis joués avec la graine actuelle. Glissez le résultat dans votre DAW en WAV ou MIDI.
 - **Entrée live** : envoyez de l'audio sur le sidechain et jouez du synthé avec votre voix ou un instrument en temps réel.
-- **59 gènes** dans un éditeur, avec modulation en anneau, wavefolding et hauteur aléatoire par paliers à leurs extrémités
+- **59 gènes** dans l'onglet GENES, avec recherche, info-bulles et vraies unités : une onde qui va du sinus à la dent de scie, au carré et à l'impulsion étroite, la hauteur en octave / demi-ton / cent, un filtre qui va du passe-bande au passe-bas 24 dB, à deux pics et au notch, une enveloppe de modulation par paliers, et à leurs extrémités modulation en anneau, wavefolding et hauteur aléatoire par paliers
+- **Onglet FX** : drive, bande et réverbe (21 modes) des plugins beatsexuell, dans n'importe quel ordre, après ou avant les effets granulaires
 - **Modes de bulbe** (standard, vélocité, zones, couches), poly / mono / legato avec glide, volume par branche
-- **Anneau de molette de modulation** avec dix cibles, synchro au tempo, bases MPE
+- **Anneau de molette de modulation** avec dix cibles, synchro au tempo, **MPE** (bend, pression et slide par note)
 - **Effets granulaires** de [grainsexuell](https://github.com/Beatsex/grainsexuell) : Mosaic, Cloud, Shard, Tap, plus la réverbe Haze et le passe-bas Dusk
-- **Patches** : 12 sons d'usine, fichiers de patch, programmes, **MIDI learn**
+- **Patches** : 26 sons d'usine et **355 presets** en 12 catégories, fichiers de patch, programmes, **MIDI learn**
+- Les voix tournent au double de la fréquence d'échantillonnage contre l'aliasing ; le **LOW CPU MODE** le désactive
 - Clavier à l'écran, indicateur de sortie, fenêtre redimensionnable
 
 ## Retours
