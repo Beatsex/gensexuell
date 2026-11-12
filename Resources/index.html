@@ -636,7 +636,7 @@ function branchParams(i){
 }
 
 // ================================================================ state
-const MIDI_DEFAULT={inChannel:0,velCurve:1,pressure:3,minPoly:16,maxPoly:32,pbRange:2,masterTune:440,pbHeldOnly:false,selectBranches:true,programChange:true,computerKeys:false};
+const MIDI_DEFAULT={inChannel:0,velCurve:1,pressure:3,minPoly:16,maxPoly:32,pbRange:2,masterTune:440,pbHeldOnly:false,selectBranches:true,programChange:true,computerKeys:false,mpe:false,mpeRange:48};
 let S={seed:0x5EED1E55,name:'',sel:2,tuning:0,effect:35,volume:-8,release:40,atonality:20,velSens:100,glide:0,wheel:0,wheelScale:100,rotation:0,
   bulbMode:0,voiceMode:0,wheelTarget:0,tempoSync:0,fxType:0,fxVariant:0,fxSwarm:.5,fxTail:.5,fxSpan:.5,fxScatter:0,fxMix:.35,
   drvOn:0,drvStyle:0,drvAmt:.35,drvTone:.5,drvMix:1,tapeOn:0,tapeSpeed:1,tapeDrive:.35,tapeWow:.25,tapeHiss:.1,tapeMix:1,
@@ -1003,7 +1003,8 @@ const MIDI_FIELDS=[['inChannel','INPUT CHANNEL',['OMNI',...Array.from({length:16
   ['pressure','PRESSURE → WHEEL',['SOFT','NORMAL','HARD','OFF']],['minPoly','MIN POLYPHONY',[1,32]],['maxPoly','MAX POLYPHONY',[1,32]],
   ['pbRange','PITCH WHEEL RANGE (ST)',[0,48]],['masterTune','MASTER TUNING (HZ)',[340,540]],['pbHeldOnly','PITCH WHEEL ONLY HELD NOTES',null],
   ['selectBranches','SELECT BRANCHES WITH MIDI NOTES',null],['programChange','MIDI PROGRAM CHANGE',null],
-  ['computerKeys','PLAY BRANCHES WITH COMPUTER KEYS (A W S E D…)',null]];
+  ['computerKeys','PLAY BRANCHES WITH COMPUTER KEYS (A W S E D…)',null],
+  ['mpe','MPE (CHANNEL 1 MASTER, 2–16 ONE NOTE EACH)',null],['mpeRange','MPE NOTE BEND RANGE (ST)',[0,96]]];
 function renderMidi(){
   $('midiForm').replaceChildren(...MIDI_FIELDS.flatMap(([k,label,opt])=>{
     const l=document.createElement('label');l.textContent=label;l.htmlFor='m_'+k;

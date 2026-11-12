@@ -16,6 +16,7 @@
 - SOW, NEW SEED, REROLL and CLONE say how they differ, and a first-start hint in the seed view says what to do first until you play a key or drag a branch.
 - The FX CHORUS gene now sets the chorus speed (CHORUS RATE, 0.04 … 2.8 Hz, when CHORUS is on); before, it did nothing. Saved patches use the value they already hold, so their chorus can move faster or slower than before. ROOM ATTACK and ROOM LENGTH still do nothing and say NOT USED.
 - New FX tab with three effects from the beatsexuell plugins, after the grain FX and Haze: DRIVE (drivesexuell), TAPE (tapesexuell) and VERB (verbsexuell, 21 modes). Each has an ON switch and its main controls, is saved with the patch and can be automated. Their DSP is copied unchanged into Source/retro.
+- MPE: a new switch in the MIDI settings. Channel 1 is the master, channels 2–16 play one note each with its own pitch bend (MPE NOTE BEND RANGE, default 48 semitones), pressure (opens the note's filter) and slide on CC74 (brighter or darker). The on-screen keyboard and live input no longer share MIDI channels 16 and 15 with your controller.
 - Both manuals are on the website: https://beatsex.github.io/gensexuell/manual.html and https://beatsex.github.io/gensexuell/handbuch.html.
 
 ## 0.3.1

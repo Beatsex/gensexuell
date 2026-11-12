@@ -9,7 +9,8 @@
 namespace seedling {
 
 constexpr float PI = 3.14159265358979f;
-constexpr int NB = 12, MAXV = 32, UI_CHANNEL = 16;
+// MIDI channels are 1..16; the on-screen keyboard and the live input get channels of their own above that
+constexpr int NB = 12, MAXV = 32, UI_CHANNEL = 17, LIVE_CHANNEL = 18, NCH = 19;
 
 // ---------------------------------------------------------------- genes
 enum Gene
@@ -82,6 +83,8 @@ struct Settings // per-instance MIDI settings
     int minPoly = 16, maxPoly = 32;
     float pbRange = 2, masterTune = 440;
     bool pbHeldOnly = false, programChange = true;
+    bool mpe = false;     // MPE lower zone: channel 1 is the master, 2..16 carry one note each
+    float mpeRange = 48;  // bend range of the note channels, in semitones
 };
 
 // same generator as mulberry32 in index.html, so seeds match the UI
@@ -700,7 +703,10 @@ public:
     }
 
     void allOff() { stack.clear(); for (auto& v : voices) if (v.active) v.release (0.015f, 0); }
-    void pitchBend (int ch, float value) { bend[size_t (std::clamp (ch, 0, 16))] = value; }
+    void pitchBend (int ch, float value) { bend[size_t (std::clamp (ch, 0, NCH - 1))] = value; }
+    // MPE per-note expression: pressure 0..1 (Z), slide -1..1 around CC74 = 64 (Y)
+    void pressure (int ch, float value) { press[size_t (std::clamp (ch, 0, NCH - 1))] = value; }
+    void slide (int ch, float value) { slideY[size_t (std::clamp (ch, 0, NCH - 1))] = value; }
 
     void render (float* L, float* R, int n, const Controls& c, const Settings& s)
     {
@@ -713,9 +719,17 @@ public:
         for (auto& v : voices)
         {
             if (! v.active) continue;
-            const float b = s.pbHeldOnly && ! v.held ? v.frozenBend : bend[size_t (v.channel)];
-            live.bendSemis = b * s.pbRange;
-            v.render (L, R, n, rng, live);
+            Live lv = live;
+            const auto ch = size_t (v.channel);
+            if (s.mpe && v.channel >= 2 && v.channel <= 16) // MPE note channel: its own bend (also after release), pressure and slide
+            {
+                lv.bendSemis = bend[ch] * s.mpeRange + bend[1] * s.pbRange;
+                lv.filterMul *= std::exp2 (press[ch] * 3 + std::min (0.0f, slideY[ch]) * 2); // pressure opens up to 3 octaves, slide down closes 2
+                lv.fmAdd += std::max (0.0f, slideY[ch]) * 0.6f;                            // slide up adds FM brightness
+            }
+            else
+                lv.bendSemis = (s.pbHeldOnly && ! v.held ? v.frozenBend : bend[ch]) * s.pbRange + (s.mpe && v.channel != 1 ? bend[1] * s.pbRange : 0.0f);
+            v.render (L, R, n, rng, lv);
         }
     }
 
@@ -747,7 +761,7 @@ private:
     uint64_t clock = 0;
     int lastNote = -1;
     std::vector<int> stack;
-    std::array<float, 17> bend {};
+    std::array<float, NCH> bend {}, press {}, slideY {};
 };
 
 inline Genome defaultGenome (uint32_t seed)

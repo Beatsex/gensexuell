@@ -564,7 +564,8 @@ footer .end { width: 64px; height: 64px; margin: 0 auto 18px; border: 1.5px soli
   <h3>MIDI</h3>
   <ul class="clean">
     <li><b>MIDI controllers…</b>: click LEARN next to a control and move a knob on your controller.</li>
-    <li><b>MIDI settings…</b>: input channel, velocity curve, aftertouch → wheel, polyphony, pitch wheel range (up to 48 semitones, MPE-friendly), master tuning, whether MIDI notes select branches, program change. MAKE DEFAULT keeps them for new instances.</li>
+    <li><b>MIDI settings…</b>: input channel, velocity curve, aftertouch → wheel, polyphony, pitch wheel range (up to 48 semitones), master tuning, whether MIDI notes select branches, program change, and MPE.</li>
+    <li><b>MPE</b>: switch it on in the MIDI settings and enable MPE for gensexuell in your DAW. Channel 1 is the master (its pitch wheel, mod wheel and pressure act on every note); channels 2–16 carry one note each with its own pitch bend (MPE NOTE BEND RANGE, 48 semitones by default, also after you let go), pressure (opens that note's filter up to 3 octaves) and slide, CC74 (up: brighter with FM, down: darker filter). MAKE DEFAULT keeps them for new instances.</li>
     <li><b>Program list…</b>: store up to 16 patches and recall them with MIDI program change.</li>
     <li>Every main control, mode, FX setting, branch length and gene is a parameter your DAW can automate.</li>
   </ul>

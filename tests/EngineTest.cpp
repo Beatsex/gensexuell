@@ -398,6 +398,33 @@ int main()
         check (aliasDb < -28, "a driven saw on a high note keeps its aliases low (oversampled voice)");
     }
 
+    {
+        // MPE: a note channel bends only its own note, the master channel bends all of them
+        Params p = neutralGenes();
+        p[waveA] = 0; p[mix] = 0; p[noise] = 0; p[fm] = 0; p[sub] = 0.5f; p[cutoff] = 1; p[fltEnv] = 0;
+        p[attack] = 0; p[sustain] = 1; p[lfoAmt] = 0; p[fltType] = 0.5f; p[drive] = 0.5f;
+        Controls cs = defaults();
+        cs.base = p;
+        cs.len.fill (0);
+        cs.atonality = 0;
+        Settings ms = s;
+        ms.mpe = true;
+        ms.mpeRange = 12;
+        ms.pbRange = 2;
+        auto pitchWith = [&] (int noteCh, int bendCh, float amount) {
+            Engine e;
+            e.prepare (48000);
+            e.pitchBend (bendCh, amount);
+            e.noteOn (noteCh, 60, 0.9f, -1, g, cs, ms);
+            play (e, g, cs, ms, 40);
+            const auto x = play (e, g, cs, ms, 40);
+            return detectPitch (x.data(), int (x.size()), 48000);
+        };
+        const float own = pitchWith (2, 2, 1), other = pitchWith (2, 3, 1), master = pitchWith (2, 1, 1);
+        std::printf ("mpe: own channel %.1f Hz, other channel %.1f Hz, master %.1f Hz\n", own, other, master);
+        check (near (own, 523.25f, 4) && near (other, 261.63f, 3) && near (master, 293.66f, 3), "MPE bends per note, the master bends all");
+    }
+
     // ---- sound -> seed
     {
         const auto f1 = patchFeatures (base, 60), f2 = patchFeatures (base, 60);

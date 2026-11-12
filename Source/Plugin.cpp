@@ -549,7 +549,16 @@ public:
     void handleMidi (const MidiMessage& msg, Controls& c, const Settings& s)
     {
         const int ch = msg.getChannel();
-        if (s.inChannel > 0 && ch != s.inChannel) return;
+        if (! s.mpe && s.inChannel > 0 && ch != s.inChannel) return;
+        if (s.mpe && ch >= 2) // MPE note channel: pressure and CC74 belong to that one note
+        {
+            if (msg.isChannelPressure()) { engine.pressure (ch, msg.getChannelPressureValue() / 127.0f); return; }
+            if (msg.isController())
+            {
+                if (msg.getControllerNumber() == 74) engine.slide (ch, std::clamp ((msg.getControllerValue() - 64) / 63.0f, -1.0f, 1.0f));
+                return;
+            }
+        }
 
         if (msg.isNoteOn())
         {
@@ -676,6 +685,8 @@ public:
         s.masterTune = std::clamp (num ("masterTune", 440), 340.0f, 540.0f);
         s.pbHeldOnly = bool (m["pbHeldOnly"]);
         s.programChange = m["programChange"].isVoid() || bool (m["programChange"]);
+        s.mpe = bool (m["mpe"]);
+        s.mpeRange = std::clamp (num ("mpeRange", 48), 0.0f, 96.0f);
         const SpinLock::ScopedLockType lock (stateLock);
         settings = s;
     }
@@ -854,7 +865,6 @@ private:
     MasterChain master;
     LiveTracker tracker;
     float follow = 0;
-    static constexpr int LIVE_CHANNEL = 15;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SeedlingProcessor)
 };

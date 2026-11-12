@@ -564,7 +564,8 @@ footer .end { width: 64px; height: 64px; margin: 0 auto 18px; border: 1.5px soli
   <h3>MIDI</h3>
   <ul class="clean">
     <li><b>MIDI controllers…</b>: Klick auf LEARN neben einem Regler und dreh einen Knopf an deinem Controller.</li>
-    <li><b>MIDI settings…</b>: Eingangskanal, Anschlagkurve, Aftertouch → Wheel, Polyphonie, Pitch-Wheel-Bereich (bis 48 Halbtöne, MPE-tauglich), Grundstimmung, ob MIDI-Noten Äste auswählen, Program Change und ob die Computertasten Äste spielen. MAKE DEFAULT übernimmt sie für neue Instanzen.</li>
+    <li><b>MIDI settings…</b>: Eingangskanal, Anschlagkurve, Aftertouch → Wheel, Polyphonie, Pitch-Wheel-Bereich (bis 48 Halbtöne), Grundstimmung, ob MIDI-Noten Äste auswählen, Program Change, MPE und ob die Computertasten Äste spielen. MAKE DEFAULT übernimmt sie für neue Instanzen.</li>
+    <li><b>MPE</b>: schalte es in den MIDI-Einstellungen ein und aktiviere MPE für gensexuell in deiner DAW. Kanal 1 ist der Master (sein Pitch-Wheel, Mod-Wheel und Druck wirken auf alle Noten); die Kanäle 2–16 tragen je eine Note mit eigenem Pitch-Bend (MPE NOTE BEND RANGE, standardmäßig 48 Halbtöne, auch nach dem Loslassen), Druck (öffnet das Filter dieser Note um bis zu 3 Oktaven) und Slide, CC74 (hoch: heller mit FM, runter: dunkleres Filter).</li>
     <li><b>Program list…</b>: bis zu 16 Patches ablegen und per MIDI Program Change abrufen.</li>
     <li>Jeder Hauptregler, jeder Modus, jede FX-Einstellung, jede Astlänge und jedes Gen ist ein Parameter, den deine DAW automatisieren kann.</li>
   </ul>
