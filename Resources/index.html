@@ -534,7 +534,7 @@ const GENE_FMT={
   bass:v=>sgn(+((v-.5)*24).toFixed(1))+' dB',treble:v=>sgn(+((v-.5)*24).toFixed(1))+' dB',spread:v=>Math.round(v*100)+' %',
   envTime:times,envTilt:bip,modHold:v=>above(v,.5),lfoBalance:bip,noiseB:v=>above(v,.5),modB:bip,holdB:v=>above(v,.5),fmMod:v=>above(v,.5),mixMod:bip,shaper:v=>above(v,.5),
   rvbSize:times,fxDamp:times,fxMix:v=>sgn(Math.round((v-.5)*100)),fxSize:v=>sgn(Math.round((v-.5)*100)),fxLength:v=>sgn(Math.round((v-.5)*100)),
-  rvbAttack:()=>'NOT USED',rvbLength:()=>'NOT USED',fxChorus:()=>'NOT USED',
+  rvbAttack:v=>v>.5?Math.round((v-.5)*500)+' ms':'OFF',rvbLength:times,fxChorus:v=>(.35*2**((v-.5)*6)).toFixed(2)+' Hz',
   modSH:v=>v>.6?Math.round(64**((v-.6)/.4))+' /s':'OFF',octA:v=>sgn(pitchSteps(v,4))+' oct',semiA:v=>sgn(pitchSteps(v,24))+' st',centA:v=>sgn(Math.round((v-.5)*100))+' ct',semiB:v=>sgn(pitchSteps(v,24))+' st',centB:v=>sgn(Math.round((v-.5)*100))+' ct'};
 const MASTER=new Set(['space','damp','chorus','bass','treble','rvbSize','rvbAttack','rvbLength','fxMix','fxSize','fxLength','fxDamp','fxChorus']);
 const GENE_INFO={
@@ -553,8 +553,8 @@ const GENE_INFO={
   lfoBalance:['LFO BALANCE','LFO balance'],pitchA:['PITCH A','Oscillator A pitch'],noiseB:['NOISE B','Noise into B'],
   modB:['MOD B','Modulation of oscillator B'],holdB:['HOLD B','Sample & hold on B'],fmMod:['FM MOD','FM depth from the mod envelope'],
   mixMod:['MIX MOD','Mix follows the mod envelope'],shaper:['SHAPER','Wave shaper'],rvbSize:['ROOM SIZE','How much reverb, on top of EFFECT'],
-  rvbAttack:['ROOM ATTACK','Not used yet: changing it does nothing'],rvbLength:['ROOM LENGTH','Not used yet: changing it does nothing'],fxMix:['FX MIX GENE','Adds to or takes from the grain FX mix'],
-  fxSize:['FX SIZE','Adds to or takes from the grain length (SPAN)'],fxLength:['FX LENGTH','Adds to or takes from the grain feedback (TAIL)'],fxDamp:['FX DAMP','Moves the DUSK low-pass up or down'],fxChorus:['FX CHORUS','Not used yet: changing it does nothing'],
+  rvbAttack:['ROOM DELAY','Reverb pre-delay: above 0.5 the room answers up to 250 ms later'],rvbLength:['ROOM LENGTH','Reverb decay time, ×½ … ×2 of the room type'],fxMix:['FX MIX GENE','Adds to or takes from the grain FX mix'],
+  fxSize:['FX SIZE','Adds to or takes from the grain length (SPAN)'],fxLength:['FX LENGTH','Adds to or takes from the grain feedback (TAIL)'],fxDamp:['FX DAMP','Moves the DUSK low-pass up or down'],fxChorus:['CHORUS RATE','Chorus speed when CHORUS is on, 0.04 … 2.8 Hz'],
   octA:['OCT A','Pitch of oscillator A in octaves, −2 to +2 (B, FM and sub follow A)'],semiA:['SEMI A','Pitch of oscillator A in semitones, ±12'],centA:['CENT A','Fine pitch (detune) of oscillator A, ±50 cents'],
   modSH:['MOD S&H','Above 0.6: the mod envelope moves in steps, 1 to 64 per second'],
   semiB:['SEMI B','Pitch of oscillator B in semitones on top of RATIO B, ±12'],centB:['CENT B','Fine pitch (detune) of oscillator B on top of RATIO B, ±50 cents']};

@@ -20,6 +20,8 @@ public:
 
     void prepare(double sampleRate);
     void process(float* const* ch, int numCh, int n, float haze, int mode);
+    // decay time x lengthMul (0.5 .. 2) and a pre-delay before the room answers (0 .. 0.25 s)
+    void setShape(float lengthMul, float preDelaySeconds);
 
 private:
     struct ModeData
@@ -45,6 +47,7 @@ private:
     };
 
     void applyMode(int mode);
+    void applyLength();
 
     double sampleRate = 48000.0;
     std::array<ModeData, numModes> modes;
@@ -54,7 +57,9 @@ private:
     std::array<float, numLines> lp {}, lfoPhase {}, lfoInc {};
     int mask = 0, writePos = 0;
     int currentMode = -1, pendingMode = -1;
-    float lastHaze = -1.0f, dryGain = 1.0f, wetGain = 0.0f;
+    float lastHaze = -1.0f, dryGain = 1.0f, wetGain = 0.0f, lengthMul = 1.0f;
+    std::array<std::vector<float>, 2> pre; // pre-delay, left and right
+    int preMask = 0, prePos = 0, preLen = 0;
     juce::SmoothedValue<float> duck, hazeSm;
 };
 } // namespace grain::dsp

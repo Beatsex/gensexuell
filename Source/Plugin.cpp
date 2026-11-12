@@ -145,6 +145,7 @@ struct MasterChain
         {
             chorusFx.setMix ((g[chorus] - 0.5f) * 1.6f);
             chorusFx.setDepth (0.25f + (g[chorus] - 0.5f));
+            chorusFx.setRate (0.35f * std::exp2 ((g[fxChorus] - 0.5f) * 6)); // FX CHORUS: 0.04 .. 2.8 Hz, 0.35 at 0.5
             dsp::AudioBlock<float> block (buffer);
             chorusFx.process (dsp::ProcessContextReplacing<float> (block));
         }
@@ -169,6 +170,7 @@ struct MasterChain
         const int hazeMode = std::clamp (int (g[space] * 4), 0, 3); // Room Plate Hall Swell
         const float rvbScale = std::exp2 ((g[rvbSize] - 0.5f) * 2.0f);      // expansion gene: reverb amount (1 at 0.5)
         const float duskScale = std::exp2 ((g[fxDamp] - 0.5f) * 2.0f);      // expansion gene: extra damping (1 at 0.5)
+        haze.setShape (std::exp2 ((g[rvbLength] - 0.5f) * 2.0f), std::max (0.0f, g[rvbAttack] - 0.5f) * 0.5f); // ROOM LENGTH, ROOM ATTACK (pre-delay)
         const float duskHz = g[damp] <= 0.5f ? grain::dsp::Lowpass::bypassHz : 19900.0f * std::exp2 (-(g[damp] - 0.5f) * 14) * duskScale;
         for (int pos = 0; pos < n; pos += 512)
         {

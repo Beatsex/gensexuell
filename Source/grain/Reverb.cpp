@@ -101,6 +101,13 @@ void Reverb::prepare(double sr)
         lfoInc[si] = static_cast<float>(2.0 * std::numbers::pi * (0.07 + 0.043 * i) / sr);
     }
 
+    const int preSize = powerOfTwoAtLeast(static_cast<int>(0.25 * sr) + 2);
+    for (auto& p : pre)
+        p.assign(static_cast<size_t>(preSize), 0.0f);
+    preMask = preSize - 1;
+    prePos = 0;
+    preLen = std::min(preLen, preMask - 1);
+
     lp.fill(0.0f);
     writePos = 0;
     currentMode = pendingMode = -1;
@@ -119,6 +126,32 @@ void Reverb::applyMode(int mode)
         std::fill(a.buf.begin(), a.buf.end(), 0.0f);
     lp.fill(0.0f);
     currentMode = mode;
+    applyLength();
+}
+
+void Reverb::applyLength()
+{
+    if (currentMode < 0)
+        return;
+    const double t = static_cast<double>(t60[static_cast<size_t>(currentMode)]) * lengthMul;
+    double sumG2 = 0.0;
+    for (size_t i = 0; i < numLines; ++i)
+    {
+        active.gain[i] = static_cast<float>(std::pow(10.0, -3.0 * active.len[i] / (t * sampleRate)));
+        sumG2 += static_cast<double>(active.gain[i]) * active.gain[i];
+    }
+    active.outGain = 0.5f * static_cast<float>(std::sqrt(1.0 - sumG2 / numLines)); // same energy rule as prepare()
+}
+
+void Reverb::setShape(float mul, float preDelaySeconds)
+{
+    mul = std::clamp(mul, 0.5f, 2.0f);
+    if (std::abs(mul - lengthMul) > 1e-4f)
+    {
+        lengthMul = mul;
+        applyLength();
+    }
+    preLen = std::clamp(static_cast<int>(std::lround(preDelaySeconds * sampleRate)), 0, std::max(0, preMask - 1));
 }
 
 void Reverb::process(float* const* ch, int numCh, int n, float haze, int mode)
@@ -158,8 +191,13 @@ void Reverb::process(float* const* ch, int numCh, int n, float haze, int mode)
         const float dryL = ch[0][i];
         const float dryR = numCh > 1 ? ch[1][i] : dryL;
 
-        float dl = allpass[1].process(allpass[0].process(dryL));
-        float dr = allpass[3].process(allpass[2].process(dryR));
+        pre[0][static_cast<size_t>(prePos)] = dryL;
+        pre[1][static_cast<size_t>(prePos)] = dryR;
+        const auto rd = static_cast<size_t>((prePos - preLen) & preMask);
+        prePos = (prePos + 1) & preMask;
+
+        float dl = allpass[1].process(allpass[0].process(pre[0][rd]));
+        float dr = allpass[3].process(allpass[2].process(pre[1][rd]));
 
         std::array<float, numLines> raw, fb;
         for (size_t k = 0; k < numLines; ++k)
