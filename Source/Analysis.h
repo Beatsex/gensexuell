@@ -324,6 +324,7 @@ public:
     void setReference (const std::vector<float>& audio, int midi, const Net* net)
     {
         pause();
+        triedCount = 0;
         refNote = midi;
         ref = features (audio.data(), int (audio.size()), midi, cfg);
         guess = net != nullptr && net->ready() && net->inDim() == int (ref.size()) ? net->predict (ref) : neutralGenes();

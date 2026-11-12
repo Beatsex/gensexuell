@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+- Fixed: reopening a project reset parameters that the DAW had changed (automation, a mapped MIDI CC or the DAW's own parameter view) to the values the gensexuell window last showed. The project's parameter values now win.
+- Fixed: a repeated note of the same pitch (performance → seed, in the rendered WAV and in the exported MIDI file) was cut off after 20 ms, because the previous note's end reached into it.
+- Fixed: a short click on a silent sidechain in live mode could read outside the pitch detector's memory.
+- Fixed: taking over a sounding voice (the polyphony limit is reached, a mono or legato retrigger) clicked, because the voice restarted from silence. It now continues from its current level, and the voice taken is a released one, the quietest first, before a held one. Extra mono voices fade out in 15 ms instead of stopping dead.
+- Fixed: closing the window while text → seed (GROW) was still working could crash the host.
+- Fixed: OSC B sample & hold (HOLD B) started each note from the previous note's step.
+- Fixed: aftertouch kept its last value on the mod wheel after PRESSURE was switched off.
+- Fixed: in MPE mode, All Notes Off and All Sound Off on a note channel were ignored.
+- Fixed: switching live input off and on again started with the last tracked note.
+- Fixed: the patch counter of sound → seed kept counting from the previous sample.
+- The audio thread no longer allocates memory (bass and treble shelves, live input) or calls the host (mapped MIDI CCs, program changes); those now happen on the user interface thread.
+
 ## 0.4.1
 
 - 355 presets in 12 categories (atmospheric, basic, basses, chords, effects, keys, leads, pads, percussive, plucks, rhythmic, stabs). The installer puts them in Documents\Seedling\Presets and never overwrites one you changed; the macOS and Windows zips have them in a Presets folder.

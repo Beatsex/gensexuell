@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
+#include <sstream>
 
 using namespace seedling;
 
@@ -14,6 +15,21 @@ static void check (bool ok, const char* what)
     if (! ok) { std::printf ("FAIL: %s\n", what); ++failures; }
 }
 static bool near (float a, float b, float tol = 1e-5f) { return std::abs (a - b) < tol; }
+
+// lets a search try `patches` children (at most 5 minutes), so a slow build (sanitizers) is tested on the same amount of work
+static void runSearch (Search& search, long patches)
+{
+    std::array<std::vector<Search::Solution>, Search::STRANDS> sol;
+    std::array<bool, Search::STRANDS> done {};
+    long tested = 0;
+    search.resume();
+    for (int i = 0; i < 3000 && tested < patches && ! std::all_of (done.begin(), done.end(), [] (bool d) { return d; }); ++i)
+    {
+        std::this_thread::sleep_for (std::chrono::milliseconds (100));
+        search.snapshot (sol, done, tested);
+    }
+    search.pause();
+}
 
 static Controls defaults()
 {
@@ -449,12 +465,50 @@ int main()
         check (near (fLo, 261.63f, 3) && std::abs (dbLo - dbHi) < 1, "low CPU mode keeps pitch and level");
     }
 
+    // ---- voice stealing: with one voice the next note takes it over without a click
+    {
+        Engine e;
+        e.prepare (48000);
+        Settings s;
+        s.minPoly = 1;
+        Controls c = defaults(); // sines without noise or FM, so a step in the envelope stands out from the wave itself
+        for (int k : { waveA, waveB, fm, noise, noiseB }) c.base[size_t (k)] = 0;
+        e.noteOn (1, 60, 0.8f, -1, g, c, s);
+        const auto before = play (e, g, c, s, 40);
+        e.noteOn (1, 67, 0.8f, -1, g, c, s);
+        const auto after = play (e, g, c, s, 4);
+        float steady = 0, jump = std::abs (after[0] - before.back());
+        for (size_t i = before.size() / 2; i < before.size(); ++i) steady = std::max (steady, std::abs (before[i] - before[i - 1]));
+        for (size_t i = 1; i < 64; ++i) jump = std::max (jump, std::abs (after[i] - after[i - 1]));
+        std::printf ("voice steal: largest step %.4f, held note %.4f\n", jump, steady);
+        check (e.activeVoices() == 1 && jump < 1.5f * steady, "a stolen voice does not click");
+    }
+
     // ---- sound -> seed
     {
         const auto f1 = patchFeatures (base, 60), f2 = patchFeatures (base, 60);
         check (distance (f1, f2) == 0, "features are deterministic");
         Params other = seedParams (777, 20);
         check (distance (f1, patchFeatures (other, 60)) > 0.02f, "different patches have different features");
+
+        // the net was trained on this sound: speed-ups must not move the features of a fresh note
+        {
+            std::ifstream ref ("tests/features_ref.txt");
+            std::string line;
+            std::getline (ref, line); // comment
+            Params busy = base;
+            busy[drive] = 0.9f; busy[sub] = 0.7f; busy[holdB] = 0.8f; busy[lfoShape] = 0.7f; busy[lfoAmt] = 0.6f;
+            int same = 0;
+            for (const auto& p : { base, busy })
+            {
+                Features want;
+                std::string tok;
+                std::getline (ref, line);
+                for (std::istringstream in (line); in >> tok;) want.push_back (float (std::strtod (tok.c_str(), nullptr)));
+                same += ! want.empty() && distance (patchFeatures (p, 60), want) == 0;
+            }
+            check (same == 2, "features of fixed patches match the recorded reference");
+        }
 
         // the search must get close to a target rendered by the engine itself
         Net net;
@@ -489,9 +543,7 @@ int main()
         std::array<bool, Search::STRANDS> done {};
         long tested = 0;
         search.snapshot (sol, done, tested);
-        search.resume();
-        std::this_thread::sleep_for (std::chrono::seconds (8));
-        search.pause();
+        runSearch (search, 1100);
         search.snapshot (sol, done, tested);
         float best = 0;
         for (auto& st : sol) for (auto& x : st) best = std::max (best, x.score);
@@ -529,9 +581,7 @@ int main()
         Search search;
         search.cfg = cfg;
         search.setReference (ref, 60, &net);
-        search.resume();
-        std::this_thread::sleep_for (std::chrono::seconds (3));
-        search.pause();
+        runSearch (search, 380);
         std::array<std::vector<Search::Solution>, Search::STRANDS> sol;
         std::array<bool, Search::STRANDS> done {};
         long tested = 0;
@@ -634,6 +684,28 @@ int main()
         check (ons.size() == 2 && ons[0].first == 57 && ons[1].first == 64, "live tracker follows A3 then E4");
         if (ons.size() == 2) check (ons[0].second < 0.06 && ons[1].second - 0.4 < 0.06, "live notes start within 60 ms");
         check (offs == 1, "live note stops on silence");
+
+        // a lone click correlates with nothing: no pitch, and no read before the correlation array
+        std::vector<float> click (1024, 0.0f), scratch (1024 / 2 + 2);
+        click[0] = 1;
+        float strength = 1;
+        check (windowPitch (click.data(), 1024, 24000, strength, scratch.data()) == 0 && strength == 0, "a lone click has no pitch");
+
+        // the same key played again without a gap (an accent): the first note's tail must not cut the second one
+        std::vector<float> twice;
+        for (float amp : { 0.15f, 0.6f })
+            for (int i = 0; i < int (sr * 0.4f); ++i) twice.push_back (amp * std::sin (2 * PI * 261.63f * float (i) / sr));
+        twice.insert (twice.end(), size_t (sr * 0.2f), 0.0f);
+        const auto ev2 = transcribe (twice.data(), int (twice.size()), sr);
+        check (ev2.size() == 2 && ev2[0].midi == 60 && ev2[1].midi == 60 && ev2[0].end <= ev2[1].start, "repeated notes do not overlap");
+        if (ev2.size() == 2)
+        {
+            const auto both = renderPerformance (ev2, twice.size() / double (sr), g, defaults(), 48000);
+            const auto alone = renderPerformance ({ ev2[1] }, twice.size() / double (sr), g, defaults(), 48000);
+            const auto level = [] (const std::vector<float>& x) { double e = 0; for (size_t i = 2 * 33600; i < 2 * 38400; ++i) e += double (x[i]) * x[i]; return e; };
+            std::printf ("repeated note: %.1f dB against the note alone (0.70 .. 0.80 s)\n", 10 * std::log10 (level (both) / level (alone)));
+            check (level (both) > 0.5 * level (alone), "the second of two repeated notes sounds its full length");
+        }
     }
 
     std::printf (failures ? "%d FAILED\n" : "all checks passed\n", failures);

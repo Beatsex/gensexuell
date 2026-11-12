@@ -60,5 +60,8 @@ target_include_directories(EngineTest PRIVATE Source)
 add_executable(DatasetGen tools/DatasetGen.cpp)
 target_include_directories(DatasetGen PRIVATE Source)
 
+add_executable(Bench tools/Bench.cpp) # speed check, not run in CI
+target_include_directories(Bench PRIVATE Source)
+
 enable_testing()
 add_test(NAME EngineTest COMMAND EngineTest WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")

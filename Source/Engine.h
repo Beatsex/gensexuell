@@ -382,10 +382,13 @@ public:
     void start (int midi, int ch, int br, float vel, const Genome& g, const Controls& c, const Settings& s, float sampleRate,
                 uint32_t& rng, float glideFrom, float layerCents)
     {
+        // a sounding voice taken over (voice steal, mono retrigger) keeps its phases, filters and decimator and
+        // ramps from its current level, so it does not click; a free voice starts exactly as before
+        const bool steal = active && osStages == (c.lowCpu ? 0 : OS_STAGES);
         osStages = c.lowCpu ? 0 : OS_STAGES;
         os = 1 << osStages;
         sr = sampleRate * float (os);
-        for (auto& h : down) h = {};
+        if (! steal) for (auto& h : down) h = {};
         note = midi;
         channel = ch;
         branch = br;
@@ -460,18 +463,23 @@ public:
         modBAmt = (p[modB] - 0.5f) * 2.0f;
         holdBAmt = std::max (0.0f, p[holdB] - 0.5f) * 2.0f;
 
-        phA = phB = phL = phS = 0;
-        shHold = 0;
+        shHold = shB = 0;
         mod = modEnv = modAtkS > 0 ? 0.0f : 1.0f;
         modShT = 0;
-        amp = ampStart = 0;
-        fade = 1;
         t = tAll = 0;
-        f1 = {};
-        f2 = {};
-        f3 = {};
-        f4 = {};
-        nLp = nSlow = 0;
+        if (steal)
+            amp = ampStart = amp * fade;
+        else
+        {
+            phA = phB = phL = phS = 0;
+            amp = ampStart = 0;
+            f1 = {};
+            f2 = {};
+            f3 = {};
+            f4 = {};
+            nLp = nSlow = 0;
+        }
+        fade = 1;
         releasing = false;
         active = held = true;
         frozenBend = 0;
@@ -666,7 +674,8 @@ public:
                 return;
             }
             const float from = c.glide > 0 && anyHeld && monoActive() ? float (lastNote) : -1.0f; // glide only while a key is held
-            for (int j = 0; j < MAXV; ++j) if (j >= nb) voices[size_t (j)].active = false;
+            for (int j = nb; j < MAXV; ++j) // fewer layers than before: fade the extra voices out instead of cutting them
+                if (voices[size_t (j)].active && voices[size_t (j)].held) voices[size_t (j)].release (0.015f, bend[size_t (voices[size_t (j)].channel)]);
             for (int j = 0; j < nb; ++j)
                 voices[size_t (j)].start (midi, ch, brs[size_t (j)], vel, g, c, s, sr, rng, from, layered ? layerCents (g, brs[size_t (j)], a) : 0.0f),
                 voices[size_t (j)].age = ++clock;
@@ -750,6 +759,7 @@ private:
     // layers detune by atonality even at length 0, each branch its own fixed direction
     static float layerCents (const Genome& g, int br, float a) { return g.off[size_t (br)] / 0.18f * a * 25; }
 
+    // a free voice while under the limit, else the quietest released voice, else the oldest held one
     Voice* oldestOrFree (int limit)
     {
         int sounding = 0;
@@ -757,10 +767,14 @@ private:
         if (sounding < limit)
             for (auto& v : voices)
                 if (! v.active) return &v;
-        Voice* oldest = nullptr;
+        Voice *quietest = nullptr, *oldest = nullptr;
         for (auto& v : voices)
-            if (v.active && (oldest == nullptr || v.age < oldest->age)) oldest = &v;
-        return oldest != nullptr ? oldest : &voices[0];
+        {
+            if (! v.active) continue;
+            if (! v.held && (quietest == nullptr || v.level() < quietest->level())) quietest = &v;
+            if (oldest == nullptr || v.age < oldest->age) oldest = &v;
+        }
+        return quietest != nullptr ? quietest : oldest != nullptr ? oldest : &voices[0];
     }
 
     float sr = 48000;
@@ -819,7 +833,7 @@ inline float detectPitch (const float* x, int n, float sampleRate, float* streng
     std::vector<float> r (size_t (maxLag + 2), 0.0f);
     double e0 = 0;
     for (int i = 0; i < len - maxLag; ++i) e0 += double (x[start + i]) * x[start + i];
-    for (int lag = minLag; lag <= maxLag + 1 && lag < len; ++lag)
+    for (int lag = minLag; lag <= maxLag; ++lag) // one lag further would read past the end of a short input
     {
         double acc = 0, e1 = 0;
         for (int i = 0; i < len - maxLag; ++i)
