@@ -372,6 +372,8 @@ public:
         genome = audioGenome = defaultGenome (0x5EED1E55u);
         for (auto& p : paramDefs()) raw.push_back (apvts.getRawParameterValue (p.id));
         cc.fill (-1);
+        audioCc.fill (-1); // until the first block copies cc: no CC is mapped
+        ccTouch.assign (paramDefs().size(), 0.0);
        #if SEEDLING_HAS_NET
         net.load (BinaryData::net_bin, size_t (BinaryData::net_binSize), search.cfg);
        #endif
@@ -393,7 +395,11 @@ public:
         startTimerHz (60);
     }
 
-    ~SeedlingProcessor() override { search.pause(); }
+    ~SeedlingProcessor() override
+    {
+        stopTimer(); // before the members its callback reads go away
+        search.pause();
+    }
 
     // ------------------------------------------------------------ audio
     void prepareToPlay (double sampleRate, int block) override
@@ -535,12 +541,13 @@ public:
             inLevel = tracker.level;
             liveLevel = inLevel;
         }
-        else if (! live && liveNote.load() >= 0)
+        else if (! live && liveWas)
         {
-            engine.allOff();
-            tracker.reset(); // or the next switch-on starts with a note nobody plays
+            if (liveNote.load() >= 0) engine.allOff();
+            tracker.reset(); // or the next switch-on starts with a note nobody plays, from the old input
             liveNote = -1;
         }
+        liveWas = live;
 
         auto* L = buffer.getWritePointer (0);
         auto* R = buffer.getWritePointer (1);
@@ -806,15 +813,23 @@ public:
     // what the audio thread asked for: mapped CCs move their parameter, a program change loads a patch
     void timerCallback() override
     {
-        ccMoves.popAll ([this] (const CcMove& m)
+        // a knob turn is one gesture: it starts with the first move and ends a quarter second after the last
+        const double now = Time::getMillisecondCounterHiRes();
+        ccMoves.popAll ([this, now] (const CcMove& m)
         {
             if (auto* p = apvts.getParameter (paramDefs()[size_t (m.param)].id))
             {
-                p->beginChangeGesture();
+                if (ccTouch[size_t (m.param)] == 0) p->beginChangeGesture();
+                ccTouch[size_t (m.param)] = now;
                 p->setValueNotifyingHost (m.value);
-                p->endChangeGesture();
             }
         });
+        for (size_t i = 0; i < ccTouch.size(); ++i)
+            if (ccTouch[i] > 0 && now - ccTouch[i] > 250)
+            {
+                ccTouch[i] = 0;
+                if (auto* p = apvts.getParameter (paramDefs()[i].id)) p->endChangeGesture();
+            }
         if (const int prog = pendingProgram.exchange (-1); prog >= 0) loadProgram (prog);
     }
 
@@ -851,6 +866,7 @@ public:
     std::vector<float> perfAudio;              // performance -> seed: input at FEAT_SR
     std::vector<NoteEvent> perfNotes;
     std::vector<float> perfResult;             // rendered, stereo interleaved at 48 kHz
+    int perfGen = 0;                           // message thread: a new analysis or render outdates a render still running
 
     void getStateInformation (MemoryBlock& dest) override
     {
@@ -934,8 +950,10 @@ private:
     std::atomic<float> midiWheel { 0 }, pressureWheel { 0 };
     std::atomic<int> pendingProgram { -1 };
     Fifo<CcMove> ccMoves; // audio thread -> processor timer
+    std::vector<double> ccTouch; // per parameter: time of the last CC move while its gesture is open, else 0
     const Controls* blockControls = nullptr; // this block's controls and settings, for the live tracker's callbacks
     const Settings* blockSettings = nullptr;
+    bool liveWas = false; // live input was on in the last block (audio thread only)
     std::vector<float> auditionData, sideIn;
     int auditionChannels = 1;
     double auditionRate = FEAT_SR, auditionPos = -1;
@@ -1111,6 +1129,7 @@ private:
         o.octave = int (opts["octave"]);
         proc.perfNotes = transcribe (proc.perfAudio.data(), int (proc.perfAudio.size()), FEAT_SR, o);
         proc.perfResult.clear();
+        ++proc.perfGen;
         Array<var> notes;
         for (auto& n : proc.perfNotes)
         {
@@ -1132,7 +1151,7 @@ private:
     {
         if (proc.perfNotes.empty()) return done ({});
         Thread::launch ([notes = proc.perfNotes, seconds = proc.perfAudio.size() / double (FEAT_SR), g = proc.currentGenome(),
-                         c = proc.controls(), fx = proc.fxSettings(), done, editor = SafePointer<SeedlingEditor> (this)]
+                         c = proc.controls(), fx = proc.fxSettings(), done, editor = SafePointer<SeedlingEditor> (this), gen = ++proc.perfGen]
         {
             auto result = SeedlingProcessor::renderPerformanceWithMaster (notes, seconds, g, c, fx);
             const File f = rendersDir().getNonexistentChildFile ("gensexuell performance", ".wav");
@@ -1153,10 +1172,10 @@ private:
             DynamicObject::Ptr r = new DynamicObject();
             r->setProperty ("path", f.getFullPathName());
             r->setProperty ("seconds", result.size() / 2 / 48000.0);
-            MessageManager::callAsync ([editor, done, r = var (r.get()), result = std::move (result)]() mutable
+            MessageManager::callAsync ([editor, done, gen, r = var (r.get()), result = std::move (result)]() mutable
             {
                 if (editor == nullptr) return;
-                editor->proc.perfResult = std::move (result);
+                if (gen == editor->proc.perfGen) editor->proc.perfResult = std::move (result); // only the newest render is the result
                 done (r);
             });
         });

@@ -520,15 +520,24 @@ int main()
             std::getline (ref, line); // comment
             Params busy = base;
             busy[drive] = 0.9f; busy[sub] = 0.7f; busy[holdB] = 0.8f; busy[lfoShape] = 0.7f; busy[lfoAmt] = 0.6f;
+            // recorded with MSVC: other compilers and maths libraries round sin, pow and exp a little differently,
+            // so the match is to float rounding (a changed sound moves features by 1e-2 and more)
             int same = 0;
+            float worst = 0;
             for (const auto& p : { base, busy })
             {
                 Features want;
                 std::string tok;
                 std::getline (ref, line);
                 for (std::istringstream in (line); in >> tok;) want.push_back (float (std::strtod (tok.c_str(), nullptr)));
-                same += ! want.empty() && distance (patchFeatures (p, 60), want) == 0;
+                const auto got = patchFeatures (p, 60);
+                if (want.size() != got.size()) continue;
+                float d = 0;
+                for (size_t i = 0; i < got.size(); ++i) d = std::max (d, std::abs (got[i] - want[i]));
+                worst = std::max (worst, d);
+                same += d < 1e-3f;
             }
+            std::printf ("features against the reference: largest difference %g\n", double (worst));
             check (same == 2, "features of fixed patches match the recorded reference");
         }
 
@@ -706,6 +715,13 @@ int main()
         check (ons.size() == 2 && ons[0].first == 57 && ons[1].first == 64, "live tracker follows A3 then E4");
         if (ons.size() == 2) check (ons[0].second < 0.06 && ons[1].second - 0.4 < 0.06, "live notes start within 60 ms");
         check (offs == 1, "live note stops on silence");
+
+        // live input switched off in the middle of a note, then on again in silence: nothing may sound
+        feed (220, 0.4);
+        const size_t before = ons.size();
+        lt.reset();
+        feed (0, 0.2);
+        check (ons.size() == before, "after a reset the tracker does not replay the old input");
 
         // a lone click correlates with nothing: no pitch, and no read before the correlation array
         std::vector<float> click (1024, 0.0f), scratch (1024 / 2 + 2);

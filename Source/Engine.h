@@ -837,7 +837,7 @@ inline float detectPitch (const float* x, int n, float sampleRate, float* streng
     const int start = n / 8, len = std::min (n - start, int (sampleRate * 0.25f));
     const int minLag = int (sampleRate / 2000), maxLag = std::min (int (sampleRate / 40), len / 2);
     if (len < 2 * maxLag || maxLag <= minLag) return 0;
-    std::vector<float> r (size_t (maxLag + 2), 0.0f);
+    std::vector<float> r (size_t (maxLag + 1), 0.0f);
     double e0 = 0;
     for (int i = 0; i < len - maxLag; ++i) e0 += double (x[start + i]) * x[start + i];
     for (int lag = minLag; lag <= maxLag; ++lag) // one lag further would read past the end of a short input

@@ -211,8 +211,17 @@ public:
         level = 0;
     }
 
-    // forget the sounding note without reporting it (live input switched off)
-    void reset() { current = -1; quiet = voicedRun = away = 0; level = 0; }
+    // forget the sounding note and the buffered input without reporting anything (live input switched off)
+    void reset()
+    {
+        std::fill (ring.begin(), ring.end(), 0.0f);
+        pos = sinceHop = 0;
+        acc = 0;
+        accN = 0;
+        current = -1;
+        quiet = voicedRun = away = 0;
+        level = 0;
+    }
 
     float level = 0;   // input RMS of the last window, for the UI meter
     int current = -1;  // sounding note or -1
