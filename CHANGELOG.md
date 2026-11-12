@@ -25,6 +25,8 @@
 - FX signal flow: ORDER picks one of the six orders of DRIVE, TAPE and VERB (the cards follow it), PLACE puts them after or before the grain FX, Haze and Dusk. Saved with the patch.
 - LOW CPU MODE in ☰: the voices run without oversampling, about half the CPU per voice, with a little more aliasing on driven high notes. It applies from the next note, saved with the project, and the status line shows LOW CPU.
 - Fixed: notes repeated while held. Factory sounds and every new seed had an envelope LOOP (factory sounds every 0.63 s, seeds every 1 to 8 s) that restarted long notes. LOOP now starts OFF; branches can still grow into it, and saved patches keep their value.
+- Fixed: text → seed could transpose a take (octaves, semitones, cents) and switch LOOP or MOD S&H back on while it refined it. It now leaves pitch, LOOP and MOD S&H as the seed has them.
+- Sample → seed has a newly trained net that hears ENV TILT (the old one was trained while ENV TILT had no effect) and learns "no loop" and "no steps" as one value each.
 - Both manuals are on the website: https://beatsex.github.io/gensexuell/manual.html and https://beatsex.github.io/gensexuell/handbuch.html.
 
 ## 0.3.1

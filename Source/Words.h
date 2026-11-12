@@ -452,7 +452,8 @@ inline std::vector<Take> textTakes (const Wish& w, uint32_t seed, int takes = 4,
             for (int gen = 0; gen < generations; ++gen)
             {
                 Params child = out[t].genes;
-                for (int k : netGenes()) child[size_t (k)] = clamp01 (child[size_t (k)] + n (r) * sigma);
+                for (int k : netGenes()) // words describe the sound: pitch, LOOP and MOD S&H stay as the seed has them
+                    if (! isPitchGene (k) && k != envLoop && k != modSH) child[size_t (k)] = clamp01 (child[size_t (k)] + n (r) * sigma);
                 const float d = wishDistance (w, describePatch (child, w.note));
                 if (d < out[t].fit) { out[t].genes = child; out[t].fit = d; sigma *= 1.2f; }
                 else sigma *= 0.85f;
