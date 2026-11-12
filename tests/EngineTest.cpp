@@ -163,6 +163,28 @@ int main()
         std::printf ("glide: %.1f Hz -> %.1f Hz\n", fEarly, fLate);
         check (fEarly < 450 && near (fLate, 523.25f, 4), "glide moves from C4 up to C5");
     }
+    {
+        // pitch split: A by octave + semitones, B relative to A; a sine at C4 (261.63 Hz)
+        auto pitchOf = [&] (float octA_, float semiA_, float semiB_, float mixB) {
+            Params p = neutralGenes();
+            p[waveA] = 0; p[waveB] = 0; p[mix] = mixB; p[noise] = 0; p[fm] = 0; p[sub] = 0.5f; p[cutoff] = 1; p[fltEnv] = 0;
+            p[attack] = 0; p[sustain] = 1; p[lfoAmt] = 0; p[fltType] = 0.5f; p[drive] = 0.5f;
+            p[octA] = octA_; p[semiA] = semiA_; p[semiB] = semiB_;
+            Controls cs = defaults();
+            cs.base = p;
+            cs.len.fill (0);
+            cs.atonality = 0;
+            Engine e;
+            e.prepare (48000);
+            e.noteOn (1, 60, 0.9f, -1, g, cs, s);
+            play (e, g, cs, s, 40);
+            const auto x = play (e, g, cs, s, 40);
+            return detectPitch (x.data(), int (x.size()), 48000);
+        };
+        const float up = pitchOf (0.75f, 0.5f + 7 / 24.0f, 0.5f, 0), bUp = pitchOf (0.5f, 0.5f, 1, 1);
+        std::printf ("pitch split: A +1 oct +7 st %.1f Hz, B +12 st %.1f Hz\n", up, bUp);
+        check (near (up, 783.99f, 6) && near (bUp, 523.25f, 4), "octave, semitone and B offsets move the pitch");
+    }
 
     // ---- voice colours outside every seed's range: ring mod, wavefold, stepped LFO; the ranges seeds use stay as they were
     {

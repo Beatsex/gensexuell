@@ -21,6 +21,8 @@ enum Gene
     // random stream and not yet wired into the voice until P1b (keeps index.html parity + net stable).
     envTime, envTilt, modHold, lfoBalance, pitchA, noiseB, modB, holdB, fmMod, mixMod, shaper,
     rvbSize, rvbAttack, rvbLength, fxMix, fxSize, fxLength, fxDamp, fxChorus,
+    // E2 pitch split, appended for index stability; pitchA above is retired (silent) so old patches keep their pitch
+    octA, semiA, centA, semiB, centB,
     NP
 };
 // genes that existed before the expansion; the seed/dirs stream covers exactly these
@@ -30,7 +32,8 @@ inline const char* const KEYS[NP] = {
     "volFade", "envLoop", "envKey", "modAttack", "modVel", "lfoShape", "lfoDelay", "noiseColor", "sub", "fltType", "fltSpread", "fltKey", "drive",
     "space", "damp", "chorus", "bass", "treble", "spread",
     "envTime", "envTilt", "modHold", "lfoBalance", "pitchA", "noiseB", "modB", "holdB", "fmMod", "mixMod", "shaper",
-    "rvbSize", "rvbAttack", "rvbLength", "fxMix", "fxSize", "fxLength", "fxDamp", "fxChorus"
+    "rvbSize", "rvbAttack", "rvbLength", "fxMix", "fxSize", "fxLength", "fxDamp", "fxChorus",
+    "octA", "semiA", "centA", "semiB", "centB"
 };
 // effect genes act on the shared master bus, so they always come from the seed, never from a branch
 inline bool isMasterGene (int k)
@@ -127,6 +130,7 @@ inline Params seedParams (uint32_t n, float atonality)
     p[bass] = 0.3f + p[bass] * 0.4f;
     p[treble] = 0.3f + p[treble] * 0.4f;
     p[spread] = 0.3f + p[spread] * 0.5f;
+    for (int k = octA; k <= centB; ++k) p[size_t (k)] = 0.5f; // seeds start in tune
     if (atonality < 50) p[ratioB] = snap (p[ratioB]);
     return p;
 }
@@ -164,14 +168,20 @@ inline float effectiveLen (const Controls& c, int i)
     return l;
 }
 
+// pitch genes only drift with atonality (keep in sync with branchParams() in index.html)
+inline bool isPitchGene (int k) { return k == pitchMod || (k >= octA && k <= centB); }
+// whole steps: floor (x + 0.5) rounds the same way as pitchSteps() in index.html
+inline float pitchSteps (float p, float range) { return std::floor ((p - 0.5f) * range + 0.5f); }
+
 inline Params branchParams (const Genome& g, const Controls& c, int i)
 {
     const float a = c.atonality / 100, l = effectiveLen (c, i), amt = l * l * (0.4f + a);
     Params p;
     for (int k = 0; k < NP; ++k)
         p[size_t (k)] = isMasterGene (k) ? c.base[size_t (k)]
-                                         : clamp01 (c.base[size_t (k)] + g.dir[size_t (i)][size_t (k)] * amt * (k == pitchMod ? a : 1.0f));
+                                         : clamp01 (c.base[size_t (k)] + g.dir[size_t (i)][size_t (k)] * amt * (isPitchGene (k) ? a : 1.0f));
     if (a < 0.5f && amt > 0) p[ratioB] = snap (p[ratioB]);
+    if (a < 0.5f) for (int k : { octA, semiA, semiB }) p[size_t (k)] = c.base[size_t (k)]; // tonal: whole steps stay put
     return p;
 }
 
@@ -395,7 +405,8 @@ public:
         gr = std::sin (x);
 
         // 54-gene expansion voice controls (neutral at 0.5 where possible)
-        pitchASemi = (p[pitchA] - 0.5f) * 24.0f;      // oscillator A detune in semitones
+        pitchACents = pitchSteps (p[octA], 4) * 1200 + pitchSteps (p[semiA], 24) * 100 + (p[centA] - 0.5f) * 100; // -2..+2 oct, +-12 st, +-50 ct
+        ratio *= std::exp2 (pitchSteps (p[semiB], 24) / 12 + (p[centB] - 0.5f) / 12);                         // B relative to A
         fmModAmt = std::max (0.0f, p[fmMod] - 0.5f) * 2.0f;
         mixModAmt = (p[mixMod] - 0.5f) * 2.0f;
         noiseBAmt = std::max (0.0f, p[noiseB] - 0.5f) * 2.0f;
@@ -443,8 +454,8 @@ public:
     {
         const auto& T = Tables::get();
         const float fNow = masterTune * std::exp2 ((semi - 69) / 12);
-        const float* ta = T.table (p[waveA], fNow * std::exp2 (pitchASemi / 12.0f) * 2, sr); // headroom for vibrato, sweep and glide
-        const float* tb = T.table (p[waveB], fNow * ratio * 2, sr);
+        const float* ta = T.table (p[waveA], fNow * std::exp2 (pitchACents / 1200) * 2, sr); // headroom for vibrato, sweep and glide
+        const float* tb = T.table (p[waveB], fNow * std::exp2 (pitchACents / 1200) * ratio * 2, sr);
         const float fmIndex = std::pow (clamp01 (p[fm] + live.fmAdd), 2.0f) * 10;
         const float lfoA = clamp01 (p[lfoAmt] + live.lfoAdd), lfoCents = lfoA * lfoA * 100 * (1 - trem) * (1 - 0.5f * lfoBal), tremDepth = lfoA * trem * 0.5f * (1 + 0.5f * lfoBal);
         const float fltT = p[fltType];
@@ -475,7 +486,7 @@ public:
             semi += (targetSemi - semi) * glideCoef;
             const float lfoFade = lfoDelayS > 0 ? std::min (1.0f, tAll / lfoDelayS) : 1.0f;
             const float lfo = (std::sin (2 * PI * phL) * (1 - shMix) + shHold * shMix) * lfoFade;
-            const float cents = (semi - 69) * 100 + tune + sweep * mod * modScale + lfo * lfoCents + live.bendSemis * 100;
+            const float cents = (semi - 69) * 100 + tune + pitchACents + sweep * mod * modScale + lfo * lfoCents + live.bendSemis * 100;
             const float f = masterTune * std::exp2 (cents / 1200);
 
             const float b = lookup (tb, phB);
@@ -551,7 +562,7 @@ private:
     float decCoef = 0, relCoef = 0, sus = 0, peak = 0, amp = 0, ampStart = 0, fade = 1, fadeCoef = 1, loopS = 0;
     float atkS = 1, oneShotEnd = -1, gl = 0.7f, gr = 0.7f, phA = 0, phB = 0, phL = 0, phS = 0, t = 0, tAll = 0;
     float shMix = 0, shHold = 0, ringAmt = 0, foldAmt = 0;
-    float pitchASemi = 0, fmModAmt = 0, mixModAmt = 0, noiseBAmt = 0, shaperAmt = 0;
+    float pitchACents = 0, fmModAmt = 0, mixModAmt = 0, noiseBAmt = 0, shaperAmt = 0;
     float envTiltVal = 0, modHoldLevel = 0, lfoBal = 0, modBAmt = 0, holdBAmt = 0, shB = 0;
     bool releasing = false;
 };

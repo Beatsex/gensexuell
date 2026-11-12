@@ -490,8 +490,13 @@ const KEYS=['waveA','waveB','ratioB','fm','mix','noise','cutoff','reso','fltEnv'
   'volFade','envLoop','envKey','modAttack','modVel','lfoShape','lfoDelay','noiseColor','sub','fltType','fltSpread','fltKey','drive',
   'space','damp','chorus','bass','treble','spread',
   'envTime','envTilt','modHold','lfoBalance','pitchA','noiseB','modB','holdB','fmMod','mixMod','shaper',
-  'rvbSize','rvbAttack','rvbLength','fxMix','fxSize','fxLength','fxDamp','fxChorus'];
+  'rvbSize','rvbAttack','rvbLength','fxMix','fxSize','fxLength','fxDamp','fxChorus',
+  'octA','semiA','centA','semiB','centB']; // pitchA is retired: kept so old patches load, not shown
 const BASE=KEYS.slice(0,35); // genes seeded/streamed before the expansion (keep in sync with Engine.h BASE_GENES)
+const PITCH=['octA','semiA','centA','semiB','centB'];
+const pitchSteps=(p,range)=>Math.floor((p-.5)*range+.5); // same rounding as Engine.h pitchSteps()
+const sgn=v=>(v>0?'+':v<0?'−':'')+Math.abs(v);
+const PITCH_FMT={octA:v=>sgn(pitchSteps(v,4))+' oct',semiA:v=>sgn(pitchSteps(v,24))+' st',centA:v=>sgn(Math.round((v-.5)*100))+' ct',semiB:v=>sgn(pitchSteps(v,24))+' st',centB:v=>sgn(Math.round((v-.5)*100))+' ct'};
 const MASTER=new Set(['space','damp','chorus','bass','treble','rvbSize','rvbAttack','rvbLength','fxMix','fxSize','fxLength','fxDamp','fxChorus']);
 const GENE_INFO={
   attack:['ATTACK','Volume attack time'],decay:['DECAY','Volume decay time'],sustain:['SUSTAIN','Level held while the key is down (below 0.08: none)'],
@@ -510,11 +515,13 @@ const GENE_INFO={
   modB:['MOD B','Modulation of oscillator B'],holdB:['HOLD B','Sample & hold on B'],fmMod:['FM MOD','FM depth from the mod envelope'],
   mixMod:['MIX MOD','Mix follows the mod envelope'],shaper:['SHAPER','Wave shaper'],rvbSize:['ROOM SIZE','Reverb size'],
   rvbAttack:['ROOM ATTACK','Reverb attack'],rvbLength:['ROOM LENGTH','Reverb length'],fxMix:['FX MIX GENE','Extra FX mix'],
-  fxSize:['FX SIZE','Extra FX size'],fxLength:['FX LENGTH','Extra FX length'],fxDamp:['FX DAMP','Extra FX damping'],fxChorus:['FX CHORUS','Extra FX chorus']};
+  fxSize:['FX SIZE','Extra FX size'],fxLength:['FX LENGTH','Extra FX length'],fxDamp:['FX DAMP','Extra FX damping'],fxChorus:['FX CHORUS','Extra FX chorus'],
+  octA:['OCT A','Oscillator A octave, −2 to +2 (B, FM and sub follow A)'],semiA:['SEMI A','Oscillator A semitones, ±12'],centA:['CENT A','Oscillator A fine tune, ±50 cents'],
+  semiB:['SEMI B','Oscillator B semitones on top of RATIO B, ±12'],centB:['CENT B','Oscillator B fine tune on top of RATIO B, ±50 cents']};
 const SECTIONS=[['ENVELOPE & LFO',['attack','decay','sustain','volFade','envLoop','envKey','modAttack','modDecay','modVel','lfoRate','lfoAmt','lfoShape','lfoDelay']],
-  ['OSCILLATORS',['waveA','waveB','ratioB','fm','mix','noise','noiseColor','sub','pitchMod']],
+  ['OSCILLATORS',['waveA','waveB','ratioB','fm','mix','noise','noiseColor','sub','pitchMod','octA','semiA','centA','semiB','centB']],
   ['FILTER & EFFECT',['cutoff','reso','fltEnv','fltType','fltSpread','fltKey','drive','space','damp','chorus','bass','treble','spread']],
-  ['EXTRA',['envTime','envTilt','modHold','lfoBalance','pitchA','noiseB','modB','holdB','fmMod','mixMod','shaper','rvbSize','rvbAttack','rvbLength','fxMix','fxSize','fxLength','fxDamp','fxChorus']]];
+  ['EXTRA',['envTime','envTilt','modHold','lfoBalance','noiseB','modB','holdB','fmMod','mixMod','shaper','rvbSize','rvbAttack','rvbLength','fxMix','fxSize','fxLength','fxDamp','fxChorus']]];
 const NOTE=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 const HARM=[0,.5,.75,.5+Math.log2(3)/4,1]; // ratio positions for 0.5x 1x 2x 3x 4x
 const PATCH_FIELDS=['name','seed','base','br','len','gain','layers','tuning','effect','volume','release','atonality','fxType','fxVariant','fxSwarm','fxTail','fxSpan','fxScatter','fxMix',
@@ -552,6 +559,7 @@ function seedParams(n){
   p.attack**=2.2;p.noise*=p.noise*.6;p.pitchMod=.5+(p.pitchMod-.5)*.25;p.lfoAmt*=.5;p.reso*=.8;p.fm*=.7;
   p.volFade*=.8;p.envLoop=.6+p.envLoop*.4;p.modAttack*=.6;p.lfoShape*=.7;p.sub=.3+p.sub*.5;p.fltType=.3+p.fltType*.4;
   p.fltSpread=.5+(p.fltSpread-.5)*.6;p.fltKey=.35+p.fltKey*.3;p.drive=.3+p.drive*.4;p.bass=.3+p.bass*.4;p.treble=.3+p.treble*.4;p.spread=.3+p.spread*.5;
+  for(const k of PITCH)p[k]=.5; // seeds start in tune
   if(S.atonality<50)p.ratioB=snap(p.ratioB);
   return p;
 }
@@ -571,8 +579,9 @@ function wheelAmt(){return clamp(Math.max(S.wheel,wheelLive))*S.wheelScale/100}
 function effLen(i){const l=S.len[i],w=wheelAmt();return S.wheelTarget===0?l+(1-l)*w:S.wheelTarget===1?l*(1-w):l}
 function branchParams(i){
   const b=S.br[i],a=S.atonality/100,l=effLen(i),amt=l*l*(.4+a),p={};
-  for(const k of KEYS)p[k]=MASTER.has(k)?S.base[k]:clamp(S.base[k]+b.dir[k]*amt*(k==='pitchMod'?a:1));
+  for(const k of KEYS)p[k]=MASTER.has(k)?S.base[k]:clamp(S.base[k]+b.dir[k]*amt*(k==='pitchMod'||PITCH.includes(k)?a:1));
   if(a<.5&&amt>0)p.ratioB=snap(p.ratioB);
+  if(a<.5)for(const k of ['octA','semiA','semiB'])p[k]=S.base[k]; // tonal: whole steps stay put
   return p;
 }
 
@@ -734,7 +743,7 @@ const pct=v=>Math.round(v)+' %',unit=v=>v.toFixed(2);
 [{key:'tuning',name:'TUNING',min:-12,max:12,step:.1,fmt:v=>v.toFixed(1)+' st'},{key:'effect',name:'EFFECT',min:0,max:100,step:1,fmt:pct},
  {key:'volume',name:'VOLUME',min:-24,max:6,step:.5,fmt:v=>v.toFixed(1)+' dB'},{key:'release',name:'RELEASE',min:0,max:100,step:1,fmt:pct},
  {key:'atonality',name:'ATONALITY',min:0,max:100,step:1,fmt:pct}].forEach(c=>mkSlider($('ctls'),c,true));
-{const b=document.createElement('button');b.id='bGenes';b.className='geneCell';b.title='Edit the genes of the seed';b.textContent='ALL '+KEYS.length+' GENES';$('ctls').append(b)}
+{const b=document.createElement('button');b.id='bGenes';b.className='geneCell';b.title='Edit the genes of the seed';b.textContent='ALL '+SECTIONS.flatMap(s=>s[1]).length+' GENES';$('ctls').append(b)}
 mkSlider($('lower'),{key:'glide',name:'GLIDE',min:0,max:10,step:.01,fmt:v=>v.toFixed(2)+' s'});
 mkSlider($('lower'),{key:'wheelScale',name:'WHEEL',min:0,max:100,step:1,fmt:pct});
 mkSlider($('lower'),{key:'velSens',name:'VELOCITY',min:0,max:100,step:1,fmt:pct});
@@ -855,7 +864,7 @@ function renderGenes(){
   for(let i=SLIDERS.length-1;i>=0;i--)if(SLIDERS[i].gene)SLIDERS.splice(i,1);
   $('geneGrid').replaceChildren();
   for(const k of SECTIONS[geneTab][1]){
-    const s=mkSlider($('geneGrid'),{name:GENE_INFO[k][0],min:0,max:1,step:.001,fmt:unit,get:()=>S.base[k],set:v=>{S.base[k]=v;drawGraph()}});
+    const s=mkSlider($('geneGrid'),{name:GENE_INFO[k][0],min:0,max:1,step:.001,fmt:PITCH_FMT[k]||unit,get:()=>S.base[k],set:v=>{S.base[k]=v;drawGraph()}});
     s.gene=k;s.reset=k==='space'?.3:.5;
     s.el.addEventListener('pointerenter',()=>$('geneFoot').textContent=GENE_INFO[k][1].toUpperCase());
   }
@@ -1296,7 +1305,7 @@ function selfTest(){
   S.len[0]=1;const q=branchParams(0);console.assert(KEYS.every(k=>q[k]>=0&&q[k]<=1),'branch params in range');
   S.len[0]=save;
   console.assert(PRESETS.every(p=>Object.entries(p.params).every(([k,v])=>KEYS.includes(k)&&v>=0&&v<=1)),'presets use known genes');
-  console.assert(KEYS.every(k=>GENE_INFO[k])&&SECTIONS.flatMap(s=>s[1]).length===KEYS.length,'every gene has a label and a section');
+  console.assert(KEYS.every(k=>GENE_INFO[k])&&SECTIONS.flatMap(s=>s[1]).length===KEYS.length-1&&!SECTIONS.flatMap(s=>s[1]).includes('pitchA'),'every gene has a label and a section');
 }
 selfTest();syncCtls();hud(false);drawStrands();requestAnimationFrame(frame);
 </script>

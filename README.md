@@ -44,7 +44,7 @@ Then restart your DAW (or rescan plugins) and insert it as an instrument: *beats
   - **Bring a sample**: drop a one-shot. A neural net guesses the genes, four strands refine the match while you listen.
 - **Performance → seed**: drop a monophonic recording (vocals, humming, bass). It finds notes, timing, dynamics and bends and plays them with the current seed. Drag the result into your DAW as WAV or MIDI.
 - **Live input**: route audio to the sidechain and play the synth with your voice or an instrument in real time.
-- **54 genes** in a gene editor, with ring modulation, wavefolding and stepped random pitch at their far ends
+- **58 genes** in a gene editor, with ring modulation, wavefolding and stepped random pitch at their far ends
 - **Bulb modes** (standard, velocity, ranges, layered), poly / mono / legato with glide, branch volumes
 - **Mod wheel ring** with ten targets, tempo sync, MPE basics
 - **Grain effects** from [grainsexuell](https://github.com/Beatsex/grainsexuell): Mosaic, Cloud, Shard, Tap, plus Haze reverb and Dusk low-pass
