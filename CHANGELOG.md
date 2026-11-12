@@ -14,7 +14,7 @@
 - No more double names: the live input slider is now LIVE GLIDE and the mod wheel amount is WHEEL DEPTH.
 - The gene editor shows real values: ms and s, Hz and kHz, dB, octaves, wave and filter names, ON/OFF where a gene only acts above a point. Times and cutoff are shown as played at C4.
 - SOW, NEW SEED, REROLL and CLONE say how they differ, and a first-start hint in the seed view says what to do first until you play a key or drag a branch.
-- Three effect genes that did nothing now work: ROOM DELAY (reverb pre-delay up to 250 ms, above 0.5), ROOM LENGTH (reverb decay ×½ … ×2) and CHORUS RATE (0.04 … 2.8 Hz, when CHORUS is on). Saved patches use the values they already hold, so their reverb can sound shorter, longer or later than before.
+- The FX CHORUS gene now sets the chorus speed (CHORUS RATE, 0.04 … 2.8 Hz, when CHORUS is on); before, it did nothing. Saved patches use the value they already hold, so their chorus can move faster or slower than before. ROOM ATTACK and ROOM LENGTH still do nothing and say NOT USED.
 - Both manuals are on the website: https://beatsex.github.io/gensexuell/manual.html and https://beatsex.github.io/gensexuell/handbuch.html.
 
 ## 0.3.1
