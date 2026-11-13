@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- A preset browser inside the plugin: PRESETS… in the main menu and at the top of the patch menu opens the 355 factory presets by category, together with your own .seedling files from Documents\Seedling (in USER, or under the name of their folder). Click or ↑ ↓ to load, ← → to change category; ‹ › next to the patch name step through the category of the loaded preset. The factory presets are built into the plugin, so they work without the installer or the Presets folder.
 - Fixed: reopening a project reset parameters that the DAW had changed (automation, a mapped MIDI CC or the DAW's own parameter view) to the values the gensexuell window last showed. The project's parameter values now win.
 - Fixed: a repeated note of the same pitch (performance → seed, in the rendered WAV and in the exported MIDI file) was cut off after 20 ms, because the previous note's end reached into it.
 - Fixed: a short click on a silent sidechain in live mode could read outside the pitch detector's memory.
