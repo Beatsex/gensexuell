@@ -91,6 +91,9 @@ const std::vector<ParamDef>& paramDefs()
         top ("liveGate", "Live Gate", -70, -10, 1, -45);
         top ("liveGlide", "Live Glide", 0, 0.5f, 0.001f, 0.03f, 0.5f);
         choice ("liveFollow", "Live Follow Level", { "Off", "On" });
+        top ("liveCutoff", "Live Level to Cutoff", -1, 1, 0.001f, 0);
+        top ("liveFm", "Live Level to FM", 0, 1, 0.001f, 0);
+        top ("liveBright", "Live Noise to Brightness", 0, 1, 0.001f, 0);
         top ("liveOctave", "Live Octave", -2, 2, 1, 0);
 
         const auto lens = freshLens (0x5EED1E55u);
@@ -552,16 +555,36 @@ public:
 
         auto* L = buffer.getWritePointer (0);
         auto* R = buffer.getWritePointer (1);
+        // the sidechain modulates every voice: its level (cutoff, FM) and how noisy it is (brightness). The follower
+        // moves every 64 samples, so the filter does not step; with all three at 0 the engine renders exactly as before
+        const float modCut = live ? value ("liveCutoff") : 0.0f, modFm = live ? value ("liveFm") : 0.0f, modBright = live ? value ("liveBright") : 0.0f;
+        const bool sideMod = modCut != 0 || modFm > 0 || modBright > 0;
+        const float inEnv = std::min (1.0f, inLevel / 0.125f), inNoise = (1 - tracker.confidence) * inEnv;
+        auto renderSpan = [&] (int from, int to)
+        {
+            if (! sideMod) { engine.render (L + from, R + from, to - from, c, s); return; }
+            for (int pos = from; pos < to; pos += 64)
+            {
+                const int m = std::min (64, to - pos);
+                const float k = 1 - std::exp (-float (m) / (0.01f * float (sr))); // ~10 ms
+                sideEnv += (inEnv - sideEnv) * k;
+                sideNoise += (inNoise - sideNoise) * k;
+                Live mod;
+                mod.filterMul = std::exp2 (modCut * sideEnv * 4 + modBright * sideNoise * 3);
+                mod.fmAdd = modFm * sideEnv;
+                engine.render (L + pos, R + pos, m, c, s, mod);
+            }
+        };
         int at = 0;
         for (const auto m : midi)
         {
             const auto msg = m.getMessage();
             const int to = std::clamp (m.samplePosition, at, n);
-            engine.render (L + at, R + at, to - at, c, s);
+            renderSpan (at, to);
             at = to;
             handleMidi (msg, c, s);
         }
-        engine.render (L + at, R + at, n - at, c, s);
+        renderSpan (at, n);
         if (live && value ("liveFollow") > 0.5f) // the input's level shapes the synth
         {
             const float target = std::min (2.0f, inLevel / 0.125f);
@@ -964,7 +987,7 @@ private:
     double auditionRate = FEAT_SR, auditionPos = -1;
     MasterChain master;
     LiveTracker tracker;
-    float follow = 0;
+    float follow = 0, sideEnv = 0, sideNoise = 0; // live follow level; sidechain modulation followers (audio thread)
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SeedlingProcessor)
 };

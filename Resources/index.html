@@ -674,7 +674,7 @@ const FX_DEFAULT={fxOrder:0,fxPlace:0,drvOn:0,drvStyle:0,drvAmt:.35,drvTone:.5,d
 let S={lowCpu:0,seed:0x5EED1E55,name:'',sel:2,tuning:0,effect:35,volume:-8,release:40,atonality:20,velSens:100,glide:0,wheel:0,wheelScale:100,rotation:0,
   bulbMode:0,voiceMode:0,wheelTarget:0,tempoSync:0,fxType:0,fxVariant:0,fxSwarm:.5,fxTail:.5,fxSpan:.5,fxScatter:0,fxMix:.35,
   ...FX_DEFAULT,
-  liveOn:0,liveGate:-45,liveGlide:.03,liveFollow:0,liveOctave:0,
+  liveOn:0,liveGate:-45,liveGlide:.03,liveFollow:0,liveOctave:0,liveCutoff:0,liveFm:0,liveBright:0,
   gain:Array(12).fill(1),layers:Array(12).fill(true),lock:[],midi:{...MIDI_DEFAULT},cc:{},programs:Array(16).fill(null),patchPath:'',zoom:1};
 S.base=seedParams(S.seed);S.br=dirsFor(S.seed);S.len=freshLens(S.seed);S.len[2]=.75;
 let wheelLive=0;
@@ -815,6 +815,7 @@ const HELP={tuning:'Tunes the whole sound, ±12 semitones',effect:'How much reve
   release:'How long notes ring after you let go: 20 ms … 4 s',atonality:'How wild new branches grow: low stays in tune and close to the seed, above 50 % ratios go free, metallic and noisy',
   glide:'Portamento: how long the pitch slides to the next note while you still hold the previous one',wheelScale:'How far the mod wheel reaches',velSens:'How much playing harder makes it louder',
   liveGate:'Live input quieter than this counts as silence: raise it if breaths or room noise trigger notes',liveGlide:'How smoothly the live pitch follows you between notes',liveOctave:'Plays the live input up to two octaves higher or lower',
+  liveCutoff:'How much the loudness of your input opens (or, below 0, closes) the filter of every voice',liveFm:'How much the loudness of your input adds FM to every voice',liveBright:'Breathy or noisy input (no clear pitch) opens the filter of every voice',
   fxSwarm:'Grain density: how many grains per second',fxTail:'Feedback: how long the grain effect keeps going',fxSpan:'Grain length',fxScatter:'Randomness: where grains start, their pitch and their place in the stereo field',fxMix:'How much of the grain effect you hear',
   HAZE:'Reverb type: Room, Plate, Hall or Swell (EFFECT sets how much)',DUSK:'Low-pass on the whole sound: off up to 50, darker above',
   liveOn:'Live input: gensexuell plays along with one voice or instrument on its sidechain input',liveFollow:'Own envelope: the seed shapes each note. Follow level: the loudness of your input shapes it',
@@ -892,6 +893,9 @@ mkSelect($('liveSelects'),'liveFollow','',['OWN ENVELOPE','FOLLOW LEVEL']);
 mkSlider($('liveMinis'),{key:'liveGate',name:'GATE',min:-70,max:-10,step:1,fmt:v=>Math.round(v)+' dB'});
 mkSlider($('liveMinis'),{key:'liveGlide',name:'LIVE GLIDE',min:0,max:.5,step:.001,fmt:v=>Math.round(v*1000)+' ms'});
 mkSlider($('liveMinis'),{key:'liveOctave',name:'OCTAVE',min:-2,max:2,step:1,fmt:v=>(v>0?'+':'')+v});
+mkSlider($('liveMinis'),{key:'liveCutoff',name:'LEVEL → CUTOFF',min:-1,max:1,step:.001,fmt:v=>(v>0?'+':'')+Math.round(v*100)+' %'});
+mkSlider($('liveMinis'),{key:'liveFm',name:'LEVEL → FM',min:0,max:1,step:.001,fmt:v=>Math.round(v*100)+' %'});
+mkSlider($('liveMinis'),{key:'liveBright',name:'NOISE → BRIGHT',min:0,max:1,step:.001,fmt:v=>Math.round(v*100)+' %'});
 mkSelect($('modes'),'bulbMode','BULB',['STANDARD','VELOCITY','RANGES','LAYERED']);
 mkSelect($('modes'),'voiceMode','VOICE',['POLY','MONO','LEGATO']);
 mkSelect($('modes'),'wheelTarget','WHEEL',['GROWTH +','GROWTH −','FILTER +','FILTER −','ENV TIME +','ENV TIME −','FM','LFO','EFFECT','VOLUME']);

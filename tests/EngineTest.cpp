@@ -510,6 +510,32 @@ int main()
         check (e.activeVoices() == 1 && jump < 1.5f * steady, "a stolen voice does not click");
     }
 
+    // ---- sidechain modulation: none renders exactly as before, a loud input opens the filter
+    {
+        Controls mc = defaults();
+        mc.base[cutoff] = 0.3f; mc.base[fltEnv] = 0; mc.base[attack] = 0; mc.base[sustain] = 1; mc.base[waveA] = 0.57f;
+        auto playWith = [&] (const Live* mod)
+        {
+            Engine e;
+            e.prepare (48000);
+            e.noteOn (1, 48, 0.9f, -1, g, mc, s);
+            std::vector<float> out, L (256), R (256);
+            for (int b = 0; b < 40; ++b)
+            {
+                std::fill (L.begin(), L.end(), 0.0f); std::fill (R.begin(), R.end(), 0.0f);
+                if (mod != nullptr) e.render (L.data(), R.data(), 256, mc, s, *mod); else e.render (L.data(), R.data(), 256, mc, s);
+                out.insert (out.end(), L.begin(), L.end());
+            }
+            return out;
+        };
+        const Live none, open = [] { Live l; l.filterMul = std::exp2 (4.0f); return l; }();
+        const auto plain = playWith (nullptr), zero = playWith (&none), bright = playWith (&open);
+        auto edge = [] (const std::vector<float>& x) { double d = 0; for (size_t i = 1; i < x.size(); ++i) d += double (x[i] - x[i - 1]) * (x[i] - x[i - 1]); return d; };
+        std::printf ("sidechain: brightness %.3g without, %.3g with the filter opened\n", edge (plain), edge (bright));
+        check (plain == zero, "no sidechain modulation renders bit-identically");
+        check (edge (bright) > 2 * edge (plain), "a loud input with LEVEL -> CUTOFF opens the filter");
+    }
+
     // ---- sound -> seed
     {
         const auto f1 = patchFeatures (base, 60), f2 = patchFeatures (base, 60);

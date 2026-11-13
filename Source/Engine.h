@@ -733,14 +733,15 @@ public:
     void pressure (int ch, float value) { press[size_t (std::clamp (ch, 0, NCH - 1))] = value; }
     void slide (int ch, float value) { slideY[size_t (std::clamp (ch, 0, NCH - 1))] = value; }
 
-    void render (float* L, float* R, int n, const Controls& c, const Settings& s)
+    // `from`: modulation from outside the engine (the sidechain), applied before the wheel's
+    void render (float* L, float* R, int n, const Controls& c, const Settings& s, const Live& from = {})
     {
         const float w = wheelAmount (c);
-        Live live;
-        if (c.wheelTarget == filterUp) live.filterMul = std::exp2 (w * 4);
-        if (c.wheelTarget == filterDown) live.filterMul = std::exp2 (-(1 - w) * 6);
-        if (c.wheelTarget == fmAmount) live.fmAdd = w;
-        if (c.wheelTarget == lfoAmount) live.lfoAdd = w;
+        Live live = from;
+        if (c.wheelTarget == filterUp) live.filterMul *= std::exp2 (w * 4);
+        if (c.wheelTarget == filterDown) live.filterMul *= std::exp2 (-(1 - w) * 6);
+        if (c.wheelTarget == fmAmount) live.fmAdd += w;
+        if (c.wheelTarget == lfoAmount) live.lfoAdd += w;
         for (auto& v : voices)
         {
             if (! v.active) continue;

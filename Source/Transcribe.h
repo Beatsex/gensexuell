@@ -208,7 +208,7 @@ public:
         accN = 0;
         current = -1;
         quiet = voicedRun = away = 0;
-        level = 0;
+        level = confidence = 0;
     }
 
     // forget the sounding note and the buffered input without reporting anything (live input switched off)
@@ -220,10 +220,11 @@ public:
         accN = 0;
         current = -1;
         quiet = voicedRun = away = 0;
-        level = 0;
+        level = confidence = 0;
     }
 
     float level = 0;   // input RMS of the last window, for the UI meter
+    float confidence = 0; // periodicity of the last window, 0 .. 1: low for noise and breath, high for a clear pitch
     int current = -1;  // sounding note or -1
 
     void process (const float* in, int n, float gateDb, int octave)
@@ -253,6 +254,7 @@ private:
         const float gate = std::pow (10.0f, gateDb / 20);
         float strength = 0;
         const float hz = level > gate ? windowPitch (w.data(), WIN, rate, strength, scratch.data()) : 0.0f;
+        confidence = strength;
         const bool voiced = hz > 0 && strength > 0.7f;
 
         if (current < 0)
