@@ -6,8 +6,9 @@
 
 namespace seedling {
 
-// pitch of one short window (normalised autocorrelation, 50 Hz .. 2 kHz); strength = periodicity 0..1
-inline float windowPitch (const float* x, int n, float sampleRate, float& strength)
+// pitch of one short window (normalised autocorrelation, 50 Hz .. 2 kHz); strength = periodicity 0..1.
+// r: the caller's scratch of at least n / 2 + 2 floats, so the live tracker does not allocate on the audio thread
+inline float windowPitch (const float* x, int n, float sampleRate, float& strength, float* r)
 {
     strength = 0;
     const int minLag = std::max (2, int (sampleRate / 2000)), maxLag = std::min (n / 2, int (sampleRate / 50));
@@ -18,7 +19,7 @@ inline float windowPitch (const float* x, int n, float sampleRate, float& streng
     if (e0 < 1e-12) return 0;
     float best = 0;
     int bestLag = 0;
-    std::vector<float> r (size_t (maxLag + 2), 0.0f);
+    std::fill (r, r + maxLag + 2, 0.0f);
     for (int lag = minLag; lag <= maxLag; ++lag)
     {
         double acc = 0, e1 = 0;
@@ -31,6 +32,7 @@ inline float windowPitch (const float* x, int n, float sampleRate, float& streng
         if (r[size_t (lag)] > best) { best = r[size_t (lag)]; bestLag = lag; }
     }
     strength = std::max (0.0f, best);
+    if (bestLag == 0) return 0; // nothing correlates (a lone click)
     // prefer the shortest lag that is nearly as good (octave errors)
     for (int lag = minLag + 1; lag < bestLag; ++lag)
         if (r[size_t (lag)] > 0.92f * best && r[size_t (lag)] >= r[size_t (lag - 1)] && r[size_t (lag)] >= r[size_t (lag + 1)]) { bestLag = lag; break; }
@@ -66,6 +68,7 @@ inline std::vector<NoteEvent> transcribe (const float* x, int n, float sampleRat
     if (frames < 3) return notes;
     std::vector<float> semi (size_t (frames), -1), level (size_t (frames), 0);
     float peak = 1e-9f;
+    std::vector<float> scratch (size_t (win / 2 + 2));
     for (int f = 0; f < frames; ++f)
     {
         const float* w = x + f * hop;
@@ -74,7 +77,7 @@ inline std::vector<NoteEvent> transcribe (const float* x, int n, float sampleRat
         level[size_t (f)] = float (std::sqrt (e / win));
         peak = std::max (peak, level[size_t (f)]);
         float strength = 0;
-        const float hz = windowPitch (w, win, sampleRate, strength);
+        const float hz = windowPitch (w, win, sampleRate, strength, scratch.data());
         if (hz > 0 && strength > 0.6f) semi[size_t (f)] = hzToSemi (hz);
     }
     const float gate = peak * std::pow (10.0f, o.gateDb / 20);
@@ -134,6 +137,8 @@ inline std::vector<NoteEvent> transcribe (const float* x, int n, float sampleRat
             away = 0;
         }
     }
+    // a note's tail must not reach into the next one: the late note-off would release a repeated key's new voice
+    for (size_t i = 0; i + 1 < notes.size(); ++i) notes[i].end = std::min (notes[i].end, notes[i + 1].start);
     return notes;
 }
 
@@ -203,10 +208,23 @@ public:
         accN = 0;
         current = -1;
         quiet = voicedRun = away = 0;
-        level = 0;
+        level = confidence = 0;
+    }
+
+    // forget the sounding note and the buffered input without reporting anything (live input switched off)
+    void reset()
+    {
+        std::fill (ring.begin(), ring.end(), 0.0f);
+        pos = sinceHop = 0;
+        acc = 0;
+        accN = 0;
+        current = -1;
+        quiet = voicedRun = away = 0;
+        level = confidence = 0;
     }
 
     float level = 0;   // input RMS of the last window, for the UI meter
+    float confidence = 0; // periodicity of the last window, 0 .. 1: low for noise and breath, high for a clear pitch
     int current = -1;  // sounding note or -1
 
     void process (const float* in, int n, float gateDb, int octave)
@@ -235,7 +253,8 @@ private:
         level = float (std::sqrt (e / WIN));
         const float gate = std::pow (10.0f, gateDb / 20);
         float strength = 0;
-        const float hz = level > gate ? windowPitch (w.data(), WIN, rate, strength) : 0.0f;
+        const float hz = level > gate ? windowPitch (w.data(), WIN, rate, strength, scratch.data()) : 0.0f;
+        confidence = strength;
         const bool voiced = hz > 0 && strength > 0.7f;
 
         if (current < 0)
@@ -273,6 +292,7 @@ private:
     }
 
     std::vector<float> ring;
+    std::array<float, WIN / 2 + 2> scratch {};
     int decim = 2, pos = 0, sinceHop = 0, accN = 0, quiet = 0, voicedRun = 0, away = 0;
     float rate = 24000, acc = 0, semiNow = 0;
 };

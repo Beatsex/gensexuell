@@ -16,6 +16,16 @@ permissions:
   contents: write # release assets
 
 jobs:
+  # the engine test on its own (no JUCE needed), with address and undefined-behaviour checks
+  linux-sanitize:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Engine test under ASan and UBSan
+        run: |
+          g++ -std=c++20 -O1 -g -fsanitize=address,undefined -fno-sanitize-recover=undefined -ISource -o EngineTest tests/EngineTest.cpp
+          ./EngineTest
+
   build:
     strategy:
       fail-fast: false

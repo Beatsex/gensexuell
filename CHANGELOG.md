@@ -1,5 +1,29 @@
 # Changelog
 
+## Unreleased
+
+- A preset browser inside the plugin: PRESETS… in the main menu and at the top of the patch menu opens the 355 factory presets by category, together with your own .seedling files from Documents\Seedling (in USER, or under the name of their folder). Click or ↑ ↓ to load, ← → to change category; ‹ › next to the patch name step through the category of the loaded preset. The factory presets are built into the plugin, so they work without the installer or the Presets folder.
+- Fixed: reopening a project reset parameters that the DAW had changed (automation, a mapped MIDI CC or the DAW's own parameter view) to the values the gensexuell window last showed. The project's parameter values now win.
+- Fixed: a repeated note of the same pitch (performance → seed, in the rendered WAV and in the exported MIDI file) was cut off after 20 ms, because the previous note's end reached into it.
+- Fixed: a short click on a silent sidechain in live mode could read outside the pitch detector's memory.
+- Fixed: taking over a sounding voice (the polyphony limit is reached, a mono or legato retrigger) clicked, because the voice restarted from silence. It now continues from its current level, and the voice taken is a released one, the quietest first, before a held one. Extra mono voices fade out in 15 ms instead of stopping dead.
+- Fixed: closing the window while text → seed (GROW) was still working could crash the host.
+- Fixed: OSC B sample & hold (HOLD B) started each note from the previous note's step.
+- Fixed: aftertouch kept its last value on the mod wheel after PRESSURE was switched off.
+- Fixed: in MPE mode, All Notes Off and All Sound Off on a note channel were ignored.
+- Fixed: switching live input off and on again started with the last tracked note.
+- Fixed: the patch counter of sound → seed kept counting from the previous sample.
+- Fixed: a pitch sweep or pitch bend of more than an octave up aliased (a saw bent up four octaves: aliases 18.5 dB below the tone, now 66.4 dB), because the oscillator's wave table was chosen for the unbent note. Notes with a pitch sweep, TUNE or bend now start with the table of the pitch they really play, so swept seeds can sound slightly different.
+- TAPE has two more controls: BIAS (how much top end the tape takes off) and BUMP (the head bump, a low boost around 60 Hz, 0 … 9 dB). Saved with the patch and automatable; patches without them keep the old fixed values (40 %, 3 dB).
+- MORPH (next to VELOCITY): each note blends its branch towards the next one clockwise, genes, level and pan together; stepped genes such as RATIO B only jump at their grid points. In the VELOCITY bulb it blends by how hard you play between two branches, so velocity moves smoothly instead of in twelve steps. It acts when a note starts; 0 plays as before.
+- Live input modulates the sound: LEVEL → CUTOFF (−100 … +100 %) and LEVEL → FM follow the loudness of your input, NOISE → BRIGHT opens the filter when the input is breathy or noisy (no clear pitch). All three act on every voice, start at 0 and can be automated.
+- Gene locks: LOCK ENV, OSC A/B, FM/SUB and FILTER above the GENES view. A locked group plays the seed's value on every branch, and sound → seed leaves it at the current patch's value. Saved with the patch.
+- Sound → seed no longer changes how envelope times and the filter follow the key, or how much velocity scales the mod envelope: one sample note cannot tell them, so they stay where the search starts.
+- Sound → seed also compares the first 80 ms of each try with the sample, in 5 ms steps, when it picks the next generation: the attack of plucks and hits now matches about 2.5 times better (average step difference 0.053 → 0.021 on eight percussive tests), at the same match score and speed. The match score shown is unchanged. Each try also changes only 8 of its 45 sound genes instead of all of them, so the search climbs further: average match 94.6 % → 95.5 %, and 30 of 32 strands reach 92 % instead of 26.
+- Performance → seed: rendering the WAV no longer freezes the DAW's window while it runs.
+- Voices take about 3 % less CPU, and sound → seed tries about 8 % more patches per second. The sound is unchanged.
+- The audio thread no longer allocates memory (bass and treble shelves, live input) or calls the host (mapped MIDI CCs, program changes); those now happen on the user interface thread.
+
 ## 0.4.1
 
 - 355 presets in 12 categories (atmospheric, basic, basses, chords, effects, keys, leads, pads, percussive, plucks, rhythmic, stabs). The installer puts them in Documents\Seedling\Presets and never overwrites one you changed; the macOS and Windows zips have them in a Presets folder.

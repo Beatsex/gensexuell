@@ -72,7 +72,7 @@ Nennst du mehrere Klangarten, bestimmt die **letzte** das Register. Enden wie �
 
 Zwei Eigenheiten der Prozentzahl:
 - Raum- und Hall-Wörter stellen den Effekt direkt ein und zählen nicht mit. `viel Raum` allein zeigt deshalb immer 100 %, egal wie es klingt.
-- Eine niedrige Zahl heißt oft, dass die Wörter schwer zusammenpassen. `langsamer dreckiger Drone ohne Hall` kam im Test auf 60 %, `dunkler weicher Bass` auf 89 %. Die genauen Zahlen ändern sich von Klick zu Klick.
+- Eine niedrige Zahl heißt oft, dass die Wörter schwer zusammenpassen. `noisy dark long texture` kam im Test auf 66 %, `dunkler weicher Bass` auf 100 %. Die genauen Zahlen ändern sich von Klick zu Klick.
 
 ## Wenn es nicht passt
 

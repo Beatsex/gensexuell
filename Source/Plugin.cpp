@@ -2,6 +2,7 @@
 #include <juce_dsp/juce_dsp.h>
 #include <juce_gui_extra/juce_gui_extra.h>
 #include <BinaryData.h>
+#include <PresetData.h>
 #include "Analysis.h"
 #include "Transcribe.h"
 #include "Words.h"
@@ -51,6 +52,7 @@ const std::vector<ParamDef>& paramDefs()
         top ("wheel", "Mod Wheel", 0, 1, 0.001f, 0);
         top ("wheelScale", "Wheel Scaling", 0, 100, 1, 100);
         top ("rotation", "Rotation", 0, 11, 1, 0);
+        top ("morph", "Morph", 0, 1, 0.001f, 0);
         choice ("bulbMode", "Bulb Mode", { "Standard", "Velocity", "Ranges", "Layered" });
         choice ("voiceMode", "Voice Mode", { "Poly", "Mono", "Legato" });
         choice ("wheelTarget", "Wheel Target", { "Growth +", "Growth -", "Filter +", "Filter -", "Env Time +", "Env Time -", "FM", "LFO", "Effect", "Volume" });
@@ -74,6 +76,8 @@ const std::vector<ParamDef>& paramDefs()
         choice ("tapeSpeed", "Tape Speed", { "7.5 ips", "15 ips", "30 ips" }, 1);
         top ("tapeDrive", "Tape Drive", 0, 1, 0.001f, 0.35f);
         top ("tapeWow", "Tape Wow", 0, 1, 0.001f, 0.25f);
+        top ("tapeBias", "Tape Bias", 0, 1, 0.001f, 0.4f);
+        top ("tapeBump", "Tape Head Bump", 0, 9, 0.1f, 3);
         top ("tapeHiss", "Tape Hiss", 0, 1, 0.001f, 0.1f);
         top ("tapeMix", "Tape Mix", 0, 1, 0.001f, 1);
         choice ("verbOn", "Verb On", { "Off", "On" });
@@ -90,6 +94,9 @@ const std::vector<ParamDef>& paramDefs()
         top ("liveGate", "Live Gate", -70, -10, 1, -45);
         top ("liveGlide", "Live Glide", 0, 0.5f, 0.001f, 0.03f, 0.5f);
         choice ("liveFollow", "Live Follow Level", { "Off", "On" });
+        top ("liveCutoff", "Live Level to Cutoff", -1, 1, 0.001f, 0);
+        top ("liveFm", "Live Level to FM", 0, 1, 0.001f, 0);
+        top ("liveBright", "Live Noise to Brightness", 0, 1, 0.001f, 0);
         top ("liveOctave", "Live Octave", -2, 2, 1, 0);
 
         const auto lens = freshLens (0x5EED1E55u);
@@ -144,7 +151,7 @@ struct RetroSettings
 {
     bool driveOn = false, tapeOn = false, verbOn = false, before = false; // before: ahead of grain FX, Haze and Dusk
     int driveStyle = 0, tapeSpeed = 1, verbMode = 0, order = 0;           // order: one of the six orders of drive, tape, verb
-    float drive = 0.35f, driveTone = 0.5f, driveMix = 1, tapeDrive = 0.35f, tapeWow = 0.25f, tapeHiss = 0.1f, tapeMix = 1;
+    float drive = 0.35f, driveTone = 0.5f, driveMix = 1, tapeDrive = 0.35f, tapeWow = 0.25f, tapeHiss = 0.1f, tapeMix = 1, tapeBias = 0.4f, tapeBump = 3;
     float verbDecay = 0.5f, verbSize = 0.55f, verbPreMs = 10, verbDamp = 0.45f, verbMix = 0.3f;
 };
 struct FxSettings { int family = -1, variant = 0; float swarm = 0.5f, tail = 0.5f, span = 0.5f, scatter = 0, mix = 0.35f; RetroSettings retro {}; };
@@ -167,6 +174,7 @@ struct MasterChain
         chorusFx.setFeedback (0.1f);
         lowShelf.prepare (spec);
         highShelf.prepare (spec);
+        shelfBass = shelfTreble = -1;
         for (auto& f : driveDc) { f.reset(); f.setCutoff (15.0f, sampleRate); }
         for (auto& f : driveTone) f.reset();
         tape.prepare (sampleRate);
@@ -211,8 +219,8 @@ struct MasterChain
         {
             tape.setDrive (r.tapeDrive);
             tape.setSpeed (r.tapeSpeed);
-            tape.setBias (0.4f);
-            tape.setBump (3.0f);
+            tape.setBias (r.tapeBias);
+            tape.setBump (r.tapeBump);
             tape.setWowFlutter (r.tapeWow);
             tape.setNoise (r.tapeHiss);
             for (int i = 0; i < n; ++i)
@@ -271,8 +279,13 @@ struct MasterChain
         }
         if (std::abs (g[bass] - 0.5f) > 0.01f || std::abs (g[treble] - 0.5f) > 0.01f)
         {
-            *lowShelf.state = *dsp::IIR::Coefficients<float>::makeLowShelf (sr, 200, 0.7f, Decibels::decibelsToGain ((g[bass] - 0.5f) * 24));
-            *highShelf.state = *dsp::IIR::Coefficients<float>::makeHighShelf (sr, 4000, 0.7f, Decibels::decibelsToGain ((g[treble] - 0.5f) * 24));
+            if (g[bass] != shelfBass || g[treble] != shelfTreble) // new coefficients only on a change, written in place (no allocation)
+            {
+                shelfBass = g[bass];
+                shelfTreble = g[treble];
+                *lowShelf.state = dsp::IIR::ArrayCoefficients<float>::makeLowShelf (sr, 200, 0.7f, Decibels::decibelsToGain ((g[bass] - 0.5f) * 24));
+                *highShelf.state = dsp::IIR::ArrayCoefficients<float>::makeHighShelf (sr, 4000, 0.7f, Decibels::decibelsToGain ((g[treble] - 0.5f) * 24));
+            }
             dsp::AudioBlock<float> block (buffer);
             lowShelf.process (dsp::ProcessContextReplacing<float> (block));
             highShelf.process (dsp::ProcessContextReplacing<float> (block));
@@ -329,6 +342,7 @@ struct MasterChain
     retro::FDN verb;
     retro::DelayLine verbPre[2];
     int verbMode = -1;
+    float shelfBass = -1, shelfTreble = -1; // genes the shelf coefficients were made for
 };
 
 // base64 of little-endian int16 -> floats
@@ -354,7 +368,7 @@ var fileResult (const File& f)
 } // namespace
 
 //==============================================================================
-class SeedlingProcessor : public AudioProcessor, private AsyncUpdater
+class SeedlingProcessor : public AudioProcessor, private Timer
 {
 public:
     SeedlingProcessor()
@@ -365,6 +379,8 @@ public:
         genome = audioGenome = defaultGenome (0x5EED1E55u);
         for (auto& p : paramDefs()) raw.push_back (apvts.getRawParameterValue (p.id));
         cc.fill (-1);
+        audioCc.fill (-1); // until the first block copies cc: no CC is mapped
+        ccTouch.assign (paramDefs().size(), 0.0);
        #if SEEDLING_HAS_NET
         net.load (BinaryData::net_bin, size_t (BinaryData::net_binSize), search.cfg);
        #endif
@@ -373,9 +389,24 @@ public:
             defaultMidi = m;
             applySettings (m);
         }
+        // the live tracker plays the engine with the block's controls; set once, so the audio thread never allocates for it
+        tracker.onNote = [this] (int note, float vel)
+        {
+            const int prev = tracker.current;
+            engine.noteOn (LIVE_CHANNEL, note, vel < 0 ? 0.8f : vel, -1, audioGenome, *blockControls, *blockSettings);
+            if (vel < 0 && prev >= 0) engine.noteOff (LIVE_CHANNEL, prev, *blockControls); // legato move: drop the old key
+            liveNote = note;
+        };
+        tracker.offNote = [this] (int note) { engine.noteOff (LIVE_CHANNEL, note, *blockControls); liveNote = -1; };
+        tracker.onBend = [this] (float semis) { engine.pitchBend (LIVE_CHANNEL, std::clamp (semis / std::max (1.0f, blockSettings->pbRange), -1.0f, 1.0f)); };
+        startTimerHz (60);
     }
 
-    ~SeedlingProcessor() override { search.pause(); }
+    ~SeedlingProcessor() override
+    {
+        stopTimer(); // before the members its callback reads go away
+        search.pause();
+    }
 
     // ------------------------------------------------------------ audio
     void prepareToPlay (double sampleRate, int block) override
@@ -421,6 +452,7 @@ public:
         c.wheel = std::max ({ value ("wheel"), midiWheel.load(), pressureWheel.load() });
         c.wheelScale = value ("wheelScale");
         c.rotation = int (value ("rotation"));
+        c.morph = value ("morph");
         c.bulbMode = int (value ("bulbMode"));
         c.voiceMode = int (value ("voiceMode"));
         c.wheelTarget = int (value ("wheelTarget"));
@@ -448,6 +480,8 @@ public:
         r.tapeSpeed = int (value ("tapeSpeed"));
         r.tapeDrive = value ("tapeDrive");
         r.tapeWow = value ("tapeWow");
+        r.tapeBias = value ("tapeBias");
+        r.tapeBump = value ("tapeBump");
         r.tapeHiss = value ("tapeHiss");
         r.tapeMix = value ("tapeMix");
         r.verbOn = value ("verbOn") > 0.5f;
@@ -488,6 +522,7 @@ public:
                 audioCc = cc;
             }
         }
+        if (audioSettings.pressure == 3) pressureWheel = 0; // pressure switched off: let go of its last value
         auto c = controls();
         if (auto* ph = getPlayHead())
             if (auto pos = ph->getPosition(); pos.hasValue() && pos->getBpm().hasValue())
@@ -510,37 +545,52 @@ public:
 
         if (live && getTotalNumInputChannels() > 0)
         {
-            tracker.onNote = [&] (int note, float vel)
-            {
-                const int prev = tracker.current;
-                engine.noteOn (LIVE_CHANNEL, note, vel < 0 ? 0.8f : vel, -1, audioGenome, c, s);
-                if (vel < 0 && prev >= 0) engine.noteOff (LIVE_CHANNEL, prev, c); // legato move: drop the old key
-                liveNote = note;
-            };
-            tracker.offNote = [&] (int note) { engine.noteOff (LIVE_CHANNEL, note, c); liveNote = -1; };
-            tracker.onBend = [&] (float semis) { engine.pitchBend (LIVE_CHANNEL, std::clamp (semis / std::max (1.0f, s.pbRange), -1.0f, 1.0f)); };
+            blockControls = &c;
+            blockSettings = &s;
             tracker.process (sideIn.data(), n, value ("liveGate"), int (value ("liveOctave")));
             inLevel = tracker.level;
             liveLevel = inLevel;
         }
-        else if (! live && liveNote.load() >= 0)
+        else if (! live && liveWas)
         {
-            engine.allOff();
+            if (liveNote.load() >= 0) engine.allOff();
+            tracker.reset(); // or the next switch-on starts with a note nobody plays, from the old input
             liveNote = -1;
         }
+        liveWas = live;
 
         auto* L = buffer.getWritePointer (0);
         auto* R = buffer.getWritePointer (1);
+        // the sidechain modulates every voice: its level (cutoff, FM) and how noisy it is (brightness). The follower
+        // moves every 64 samples, so the filter does not step; with all three at 0 the engine renders exactly as before
+        const float modCut = live ? value ("liveCutoff") : 0.0f, modFm = live ? value ("liveFm") : 0.0f, modBright = live ? value ("liveBright") : 0.0f;
+        const bool sideMod = modCut != 0 || modFm > 0 || modBright > 0;
+        const float inEnv = std::min (1.0f, inLevel / 0.125f), inNoise = (1 - tracker.confidence) * inEnv;
+        auto renderSpan = [&] (int from, int to)
+        {
+            if (! sideMod) { engine.render (L + from, R + from, to - from, c, s); return; }
+            for (int pos = from; pos < to; pos += 64)
+            {
+                const int m = std::min (64, to - pos);
+                const float k = 1 - std::exp (-float (m) / (0.01f * float (sr))); // ~10 ms
+                sideEnv += (inEnv - sideEnv) * k;
+                sideNoise += (inNoise - sideNoise) * k;
+                Live mod;
+                mod.filterMul = std::exp2 (modCut * sideEnv * 4 + modBright * sideNoise * 3);
+                mod.fmAdd = modFm * sideEnv;
+                engine.render (L + pos, R + pos, m, c, s, mod);
+            }
+        };
         int at = 0;
         for (const auto m : midi)
         {
             const auto msg = m.getMessage();
             const int to = std::clamp (m.samplePosition, at, n);
-            engine.render (L + at, R + at, to - at, c, s);
+            renderSpan (at, to);
             at = to;
             handleMidi (msg, c, s);
         }
-        engine.render (L + at, R + at, n - at, c, s);
+        renderSpan (at, n);
         if (live && value ("liveFollow") > 0.5f) // the input's level shapes the synth
         {
             const float target = std::min (2.0f, inLevel / 0.125f);
@@ -581,7 +631,7 @@ public:
         if (s.mpe && ch >= 2) // MPE note channel: pressure and CC74 belong to that one note
         {
             if (msg.isChannelPressure()) { engine.pressure (ch, msg.getChannelPressureValue() / 127.0f); return; }
-            if (msg.isController())
+            if (msg.isController() && ! msg.isAllNotesOff() && ! msg.isAllSoundOff())
             {
                 if (msg.getControllerNumber() == 74) engine.slide (ch, std::clamp ((msg.getControllerValue() - 64) / 63.0f, -1.0f, 1.0f));
                 return;
@@ -609,9 +659,8 @@ public:
                 return;
             }
             if (num == 1) midiWheel = v, c.wheel = std::max (c.wheel, v);
-            for (size_t i = 0; i < audioCc.size(); ++i)
-                if (audioCc[i] == num)
-                    if (auto* p = apvts.getParameter (paramDefs()[i].id)) p->setValueNotifyingHost (v);
+            for (size_t i = 0; i < audioCc.size(); ++i) // mapped CCs move their parameter from the timer, not from here
+                if (audioCc[i] == num) ccMoves.push ({ int (i), v });
         }
         else if ((msg.isChannelPressure() || msg.isAftertouch()) && s.pressure < 3)
         {
@@ -620,10 +669,7 @@ public:
             pressureWheel = std::pow (v, curve[s.pressure]);
         }
         else if (msg.isProgramChange() && s.programChange)
-        {
-            pendingProgram = msg.getProgramChangeNumber();
-            triggerAsyncUpdate();
-        }
+            pendingProgram = msg.getProgramChangeNumber(); // loaded by the timer
     }
 
     // audition: plays a buffer once through the output (sample reference, performance original or result)
@@ -658,13 +704,13 @@ public:
         return genome;
     }
 
-    // a performance through the current seed and the full master chain, stereo interleaved at 48 kHz
-    std::vector<float> renderPerformanceWithMaster (const std::vector<NoteEvent>& notes, double seconds)
+    // a performance through a seed and the full master chain, stereo interleaved at 48 kHz;
+    // takes copies of everything it needs, so it can run on a worker thread
+    static std::vector<float> renderPerformanceWithMaster (const std::vector<NoteEvent>& notes, double seconds, const Genome& g, Controls c, const FxSettings& fx)
     {
         constexpr double rate = 48000;
-        Controls c = controls();
         c.wheel = 0;
-        auto dry = renderPerformance (notes, seconds + 3, currentGenome(), c, float (rate)); // 3 s for the tail
+        auto dry = renderPerformance (notes, seconds + 3, g, c, float (rate)); // 3 s for the tail
         MasterChain mc;
         mc.prepare (rate, 480);
         const int total = int (dry.size() / 2);
@@ -678,7 +724,7 @@ public:
                 buf.setSample (0, i, dry[size_t (pos + i) * 2]);
                 buf.setSample (1, i, dry[size_t (pos + i) * 2 + 1]);
             }
-            mc.process (buf, c, fxSettings());
+            mc.process (buf, c, fx);
             for (int i = 0; i < m; ++i)
             {
                 dry[size_t (pos + i) * 2] = buf.getSample (0, i);
@@ -719,9 +765,13 @@ public:
         settings = s;
     }
 
-    void setUiState (const var& s)
+    // applyParams false (session restore): the parameters already came from the host, the copy in `s` may be stale
+    void setUiState (const var& s, bool applyParams = true)
     {
-        uiState = JSON::toString (s, true);
+        {
+            const ScopedLock lock (uiLock);
+            uiState = JSON::toString (s, true);
+        }
         Genome g;
         if (auto* br = s["br"].getArray(); br != nullptr && br->size() == NB)
             for (int i = 0; i < NB; ++i)
@@ -735,6 +785,10 @@ public:
             for (int i = 0; i < NB; ++i) g.gain[size_t (i)] = std::clamp (float (gains->getReference (i)), 0.0f, 2.0f);
         if (auto* layers = s["layers"].getArray(); layers != nullptr && layers->size() == NB)
             for (int i = 0; i < NB; ++i) g.layer[size_t (i)] = bool (layers->getReference (i));
+        if (auto* locked = s["lock"].getArray()) // gene keys
+            for (auto& key : *locked)
+                for (int k = 0; k < NP; ++k)
+                    if (key.toString() == KEYS[k]) g.lock[size_t (k)] = true;
 
         std::array<int, 512> map;
         map.fill (-1);
@@ -748,8 +802,15 @@ public:
             cc = map;
         }
         if (s["midi"].isObject()) applySettings (s["midi"]);
-        for (auto& p : defs)
-            if (const var v = readPath (s, p); ! v.isVoid()) setValue (p.id, float (v));
+        if (applyParams)
+            for (auto& p : defs)
+                if (const var v = readPath (s, p); ! v.isVoid()) setValue (p.id, float (v));
+    }
+
+    String uiStateText() const
+    {
+        const ScopedLock lock (uiLock);
+        return uiState;
     }
 
     // parameters as {top, len, base} for the UI
@@ -773,7 +834,7 @@ public:
 
     var uiStateVar() const
     {
-        var s = JSON::parse (uiState);
+        var s = JSON::parse (uiStateText());
         if (! s.isObject() && defaultMidi.isObject()) // first open: hand the UI the saved default MIDI settings
         {
             DynamicObject::Ptr o = new DynamicObject();
@@ -783,12 +844,34 @@ public:
         return s;
     }
 
-    // program change: copy the stored patch over the current state (runs on the message thread)
-    void handleAsyncUpdate() override
+    // what the audio thread asked for: mapped CCs move their parameter, a program change loads a patch
+    void timerCallback() override
     {
-        var s = JSON::parse (uiState);
-        const int prog = pendingProgram.exchange (-1);
-        if (! s.isObject() || prog < 0) return;
+        // a knob turn is one gesture: it starts with the first move and ends a quarter second after the last
+        const double now = Time::getMillisecondCounterHiRes();
+        ccMoves.popAll ([this, now] (const CcMove& m)
+        {
+            if (auto* p = apvts.getParameter (paramDefs()[size_t (m.param)].id))
+            {
+                if (ccTouch[size_t (m.param)] == 0) p->beginChangeGesture();
+                ccTouch[size_t (m.param)] = now;
+                p->setValueNotifyingHost (m.value);
+            }
+        });
+        for (size_t i = 0; i < ccTouch.size(); ++i)
+            if (ccTouch[i] > 0 && now - ccTouch[i] > 250)
+            {
+                ccTouch[i] = 0;
+                if (auto* p = apvts.getParameter (paramDefs()[i].id)) p->endChangeGesture();
+            }
+        if (const int prog = pendingProgram.exchange (-1); prog >= 0) loadProgram (prog);
+    }
+
+    // program change: copy the stored patch over the current state
+    void loadProgram (int prog)
+    {
+        var s = JSON::parse (uiStateText());
+        if (! s.isObject()) return;
         const var patch = s["programs"][prog];
         if (auto* p = patch.getDynamicObject())
         {
@@ -817,11 +900,12 @@ public:
     std::vector<float> perfAudio;              // performance -> seed: input at FEAT_SR
     std::vector<NoteEvent> perfNotes;
     std::vector<float> perfResult;             // rendered, stereo interleaved at 48 kHz
+    int perfGen = 0;                           // message thread: a new analysis or render outdates a render still running
 
     void getStateInformation (MemoryBlock& dest) override
     {
         auto state = apvts.copyState();
-        state.setProperty ("ui", uiState, nullptr);
+        state.setProperty ("ui", uiStateText(), nullptr);
         if (auto xml = state.createXml()) copyXmlToBinary (*xml, dest);
     }
 
@@ -830,8 +914,17 @@ public:
         auto xml = getXmlFromBinary (data, size);
         if (xml == nullptr) return;
         auto state = ValueTree::fromXml (*xml);
+        StringArray saved; // parameters the session has; a session from before a parameter existed takes it from the UI state
+        for (const auto& child : state) saved.add (child["id"].toString());
         apvts.replaceState (state);
-        if (const var s = JSON::parse (state["ui"].toString()); s.isObject()) setUiState (s);
+        if (const var s = JSON::parse (state["ui"].toString()); s.isObject())
+        {
+            setUiState (s, false); // the host's values win: automation, mapped CCs and its own editor never reach the UI state
+            for (auto& p : paramDefs())
+                if (! saved.contains (p.id))
+                    if (const var v = readPath (s, p); ! v.isVoid())
+                        if (auto* param = apvts.getParameter (p.id)) param->setValueNotifyingHost (param->convertTo0to1 (float (v)));
+        }
         uiDirty = true;
     }
 
@@ -859,11 +952,12 @@ public:
     std::atomic<int> learnedParam { -1 }, learnedCc { -1 }; // set by the audio thread, read by the editor
 
     struct HostNote { int note; bool on; int mask; float vel; };
-    struct NoteFifo // audio thread -> UI timer
+    struct CcMove { int param; float value; };
+    template <typename Item> struct Fifo // lock-free, one writer and one reader
     {
         AbstractFifo fifo { 256 };
-        std::array<HostNote, 256> items;
-        void push (HostNote h)
+        std::array<Item, 256> items;
+        void push (Item h)
         {
             const auto w = fifo.write (1);
             if (w.blockSize1 > 0) items[size_t (w.startIndex1)] = h;
@@ -873,7 +967,8 @@ public:
             const auto r = fifo.read (fifo.getNumReady());
             r.forEach ([&] (int i) { fn (items[size_t (i)]); });
         }
-    } hostNotes, uiEvents; // uiEvents: editor -> audio thread
+    };
+    Fifo<HostNote> hostNotes, uiEvents; // hostNotes: audio thread -> UI timer, uiEvents: editor -> audio thread
 
 private:
     std::vector<std::atomic<float>*> raw;
@@ -882,17 +977,23 @@ private:
     Settings settings, audioSettings;
     std::array<int, 512> cc {}, audioCc {};
     SpinLock stateLock, auditionLock;
+    CriticalSection uiLock; // uiState: set by the UI, a program change or the host's state restore (any thread)
     String uiState;
     var defaultMidi;
     double sr = 48000;
     std::atomic<float> midiWheel { 0 }, pressureWheel { 0 };
     std::atomic<int> pendingProgram { -1 };
+    Fifo<CcMove> ccMoves; // audio thread -> processor timer
+    std::vector<double> ccTouch; // per parameter: time of the last CC move while its gesture is open, else 0
+    const Controls* blockControls = nullptr; // this block's controls and settings, for the live tracker's callbacks
+    const Settings* blockSettings = nullptr;
+    bool liveWas = false; // live input was on in the last block (audio thread only)
     std::vector<float> auditionData, sideIn;
     int auditionChannels = 1;
     double auditionRate = FEAT_SR, auditionPos = -1;
     MasterChain master;
     LiveTracker tracker;
-    float follow = 0;
+    float follow = 0, sideEnv = 0, sideNoise = 0; // live follow level; sidechain modulation followers (audio thread)
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SeedlingProcessor)
 };
@@ -918,6 +1019,8 @@ public:
                    .withNativeFunction ("savePatch", [this] (auto& a, auto done) { savePatch (a[0].toString(), a[1].toString(), std::move (done)); })
                    .withNativeFunction ("openPatch", [this] (auto&, auto done) { openFile ("*.seedling", std::move (done)); })
                    .withNativeFunction ("siblingPatch", [] (auto& a, auto done) { done (siblingPatch (a[0].toString(), int (a[1]))); })
+                   .withNativeFunction ("presetList", [] (auto&, auto done) { done (presetList()); })
+                   .withNativeFunction ("presetLoad", [] (auto& a, auto done) { done (presetLoad (a[0].toString())); })
                    .withNativeFunction ("saveMidi", [this] (auto& a, auto done) { saveMidi (a[0].toString(), bool (a[1]), std::move (done)); })
                    .withNativeFunction ("openMidi", [this] (auto&, auto done) { openFile ("*.seedmidi", std::move (done)); })
                    .withNativeFunction ("learn", [this] (auto& a, auto done) { proc.learning = paramIndex (a[0].toString()); done ({}); })
@@ -1022,10 +1125,11 @@ private:
     }
 
     // ------------------------------------------------------------ text -> seed (runs off the message thread)
+    // the answer goes back on the message thread, and only if the editor (and its web view) still exists
     void textSeed (const String& text, int take, WebBrowserComponent::NativeFunctionCompletion done)
     {
         const std::string t = text.toStdString();
-        Thread::launch ([t, take, done]
+        Thread::launch ([t, take, done, editor = SafePointer<SeedlingEditor> (this)]
         {
             const Wish w = parseWish (t);
             const auto takes = textTakes (w, uint32_t (std::hash<std::string> {} (t)) + uint32_t (take) * 7919u);
@@ -1045,7 +1149,7 @@ private:
             o->setProperty ("unknown", unknown);
             o->setProperty ("note", w.note);
             o->setProperty ("takes", list);
-            done (var (o.get()));
+            MessageManager::callAsync ([editor, done, result = var (o.get())] { if (editor != nullptr) done (result); });
         });
     }
 
@@ -1061,6 +1165,7 @@ private:
         o.octave = int (opts["octave"]);
         proc.perfNotes = transcribe (proc.perfAudio.data(), int (proc.perfAudio.size()), FEAT_SR, o);
         proc.perfResult.clear();
+        ++proc.perfGen;
         Array<var> notes;
         for (auto& n : proc.perfNotes)
         {
@@ -1077,29 +1182,39 @@ private:
         return var (r.get());
     }
 
+    // renders and writes the WAV on a worker, so the host's UI keeps running; the result comes back like textSeed's
     void perfRender (WebBrowserComponent::NativeFunctionCompletion done)
     {
         if (proc.perfNotes.empty()) return done ({});
-        proc.perfResult = proc.renderPerformanceWithMaster (proc.perfNotes, proc.perfAudio.size() / double (FEAT_SR));
-        const File f = rendersDir().getNonexistentChildFile ("gensexuell performance", ".wav");
-        WavAudioFormat wav;
-        if (auto out = f.createOutputStream())
+        Thread::launch ([notes = proc.perfNotes, seconds = proc.perfAudio.size() / double (FEAT_SR), g = proc.currentGenome(),
+                         c = proc.controls(), fx = proc.fxSettings(), done, editor = SafePointer<SeedlingEditor> (this), gen = ++proc.perfGen]
         {
-            const auto frames = int (proc.perfResult.size() / 2);
-            AudioBuffer<float> buf (2, frames);
-            for (int i = 0; i < frames; ++i)
+            auto result = SeedlingProcessor::renderPerformanceWithMaster (notes, seconds, g, c, fx);
+            const File f = rendersDir().getNonexistentChildFile ("gensexuell performance", ".wav");
+            WavAudioFormat wav;
+            if (auto out = f.createOutputStream())
             {
-                buf.setSample (0, i, proc.perfResult[size_t (i) * 2]);
-                buf.setSample (1, i, proc.perfResult[size_t (i) * 2 + 1]);
+                const auto frames = int (result.size() / 2);
+                AudioBuffer<float> buf (2, frames);
+                for (int i = 0; i < frames; ++i)
+                {
+                    buf.setSample (0, i, result[size_t (i) * 2]);
+                    buf.setSample (1, i, result[size_t (i) * 2 + 1]);
+                }
+                std::unique_ptr<OutputStream> stream (out.release());
+                if (auto writer = wav.createWriterFor (stream, AudioFormatWriterOptions {}.withSampleRate (48000).withNumChannels (2).withBitsPerSample (24)))
+                    writer->writeFromAudioSampleBuffer (buf, 0, frames);
             }
-            std::unique_ptr<OutputStream> stream (out.release());
-            if (auto writer = wav.createWriterFor (stream, AudioFormatWriterOptions {}.withSampleRate (48000).withNumChannels (2).withBitsPerSample (24)))
-                writer->writeFromAudioSampleBuffer (buf, 0, frames);
-        }
-        DynamicObject::Ptr r = new DynamicObject();
-        r->setProperty ("path", f.getFullPathName());
-        r->setProperty ("seconds", proc.perfResult.size() / 2 / 48000.0);
-        done (var (r.get()));
+            DynamicObject::Ptr r = new DynamicObject();
+            r->setProperty ("path", f.getFullPathName());
+            r->setProperty ("seconds", result.size() / 2 / 48000.0);
+            MessageManager::callAsync ([editor, done, gen, r = var (r.get()), result = std::move (result)]() mutable
+            {
+                if (editor == nullptr) return;
+                if (gen == editor->proc.perfGen) editor->proc.perfResult = std::move (result); // only the newest render is the result
+                done (r);
+            });
+        });
     }
 
     // MIDI file at 120 bpm; bends are written for a 12-semitone wheel range (set by RPN at the start)
@@ -1207,7 +1322,7 @@ private:
     // next/previous (or random with step 0) .seedling file next to `path`, or the folder listing with step 99
     static var siblingPatch (const String& path, int step)
     {
-        const File cur (path);
+        const File cur = File::isAbsolutePath (path) ? File (path) : File(); // a factory preset has no file
         const File dir = cur.existsAsFile() ? cur.getParentDirectory() : userDir();
         auto files = dir.findChildFiles (File::findFiles, false, "*.seedling");
         files.sort();
@@ -1222,6 +1337,53 @@ private:
         int i = files.indexOf (cur);
         i = step == 0 ? Random::getSystemRandom().nextInt (files.size()) : (i < 0 ? 0 : (i + step + files.size()) % files.size());
         return fileResult (files[i]);
+    }
+
+    // the preset browser: the factory presets built into the plugin, then the user's .seedling files under Documents/Seedling.
+    // A file in a folder named like a category sorts there; a copy of a factory preset (the installer puts them in Presets) is left out
+    static var presetList()
+    {
+        Array<var> list;
+        StringArray seen;
+        const auto add = [&] (const String& cat, const String& name, const String& key)
+        {
+            DynamicObject::Ptr o = new DynamicObject();
+            o->setProperty ("cat", cat);
+            o->setProperty ("name", name);
+            o->setProperty ("key", key);
+            list.add (var (o.get()));
+            seen.add (cat + "/" + name);
+        };
+        for (int i = 0; i < PresetData::namedResourceListSize; ++i)
+        {
+            int size = 0;
+            const auto* data = PresetData::getNamedResource (PresetData::namedResourceList[i], size);
+            const auto p = JSON::parse (String::fromUTF8 (data, size));
+            add (p["cat"].toString(), p["name"].toString(), String ("factory:") + PresetData::namedResourceList[i]);
+        }
+        auto files = userDir().findChildFiles (File::findFiles, true, "*.seedling");
+        files.sort();
+        for (auto& f : files)
+        {
+            const auto dir = f.getParentDirectory();
+            const String cat = dir == userDir() || dir.getFileName() == "Presets" ? String ("USER") : dir.getFileName().toUpperCase();
+            const auto name = f.getFileNameWithoutExtension().toUpperCase();
+            if (! seen.contains (cat + "/" + name)) add (cat, name, f.getFullPathName());
+        }
+        return list;
+    }
+
+    // a preset by its key from presetList: "factory:<resource>" or a file path; the key comes back as the patch path
+    static var presetLoad (const String& key)
+    {
+        if (! key.startsWith ("factory:")) return File::isAbsolutePath (key) ? fileResult (File (key)) : var();
+        int size = 0;
+        const auto* data = PresetData::getNamedResource (key.fromFirstOccurrenceOf (":", false, false).toRawUTF8(), size);
+        if (data == nullptr) return {};
+        DynamicObject::Ptr o = new DynamicObject();
+        o->setProperty ("path", key);
+        o->setProperty ("json", String::fromUTF8 (data, size));
+        return var (o.get());
     }
 
     void setZoom (float z)
@@ -1239,6 +1401,7 @@ private:
         audio.resize (std::min (audio.size(), size_t (FEAT_LEN)));
         const float hz = detectPitch (audio.data(), int (audio.size()), FEAT_SR);
         const int note = hz > 0 ? std::clamp (nearestNote (hz), 24, 96) : 60;
+        proc.search.setLocks (proc.currentGenome().lock, proc.controls().base);
         proc.search.setReference (audio, note, &proc.net);
         proc.soundRef = audio;
         DynamicObject::Ptr o = new DynamicObject();
@@ -1258,6 +1421,7 @@ private:
     void genoRestart (int strand, bool fromCurrent)
     {
         const auto c = proc.controls();
+        proc.search.setLocks (proc.currentGenome().lock, c.base);
         proc.search.restart (jlimit (0, Search::STRANDS - 1, strand), fromCurrent ? &c.base : nullptr);
     }
 

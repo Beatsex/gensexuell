@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
+#include <sstream>
 
 using namespace seedling;
 
@@ -14,6 +15,21 @@ static void check (bool ok, const char* what)
     if (! ok) { std::printf ("FAIL: %s\n", what); ++failures; }
 }
 static bool near (float a, float b, float tol = 1e-5f) { return std::abs (a - b) < tol; }
+
+// lets a search try `patches` children (at most 5 minutes), so a slow build (sanitizers) is tested on the same amount of work
+static void runSearch (Search& search, long patches)
+{
+    std::array<std::vector<Search::Solution>, Search::STRANDS> sol;
+    std::array<bool, Search::STRANDS> done {};
+    long tested = 0;
+    search.resume();
+    for (int i = 0; i < 3000 && tested < patches && ! std::all_of (done.begin(), done.end(), [] (bool d) { return d; }); ++i)
+    {
+        std::this_thread::sleep_for (std::chrono::milliseconds (100));
+        search.snapshot (sol, done, tested);
+    }
+    search.pause();
+}
 
 static Controls defaults()
 {
@@ -87,6 +103,37 @@ int main()
     {
         auto p = branchParams (g, c, 5);
         check (p[space] == c.base[space] && p[bass] == c.base[bass], "master genes come from the seed");
+        Genome locked = g;
+        locked.lock[cutoff] = locked.lock[ratioB] = true;
+        const auto q = branchParams (locked, c, 5);
+        check (q[cutoff] == c.base[cutoff] && q[ratioB] == c.base[ratioB] && q[reso] == p[reso], "a locked gene plays the seed's value on every branch");
+    }
+
+    // ---- morph: 0 plays the branch, 1 the next one clockwise; the velocity bulb still picks the same branches
+    {
+        Controls mc = defaults();
+        mc.len.fill (0.8f);
+        mc.atonality = 60; // no tonal snapping, so the blend is plain
+        bool zero = true, one = true;
+        for (int i = 0; i < NB; ++i)
+        {
+            const auto p0 = branchParams (g, mc, i), pm = branchParams (g, mc, i, 0), p1 = branchParams (g, mc, i, 1), next = branchParams (g, mc, (i + 1) % NB, 0);
+            zero = zero && p0 == pm;
+            for (int k = 0; k < NP; ++k) one = one && near (p1[size_t (k)], next[size_t (k)], 1e-6f);
+        }
+        check (zero, "morph 0 plays the branch unchanged");
+        check (one, "morph 1 plays the next branch clockwise");
+        mc.bulbMode = bulbVelocity;
+        std::array<int, NB> a {}, b {};
+        float frac = -1;
+        bool same = true;
+        for (int v = 1; v < 128; ++v)
+        {
+            branchesFor (60, v, g, mc, a);
+            branchesFor (60, v, g, mc, b, &frac);
+            same = same && a[0] == b[0] && frac >= 0 && frac < 1;
+        }
+        check (same, "the velocity bulb picks the same branches and a blend between 0 and 1");
     }
 
     // ---- bulb modes
@@ -396,6 +443,28 @@ int main()
         const double aliasDb = 10 * std::log10 (std::max (all - harm, 1e-12) / all);
         std::printf ("aliasing: %.1f dB below the harmonics (driven saw at 1760 Hz)\n", -aliasDb);
         check (aliasDb < -28, "a driven saw on a high note keeps its aliases low (oversampled voice)");
+
+        // the same undriven saw at A3 bent up four octaves to A7 (3520 Hz): the table must follow the bend
+        p[drive] = 0;
+        cs.base = p;
+        Voice vb;
+        rng = 1;
+        vb.start (57, 0, 0, 0.9f, g, cs, s, 48000, rng, -1, 0);
+        Live bent;
+        bent.bendSemis = 48;
+        std::fill (L.begin(), L.end(), 0.0f);
+        vb.render (L.data(), R.data(), N * 2, rng, bent);
+        double allB = 0, harmB = 0;
+        for (int i = 0; i < N; ++i) allB += double (x[i]) * x[i];
+        for (int k = 0; k * 3520 < 24000; ++k)
+        {
+            double re = 0, im = 0;
+            for (int i = 0; i < N; ++i) { const double a = 2 * PI * k * 352.0 * i / N; re += x[i] * std::cos (a); im -= x[i] * std::sin (a); }
+            harmB += (k == 0 ? 1.0 : 2.0) * (re * re + im * im) / N;
+        }
+        const double bentDb = 10 * std::log10 (std::max (allB - harmB, 1e-12) / allB);
+        std::printf ("aliasing: %.1f dB below the harmonics (saw bent up 4 octaves to 3520 Hz)\n", -bentDb);
+        check (bentDb < -40, "a saw bent far up picks a table for its real pitch");
     }
 
     {
@@ -449,12 +518,127 @@ int main()
         check (near (fLo, 261.63f, 3) && std::abs (dbLo - dbHi) < 1, "low CPU mode keeps pitch and level");
     }
 
+    // ---- voice stealing: with one voice the next note takes it over without a click
+    {
+        Engine e;
+        e.prepare (48000);
+        Settings s;
+        s.minPoly = 1;
+        Controls c = defaults(); // sines without noise or FM, so a step in the envelope stands out from the wave itself
+        for (int k : { waveA, waveB, fm, noise, noiseB }) c.base[size_t (k)] = 0;
+        e.noteOn (1, 60, 0.8f, -1, g, c, s);
+        const auto before = play (e, g, c, s, 40);
+        e.noteOn (1, 67, 0.8f, -1, g, c, s);
+        const auto after = play (e, g, c, s, 4);
+        float steady = 0, jump = std::abs (after[0] - before.back());
+        for (size_t i = before.size() / 2; i < before.size(); ++i) steady = std::max (steady, std::abs (before[i] - before[i - 1]));
+        for (size_t i = 1; i < 64; ++i) jump = std::max (jump, std::abs (after[i] - after[i - 1]));
+        std::printf ("voice steal: largest step %.4f, held note %.4f\n", jump, steady);
+        check (e.activeVoices() == 1 && jump < 1.5f * steady, "a stolen voice does not click");
+    }
+
+    // ---- sidechain modulation: none renders exactly as before, a loud input opens the filter
+    {
+        Controls mc = defaults();
+        mc.base[cutoff] = 0.3f; mc.base[fltEnv] = 0; mc.base[attack] = 0; mc.base[sustain] = 1; mc.base[waveA] = 0.57f;
+        auto playWith = [&] (const Live* mod)
+        {
+            Engine e;
+            e.prepare (48000);
+            e.noteOn (1, 48, 0.9f, -1, g, mc, s);
+            std::vector<float> out, L (256), R (256);
+            for (int b = 0; b < 40; ++b)
+            {
+                std::fill (L.begin(), L.end(), 0.0f); std::fill (R.begin(), R.end(), 0.0f);
+                if (mod != nullptr) e.render (L.data(), R.data(), 256, mc, s, *mod); else e.render (L.data(), R.data(), 256, mc, s);
+                out.insert (out.end(), L.begin(), L.end());
+            }
+            return out;
+        };
+        const Live none, open = [] { Live l; l.filterMul = std::exp2 (4.0f); return l; }();
+        const auto plain = playWith (nullptr), zero = playWith (&none), bright = playWith (&open);
+        auto edge = [] (const std::vector<float>& x) { double d = 0; for (size_t i = 1; i < x.size(); ++i) d += double (x[i] - x[i - 1]) * (x[i] - x[i - 1]); return d; };
+        std::printf ("sidechain: brightness %.3g without, %.3g with the filter opened\n", edge (plain), edge (bright));
+        check (plain == zero, "no sidechain modulation renders bit-identically");
+        check (edge (bright) > 2 * edge (plain), "a loud input with LEVEL -> CUTOFF opens the filter");
+    }
+
     // ---- sound -> seed
     {
         const auto f1 = patchFeatures (base, 60), f2 = patchFeatures (base, 60);
         check (distance (f1, f2) == 0, "features are deterministic");
         Params other = seedParams (777, 20);
         check (distance (f1, patchFeatures (other, 60)) > 0.02f, "different patches have different features");
+
+        // the net was trained on this sound: speed-ups must not move the features of a fresh note
+        {
+            std::ifstream ref ("tests/features_ref.txt");
+            std::string line;
+            std::getline (ref, line); // comment
+            Params busy = base;
+            busy[drive] = 0.9f; busy[sub] = 0.7f; busy[holdB] = 0.8f; busy[lfoShape] = 0.7f; busy[lfoAmt] = 0.6f;
+            // recorded with MSVC: other compilers and maths libraries round sin, pow and exp a little differently,
+            // so the match is to float rounding (a changed sound moves features by 1e-2 and more)
+            int same = 0;
+            float worst = 0;
+            for (const auto& p : { base, busy })
+            {
+                Features want;
+                std::string tok;
+                std::getline (ref, line);
+                for (std::istringstream in (line); in >> tok;) want.push_back (float (std::strtod (tok.c_str(), nullptr)));
+                const auto got = patchFeatures (p, 60);
+                if (want.size() != got.size()) continue;
+                float d = 0;
+                for (size_t i = 0; i < got.size(); ++i) d = std::max (d, std::abs (got[i] - want[i]));
+                worst = std::max (worst, d);
+                same += d < 1e-3f;
+            }
+            std::printf ("features against the reference: largest difference %g\n", double (worst));
+            check (same == 2, "features of fixed patches match the recorded reference");
+        }
+
+        // the attack envelope the search compares next to the melogram
+        {
+            Params pluck = base, slow = base;
+            pluck[attack] = 0; pluck[sustain] = 0; pluck[decay] = 0.2f;
+            slow[attack] = 0.75f;
+            const auto a = patchAudio (pluck, 60), b = patchAudio (slow, 60);
+            const Envelope ea = envelope (a.data(), int (a.size())), eb = envelope (b.data(), int (b.size()));
+            std::vector<float> late (a.size() + 4800, 0.0f); // the same pluck after 200 ms of silence
+            std::copy (a.begin(), a.end(), late.begin() + 4800);
+            const float apart = envDistance (ea, eb), shifted = envDistance (ea, envelope (late.data(), int (late.size())));
+            std::printf ("attack: pluck vs slow attack %.3f apart, pluck vs the same pluck after silence %.4f\n", apart, shifted);
+            check (envDistance (ea, ea) == 0 && apart > 0.1f && shifted < 0.01f, "the attack envelope tells a pluck from a slow attack and ignores leading silence");
+        }
+
+        // locked genes keep the current patch's value, and the genes one note cannot tell keep their start (here neutral)
+        {
+            Search ls;
+            ls.seedBase = 99;
+            std::bitset<NP> lk;
+            lk[cutoff] = lk[waveA] = true;
+            Params values = neutralGenes();
+            values[cutoff] = 0.123f;
+            values[waveA] = 0.81f;
+            ls.setLocks (lk, values);
+            const auto target = patchAudio (base, 60);
+            ls.setReference (target, 60, nullptr);
+            runSearch (ls, 120);
+            std::array<std::vector<Search::Solution>, Search::STRANDS> sol;
+            std::array<bool, Search::STRANDS> done;
+            long tested = 0;
+            ls.snapshot (sol, done, tested);
+            bool kept = tested > 0, fixed = true;
+            for (const auto& strand : sol)
+                for (const auto& so : strand)
+                {
+                    kept = kept && so.genes[cutoff] == 0.123f && so.genes[waveA] == 0.81f;
+                    fixed = fixed && so.genes[envKey] == 0.5f && so.genes[fltKey] == 0.5f && so.genes[modVel] == 0.5f;
+                }
+            check (kept, "the search leaves locked genes at the patch's value");
+            check (fixed, "the search keeps key tracking and velocity amount where it started");
+        }
 
         // the search must get close to a target rendered by the engine itself
         Net net;
@@ -489,9 +673,7 @@ int main()
         std::array<bool, Search::STRANDS> done {};
         long tested = 0;
         search.snapshot (sol, done, tested);
-        search.resume();
-        std::this_thread::sleep_for (std::chrono::seconds (8));
-        search.pause();
+        runSearch (search, 1100);
         search.snapshot (sol, done, tested);
         float best = 0;
         for (auto& st : sol) for (auto& x : st) best = std::max (best, x.score);
@@ -543,9 +725,7 @@ int main()
         Search search;
         search.cfg = cfg;
         search.setReference (ref, 60, &net);
-        search.resume();
-        std::this_thread::sleep_for (std::chrono::seconds (3));
-        search.pause();
+        runSearch (search, 380);
         std::array<std::vector<Search::Solution>, Search::STRANDS> sol;
         std::array<bool, Search::STRANDS> done {};
         long tested = 0;
@@ -648,6 +828,35 @@ int main()
         check (ons.size() == 2 && ons[0].first == 57 && ons[1].first == 64, "live tracker follows A3 then E4");
         if (ons.size() == 2) check (ons[0].second < 0.06 && ons[1].second - 0.4 < 0.06, "live notes start within 60 ms");
         check (offs == 1, "live note stops on silence");
+
+        // live input switched off in the middle of a note, then on again in silence: nothing may sound
+        feed (220, 0.4);
+        const size_t before = ons.size();
+        lt.reset();
+        feed (0, 0.2);
+        check (ons.size() == before, "after a reset the tracker does not replay the old input");
+
+        // a lone click correlates with nothing: no pitch, and no read before the correlation array
+        std::vector<float> click (1024, 0.0f), scratch (1024 / 2 + 2);
+        click[0] = 1;
+        float strength = 1;
+        check (windowPitch (click.data(), 1024, 24000, strength, scratch.data()) == 0 && strength == 0, "a lone click has no pitch");
+
+        // the same key played again without a gap (an accent): the first note's tail must not cut the second one
+        std::vector<float> twice;
+        for (float amp : { 0.15f, 0.6f })
+            for (int i = 0; i < int (sr * 0.4f); ++i) twice.push_back (amp * std::sin (2 * PI * 261.63f * float (i) / sr));
+        twice.insert (twice.end(), size_t (sr * 0.2f), 0.0f);
+        const auto ev2 = transcribe (twice.data(), int (twice.size()), sr);
+        check (ev2.size() == 2 && ev2[0].midi == 60 && ev2[1].midi == 60 && ev2[0].end <= ev2[1].start, "repeated notes do not overlap");
+        if (ev2.size() == 2)
+        {
+            const auto both = renderPerformance (ev2, twice.size() / double (sr), g, defaults(), 48000);
+            const auto alone = renderPerformance ({ ev2[1] }, twice.size() / double (sr), g, defaults(), 48000);
+            const auto level = [] (const std::vector<float>& x) { double e = 0; for (size_t i = 2 * 33600; i < 2 * 38400; ++i) e += double (x[i]) * x[i]; return e; };
+            std::printf ("repeated note: %.1f dB against the note alone (0.70 .. 0.80 s)\n", 10 * std::log10 (level (both) / level (alone)));
+            check (level (both) > 0.5 * level (alone), "the second of two repeated notes sounds its full length");
+        }
     }
 
     std::printf (failures ? "%d FAILED\n" : "all checks passed\n", failures);

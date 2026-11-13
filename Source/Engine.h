@@ -2,6 +2,7 @@
 #pragma once
 #include <algorithm>
 #include <array>
+#include <bitset>
 #include <cmath>
 #include <cstdint>
 #include <vector>
@@ -62,6 +63,7 @@ struct Genome // everything about a patch that isn't a host parameter
     std::array<Params, NB> dir {};
     std::array<float, NB> off {}, gain {};
     std::array<bool, NB> layer {};
+    std::bitset<NP> lock; // locked genes: every branch plays the seed's value, and sound -> seed leaves them alone
     Genome() { gain.fill (1); layer.fill (true); }
 };
 
@@ -72,6 +74,7 @@ struct Controls // host parameters, snapshotted once per block
     float tuning = 0, effect = 35, volume = -8, release = 40, atonality = 20;
     float velSens = 100, glide = 0, wheel = 0, wheelScale = 100;
     int wheelTarget = growthUp, bulbMode = bulbStandard, voiceMode = voicePoly, rotation = 0, tempoSync = 0;
+    float morph = 0; // 0 .. 1: a note's branch blends this far towards the next one clockwise
     float bpm = 120;
     bool lowCpu = false; // voices run at the host rate, without oversampling
 };
@@ -180,25 +183,50 @@ inline bool isPitchGene (int k) { return k == pitchMod || (k >= octA && k <= cen
 // whole steps: floor (x + 0.5) rounds the same way as pitchSteps() in index.html
 inline float pitchSteps (float p, float range) { return std::floor ((p - 0.5f) * range + 0.5f); }
 
-inline Params branchParams (const Genome& g, const Controls& c, int i)
+// a branch's genes before the tonal rules; `amt` gets how far it grew from the seed
+inline Params rawBranch (const Genome& g, const Controls& c, int i, float& amt)
 {
-    const float a = c.atonality / 100, l = effectiveLen (c, i), amt = l * l * (0.4f + a);
+    const float a = c.atonality / 100, l = effectiveLen (c, i);
+    amt = l * l * (0.4f + a);
     Params p;
     for (int k = 0; k < NP; ++k)
-        p[size_t (k)] = isMasterGene (k) ? c.base[size_t (k)]
+        p[size_t (k)] = isMasterGene (k) || g.lock[size_t (k)] ? c.base[size_t (k)]
                                          : clamp01 (c.base[size_t (k)] + g.dir[size_t (i)][size_t (k)] * amt * (isPitchGene (k) ? a : 1.0f));
-    if (a < 0.5f && amt > 0) p[ratioB] = snap (p[ratioB]);
+    return p;
+}
+
+// branch i's genes, `morph` (0 .. 1) of the way to the next branch clockwise; the tonal rules apply once to the mix,
+// so a stepped gene (ratio B) only jumps at its grid points. morph < 0: the MORPH control
+inline Params branchParams (const Genome& g, const Controls& c, int i, float morph = -1)
+{
+    if (morph < 0) morph = c.morph;
+    const float a = c.atonality / 100;
+    float amt = 0;
+    Params p = rawBranch (g, c, i, amt);
+    if (morph > 0)
+    {
+        float amtNext = 0;
+        const Params q = rawBranch (g, c, (i + 1) % NB, amtNext);
+        for (size_t k = 0; k < p.size(); ++k) p[k] += (q[k] - p[k]) * morph;
+        amt += (amtNext - amt) * morph;
+    }
+    if (a < 0.5f && amt > 0 && ! g.lock[ratioB]) p[ratioB] = snap (p[ratioB]);
     if (a < 0.5f) for (int k : { octA, semiA, semiB }) p[size_t (k)] = c.base[size_t (k)]; // tonal: whole steps stay put
     return p;
 }
 
-// which branches a note plays; returns how many were written to `out`
-inline int branchesFor (int note, int vel127, const Genome& g, const Controls& c, std::array<int, NB>& out)
+// which branches a note plays; returns how many were written to `out`. `frac` (velocity bulb): how far the
+// velocity sits between its branch and the next, 0 .. 1, which MORPH turns into a blend
+inline int branchesFor (int note, int vel127, const Genome& g, const Controls& c, std::array<int, NB>& out, float* frac = nullptr)
 {
     const int rot = c.rotation;
+    if (frac != nullptr) *frac = 0;
     switch (c.bulbMode)
     {
-        case bulbVelocity: out[0] = (6 + (127 - vel127) * NB / 128 + rot) % NB; return 1; // bottom branch = hardest hits
+        case bulbVelocity: // bottom branch = hardest hits
+            out[0] = (6 + (127 - vel127) * NB / 128 + rot) % NB;
+            if (frac != nullptr) *frac = float ((127 - vel127) * NB % 128) / 128.0f;
+            return 1;
         case bulbRanges:   out[0] = (std::clamp ((note - 24) / 6, 0, NB - 1) + rot) % NB; return 1;
         case bulbLayered:
         {
@@ -380,16 +408,21 @@ public:
     float frozenBend = 0;
 
     void start (int midi, int ch, int br, float vel, const Genome& g, const Controls& c, const Settings& s, float sampleRate,
-                uint32_t& rng, float glideFrom, float layerCents)
+                uint32_t& rng, float glideFrom, float layerCents, float morph = -1)
     {
+        // a sounding voice taken over (voice steal, mono retrigger) keeps its phases, filters and decimator and
+        // ramps from its current level, so it does not click; a free voice starts exactly as before
+        const bool steal = active && osStages == (c.lowCpu ? 0 : OS_STAGES);
         osStages = c.lowCpu ? 0 : OS_STAGES;
         os = 1 << osStages;
         sr = sampleRate * float (os);
-        for (auto& h : down) h = {};
+        if (! steal) for (auto& h : down) h = {};
         note = midi;
         channel = ch;
         branch = br;
-        p = branchParams (g, c, br);
+        if (morph < 0) morph = c.morph;
+        const int next = (br + 1) % NB; // the branch MORPH blends towards
+        p = branchParams (g, c, br, morph);
         const float a = c.atonality / 100;
         tune = c.tuning * 100 + layerCents;
         if (a > 0.5f) tune += (rand (rng) * 2 - 1) * (a - 0.5f) * 100;
@@ -428,6 +461,13 @@ public:
         spreadAmt = std::abs (p[fltSpread] - 0.5f) * 1.4f;
         spreadMul = std::exp2 ((p[fltSpread] - 0.5f) * 6);
         driveGain = 1 + std::max (0.0f, p[drive] - 0.5f) * 16;
+        driveRoot = std::sqrt (driveGain);
+        osRoot = std::sqrt (float (os));
+        // cutoff follows the key by fltKey (0.5 = fully, 0 = fixed at middle C); the per-sample part is pow (f, keyAmt)
+        keyAmt = clamp01 (p[fltKey] * 2);
+        keyFixed = std::pow (261.63f, 1 - keyAmt);
+        cutoffMul = std::pow (40.0f, p[cutoff]);
+        fltEnv6 = p[fltEnv] * 6;
         foldAmt = p[drive] > 0.8f ? (p[drive] - 0.8f) / 0.2f : 0.0f; // above every seed's range: wavefolding on top of the saturation
         k = 1.0f / std::max (0.707f, std::pow (10.0f, 0.5f * std::pow (30.0f, p[reso]) / 20)); // resonance in dB, like Web Audio
 
@@ -436,13 +476,16 @@ public:
         const float dec = 0.01f * std::pow (800.0f, p[decay]) * timeMul * std::exp2 (-envTiltVal * 0.7f);
         decCoef = std::exp (-1.0f / (dec / 3 * sr));
         sus = p[sustain] < 0.08f ? 0.0f : p[sustain];
-        peak = velEff * 0.22f * g.gain[size_t (br)];
+        const float gain = morph > 0 ? g.gain[size_t (br)] + (g.gain[size_t (next)] - g.gain[size_t (br)]) * morph : g.gain[size_t (br)];
+        peak = velEff * 0.22f * gain;
         fadeCoef = p[volFade] > 0.75f ? std::exp (-1.0f / ((10.0f - (p[volFade] - 0.75f) * 4 * 9.5f) * sr)) : 1.0f;
         const float loopSec = p[envLoop] < 0.98f ? syncSeconds (0.05f * std::pow (160.0f, p[envLoop]) * timeMul, c) : 0.0f;
         loopS = loopSec > 0 && loopSec * sr < atkS + dec * 2 * sr ? loopSec * sr : 0.0f;
         oneShotEnd = sus > 0 || loopS > 0 ? -1.0f : atkS + dec * 2.5f * sr;
 
-        const float pan = std::cos (branchAngle (g, br)) * c.effect / 100 * p[spread] * 2;
+        float angle = branchAngle (g, br);
+        if (morph > 0) angle += (branchAngle (g, next) + (next == 0 ? 2 * PI : 0.0f) - angle) * morph; // the short way round past 12 o'clock
+        const float pan = std::cos (angle) * c.effect / 100 * p[spread] * 2;
         const float x = (std::clamp (pan, -1.0f, 1.0f) + 1) * 0.25f * PI; // equal power, like StereoPannerNode
         gl = std::cos (x);
         gr = std::sin (x);
@@ -460,18 +503,23 @@ public:
         modBAmt = (p[modB] - 0.5f) * 2.0f;
         holdBAmt = std::max (0.0f, p[holdB] - 0.5f) * 2.0f;
 
-        phA = phB = phL = phS = 0;
-        shHold = 0;
+        shHold = shB = 0;
         mod = modEnv = modAtkS > 0 ? 0.0f : 1.0f;
         modShT = 0;
-        amp = ampStart = 0;
-        fade = 1;
         t = tAll = 0;
-        f1 = {};
-        f2 = {};
-        f3 = {};
-        f4 = {};
-        nLp = nSlow = 0;
+        if (steal)
+            amp = ampStart = amp * fade;
+        else
+        {
+            phA = phB = phL = phS = 0;
+            amp = ampStart = 0;
+            f1 = {};
+            f2 = {};
+            f3 = {};
+            f4 = {};
+            nLp = nSlow = 0;
+        }
+        fade = 1;
         releasing = false;
         active = held = true;
         frozenBend = 0;
@@ -499,9 +547,10 @@ public:
     void render (float* L, float* R, int n, uint32_t& rng, const Live& live)
     {
         const auto& T = Tables::get();
-        const float fNow = masterTune * std::exp2 ((semi - 69) / 12);
-        const float* ta = T.table (p[waveA], fNow * std::exp2 (pitchACents / 1200) * 2, sr); // headroom for vibrato, sweep and glide
-        const float* tb = T.table (p[waveB], fNow * std::exp2 (pitchACents / 1200) * ratio * 2, sr);
+        // band from the real frequency at block start (sweep and bend included); x2 is headroom for vibrato and glide within the block
+        const float fNow = masterTune * std::exp2 (((semi - 69) * 100 + tune + pitchACents + sweep * mod * modScale + live.bendSemis * 100) / 1200);
+        const float* ta = T.table (p[waveA], fNow * 2, sr);
+        const float* tb = T.table (p[waveB], fNow * ratio * 2, sr);
         const float fmIndex = std::pow (clamp01 (p[fm] + live.fmAdd), 2.0f) * 10;
         const float lfoA = clamp01 (p[lfoAmt] + live.lfoAdd), lfoCents = lfoA * lfoA * 100 * (1 - trem) * (1 - 0.5f * lfoBal), tremDepth = lfoA * trem * 0.5f * (1 + 0.5f * lfoBal);
         const float fltT = p[fltType];
@@ -553,16 +602,14 @@ public:
             const float w = rand (rng) * 2 - 1;
             nLp += (w - nLp) * noiseLp;
             nSlow += (w - nSlow) * noiseSlow;
-            const float nz = (nLp - noiseHp * nSlow) * std::sqrt (float (os)); // decimation keeps 1/os of the white noise power
+            const float nz = (nLp - noiseHp * nSlow) * osRoot; // decimation keeps 1/os of the white noise power
 
             const float a = lookup (ta, phA);
             const float mixB = clamp01 (p[mix] + mixModAmt * mod * 0.5f), mixA = 1 - mixB; // expansion gene: mix can follow the mod envelope
             const float x = (a * mixA + b * mixB) * (1 - ringAmt) + a * b * ringAmt + subAmt * std::sin (2 * PI * phS) + noiseAmt * nz + noiseBAmt * nz * mixB;
 
-            // cutoff follows the key by fltKey (0.5 = fully, 0 = fixed at middle C)
-            const float keyAmt = clamp01 (p[fltKey] * 2);
-            const float base = std::pow (f, keyAmt) * std::pow (261.63f, 1 - keyAmt) * 0.5f * std::pow (40.0f, p[cutoff]);
-            const float fc = std::clamp (base * std::exp2 (p[fltEnv] * 6 * mod * modScale) * live.filterMul, 20.0f, 0.45f * sr);
+            const float base = std::pow (f, keyAmt) * keyFixed * 0.5f * cutoffMul;
+            const float fc = std::clamp (base * std::exp2 (fltEnv6 * mod * modScale) * live.filterMul, 20.0f, 0.45f * sr);
             float lp, bp, hp;
             f1.process (x, std::tan (PI * fc / sr), k, lp, bp, hp);
             // filter type morphs band-pass (0) -> serial low-pass (1/3) -> parallel low-pass (2/3) -> notch (1)
@@ -583,7 +630,7 @@ public:
             {
                 // ponytail: oversampled by OS only; at full fold on very high notes some aliasing is left, raise OS_STAGES if audible
                 const float sat = std::tanh (y * driveGain);
-                y = (foldAmt > 0 ? sat + foldAmt * (std::sin (y * driveGain * 1.5f) - sat) : sat) / std::sqrt (driveGain);
+                y = (foldAmt > 0 ? sat + foldAmt * (std::sin (y * driveGain * 1.5f) - sat) : sat) / driveRoot;
             }
             if (shaperAmt > 0.001f)
                 y = std::tanh (y * (1 + shaperAmt * 3)); // expansion gene: extra wave shaping
@@ -628,6 +675,7 @@ private:
     float lfoHz = 1, trem = 0, lfoDelayS = 0, noiseAmt = 0, noiseLp = 1, noiseSlow = 0.05f, noiseHp = 0, nLp = 0, nSlow = 0, subAmt = 0;
     float spreadAmt = 0, spreadMul = 1, driveGain = 1, k = 1, modCoef = 0, modAtkS = 0, mod = 1, modEnv = 1, modShS = 0, modShT = 0, modScale = 1;
     float decCoef = 0, relCoef = 0, sus = 0, peak = 0, amp = 0, ampStart = 0, fade = 1, fadeCoef = 1, loopS = 0;
+    float driveRoot = 1, osRoot = 1, keyAmt = 0, keyFixed = 1, cutoffMul = 1, fltEnv6 = 0; // per-note constants of the sample loop
     float atkS = 1, oneShotEnd = -1, gl = 0.7f, gr = 0.7f, phA = 0, phB = 0, phL = 0, phS = 0, t = 0, tAll = 0;
     float shMix = 0, shHold = 0, ringAmt = 0, foldAmt = 0;
     float pitchACents = 0, fmModAmt = 0, mixModAmt = 0, noiseBAmt = 0, shaperAmt = 0;
@@ -649,7 +697,10 @@ public:
     void noteOn (int ch, int midi, float vel, int forcedBranch, const Genome& g, const Controls& c, const Settings& s)
     {
         std::array<int, NB> brs {};
-        const int nb = forcedBranch >= 0 ? (brs[0] = forcedBranch, 1) : branchesFor (midi, int (vel * 127), g, c, brs);
+        float frac = 0;
+        const int nb = forcedBranch >= 0 ? (brs[0] = forcedBranch, 1) : branchesFor (midi, int (vel * 127), g, c, brs, &frac);
+        // velocity bulb: MORPH blends by where the velocity sits between two branches (at 0 it steps as before)
+        const float morph = c.bulbMode == bulbVelocity && forcedBranch < 0 ? frac * c.morph : c.morph;
         if (nb == 0) return;
         const bool layered = c.bulbMode == bulbLayered && forcedBranch < 0;
         const float a = c.atonality / 100;
@@ -666,9 +717,10 @@ public:
                 return;
             }
             const float from = c.glide > 0 && anyHeld && monoActive() ? float (lastNote) : -1.0f; // glide only while a key is held
-            for (int j = 0; j < MAXV; ++j) if (j >= nb) voices[size_t (j)].active = false;
+            for (int j = nb; j < MAXV; ++j) // fewer layers than before: fade the extra voices out instead of cutting them
+                if (voices[size_t (j)].active && voices[size_t (j)].held) voices[size_t (j)].release (0.015f, bend[size_t (voices[size_t (j)].channel)]);
             for (int j = 0; j < nb; ++j)
-                voices[size_t (j)].start (midi, ch, brs[size_t (j)], vel, g, c, s, sr, rng, from, layered ? layerCents (g, brs[size_t (j)], a) : 0.0f),
+                voices[size_t (j)].start (midi, ch, brs[size_t (j)], vel, g, c, s, sr, rng, from, layered ? layerCents (g, brs[size_t (j)], a) : 0.0f, morph),
                 voices[size_t (j)].age = ++clock;
             lastNote = midi;
             return;
@@ -683,7 +735,7 @@ public:
         for (int j = 0; j < nb; ++j)
         {
             Voice* pick = oldestOrFree (limit);
-            pick->start (midi, ch, brs[size_t (j)], vel, g, c, s, sr, rng, from, layered ? layerCents (g, brs[size_t (j)], a) : 0.0f);
+            pick->start (midi, ch, brs[size_t (j)], vel, g, c, s, sr, rng, from, layered ? layerCents (g, brs[size_t (j)], a) : 0.0f, morph);
             pick->age = ++clock;
         }
         lastNote = midi;
@@ -715,14 +767,15 @@ public:
     void pressure (int ch, float value) { press[size_t (std::clamp (ch, 0, NCH - 1))] = value; }
     void slide (int ch, float value) { slideY[size_t (std::clamp (ch, 0, NCH - 1))] = value; }
 
-    void render (float* L, float* R, int n, const Controls& c, const Settings& s)
+    // `from`: modulation from outside the engine (the sidechain), applied before the wheel's
+    void render (float* L, float* R, int n, const Controls& c, const Settings& s, const Live& from = {})
     {
         const float w = wheelAmount (c);
-        Live live;
-        if (c.wheelTarget == filterUp) live.filterMul = std::exp2 (w * 4);
-        if (c.wheelTarget == filterDown) live.filterMul = std::exp2 (-(1 - w) * 6);
-        if (c.wheelTarget == fmAmount) live.fmAdd = w;
-        if (c.wheelTarget == lfoAmount) live.lfoAdd = w;
+        Live live = from;
+        if (c.wheelTarget == filterUp) live.filterMul *= std::exp2 (w * 4);
+        if (c.wheelTarget == filterDown) live.filterMul *= std::exp2 (-(1 - w) * 6);
+        if (c.wheelTarget == fmAmount) live.fmAdd += w;
+        if (c.wheelTarget == lfoAmount) live.lfoAdd += w;
         for (auto& v : voices)
         {
             if (! v.active) continue;
@@ -750,6 +803,7 @@ private:
     // layers detune by atonality even at length 0, each branch its own fixed direction
     static float layerCents (const Genome& g, int br, float a) { return g.off[size_t (br)] / 0.18f * a * 25; }
 
+    // a free voice while under the limit, else the quietest released voice, else the oldest held one
     Voice* oldestOrFree (int limit)
     {
         int sounding = 0;
@@ -757,10 +811,14 @@ private:
         if (sounding < limit)
             for (auto& v : voices)
                 if (! v.active) return &v;
-        Voice* oldest = nullptr;
+        Voice *quietest = nullptr, *oldest = nullptr;
         for (auto& v : voices)
-            if (v.active && (oldest == nullptr || v.age < oldest->age)) oldest = &v;
-        return oldest != nullptr ? oldest : &voices[0];
+        {
+            if (! v.active) continue;
+            if (! v.held && (quietest == nullptr || v.level() < quietest->level())) quietest = &v;
+            if (oldest == nullptr || v.age < oldest->age) oldest = &v;
+        }
+        return quietest != nullptr ? quietest : oldest != nullptr ? oldest : &voices[0];
     }
 
     float sr = 48000;
@@ -816,10 +874,10 @@ inline float detectPitch (const float* x, int n, float sampleRate, float* streng
     const int start = n / 8, len = std::min (n - start, int (sampleRate * 0.25f));
     const int minLag = int (sampleRate / 2000), maxLag = std::min (int (sampleRate / 40), len / 2);
     if (len < 2 * maxLag || maxLag <= minLag) return 0;
-    std::vector<float> r (size_t (maxLag + 2), 0.0f);
+    std::vector<float> r (size_t (maxLag + 1), 0.0f);
     double e0 = 0;
     for (int i = 0; i < len - maxLag; ++i) e0 += double (x[start + i]) * x[start + i];
-    for (int lag = minLag; lag <= maxLag + 1 && lag < len; ++lag)
+    for (int lag = minLag; lag <= maxLag; ++lag) // one lag further would read past the end of a short input
     {
         double acc = 0, e1 = 0;
         for (int i = 0; i < len - maxLag; ++i)

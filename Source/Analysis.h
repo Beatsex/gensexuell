@@ -29,6 +29,10 @@ inline const std::vector<int>& netGenes()
     return g;
 }
 
+// net genes one reference note cannot tell: how envelope times and the filter follow the key, how the mod envelope
+// follows velocity. The search keeps them where it starts (the net's guess or the current patch)
+inline bool isUnobservable (int k) { return k == envKey || k == fltKey || k == modVel; }
+
 inline Params neutralGenes()
 {
     Params p;
@@ -158,6 +162,18 @@ inline Features features (const float* x, int n, int midi, const FeatConfig& cfg
 
     Features out (static_cast<size_t> (nfeat (cfg)), 0.0f);
     std::vector<std::complex<float>> buf (static_cast<size_t> (fftN));
+    // once per call instead of per frame: the Hann window, and the bins where each mel band is not zero (the sums stay the same)
+    std::vector<float> hann (static_cast<size_t> (fftN));
+    for (int i = 0; i < fftN; ++i) hann[size_t (i)] = fftN > 1 ? 0.5f - 0.5f * std::cos (2 * PI * i / (fftN - 1)) : 1.0f;
+    std::vector<std::pair<int, int>> bins (static_cast<size_t> (mel), { 0, 0 });
+    for (int b = 0; b < mel; ++b)
+    {
+        const auto& band = melBank[size_t (b)];
+        int lo = 0, hi = int (band.size());
+        while (lo < hi && band[size_t (lo)] == 0) ++lo;
+        while (hi > lo && band[size_t (hi - 1)] == 0) --hi;
+        bins[size_t (b)] = { lo, hi };
+    }
     float top = -100, sumSq = 0;
     for (int j = 0; j < frames; ++j)
     {
@@ -165,15 +181,14 @@ inline Features features (const float* x, int n, int midi, const FeatConfig& cfg
         for (int i = 0; i < fftN; ++i)
         {
             const int idx = start + i;
-            const float win = fftN > 1 ? 0.5f - 0.5f * std::cos (2 * PI * i / (fftN - 1)) : 1.0f;
-            buf[size_t (i)] = { idx < n ? x[idx] * win : 0.0f, 0.0f };
+            buf[size_t (i)] = { idx < n ? x[idx] * hann[size_t (i)] : 0.0f, 0.0f };
         }
         fft (buf);
         for (int b = 0; b < mel; ++b)
         {
             float e = 0;
             const auto& band = melBank[size_t (b)];
-            for (int k = 0; k < fftN / 2 + 1; ++k) e += band[size_t (k)] * std::norm (buf[size_t (k)]);
+            for (int k = bins[size_t (b)].first; k < bins[size_t (b)].second; ++k) e += band[size_t (k)] * std::norm (buf[size_t (k)]);
             for (int s = 0; s < cfg.sqrtSqrt && s < 2; ++s) e = std::sqrt (std::max (e, 0.0f));
             float v = std::log10 (e + 1e-10f);
             v = std::clamp (v, cfg.noiseFloor, cfg.clipAt);
@@ -270,8 +285,44 @@ inline float distance (const Reference& r, const Features& f)
 // similarity shown on the strands: 1 = identical features
 inline float similarity (float d) { return clamp01 (1 - d / 0.25f); }
 
+// the attack in finer steps than the melogram's 43 ms windows: RMS per 5 ms over the first 80 ms after the onset
+// (the first sample within 40 dB of the peak, so silence before a reference does not count), in dB below the loudest
+// step, -60 .. 0 dB as 0 .. 1. Only the search uses it, next to the features; the net never sees it.
+using Envelope = std::array<float, 16>;
+
+inline Envelope envelope (const float* x, int n, int sampleRate = int (FEAT_SR))
+{
+    Envelope e {};
+    float peak = 0;
+    for (int i = 0; i < n; ++i) peak = std::max (peak, std::abs (x[i]));
+    if (peak <= 0) return e;
+    int start = 0;
+    while (start < n && std::abs (x[start]) < peak * 0.01f) ++start;
+    const int step = std::max (1, sampleRate / 200);
+    std::array<float, 16> db {};
+    float top = -200;
+    for (size_t b = 0; b < e.size(); ++b)
+    {
+        double s = 0;
+        for (int i = 0; i < step; ++i)
+            if (const int j = start + int (b) * step + i; j < n) s += double (x[j]) * x[j];
+        db[b] = 10 * std::log10 (float (s / step) + 1e-20f);
+        top = std::max (top, db[b]);
+    }
+    for (size_t b = 0; b < e.size(); ++b) e[b] = clamp01 ((db[b] - top + 60) / 60);
+    return e;
+}
+
+// mean step-wise difference of two attacks, 0 .. 1
+inline float envDistance (const Envelope& a, const Envelope& b)
+{
+    float d = 0;
+    for (size_t i = 0; i < a.size(); ++i) d += std::abs (a[i] - b[i]);
+    return d / float (a.size());
+}
+
 // how a patch sounds at the analysis rate: dry, one note, held for HOLD_SECONDS
-inline Features patchFeatures (const Params& genes, int midi, float tuning = 0, const FeatConfig& cfg = {})
+inline std::vector<float> patchAudio (const Params& genes, int midi, float tuning = 0, const FeatConfig& cfg = {})
 {
     static const Genome g;
     Controls c;
@@ -280,7 +331,12 @@ inline Features patchFeatures (const Params& genes, int midi, float tuning = 0, 
     c.atonality = 0;
     c.tuning = tuning;
     const int span = featLen (cfg);
-    const auto audio = renderNote (g, c, 0, midi, float (span) / float (cfg.sampleRate), float (cfg.sampleRate), HOLD_SECONDS);
+    return renderNote (g, c, 0, midi, float (span) / float (cfg.sampleRate), float (cfg.sampleRate), HOLD_SECONDS);
+}
+
+inline Features patchFeatures (const Params& genes, int midi, float tuning = 0, const FeatConfig& cfg = {})
+{
+    const auto audio = patchAudio (genes, midi, tuning, cfg);
     return features (audio.data(), int (audio.size()), midi, cfg);
 }
 
@@ -391,13 +447,26 @@ public:
 
     // the features the reference, the guess and every child are measured with; must match the net's input width
     FeatConfig cfg;
+    float envWeight = 0.2f; // how much the attack (envDistance) counts next to the melogram when a strand picks its child
+    uint32_t seedBase = 0;  // 0: every strand starts from a random seed; else fixed (seedBase + strand), for comparisons
+    int mutate = 8;         // genes a child changes (0 = every net gene): 8 of 45 climbs further than all of them
+
+    // genes the user locked keep `values` (the current patch) in every strand; takes effect on the next start or restart
+    void setLocks (const std::bitset<NP>& locked, const Params& values)
+    {
+        std::lock_guard<std::mutex> lock (m);
+        locks = locked;
+        lockValues = values;
+    }
 
     // reference: mono audio at FEAT_SR (any length, the config's window length used)
     void setReference (const std::vector<float>& audio, int midi, const Net* net)
     {
         pause();
+        triedCount = 0;
         refNote = midi;
         ref = makeReference (audio.data(), int (audio.size()), midi, cfg);
+        refEnv = envelope (audio.data(), std::min (int (audio.size()), featLen (cfg)), cfg.sampleRate);
         guess = net != nullptr && net->ready() && net->inDim() == int (ref.plain().size()) ? net->predict (ref.plain()) : neutralGenes();
         std::lock_guard<std::mutex> lock (m);
         for (int s = 0; s < STRANDS; ++s) resetStrand (s, nullptr);
@@ -460,24 +529,29 @@ private:
     struct Strand
     {
         Params parent {};
-        float parentDist = 1, sigma = 0.12f;
+        float parentDist = 1, parentMel = 1, sigma = 0.12f; // parentDist picks children (melogram + attack), parentMel scores
         int generation = 0;
         bool done = false;
         std::vector<Solution> solutions;
         uint32_t seed = 1;
+        std::bitset<NP> locks; // as they were when the strand started
     };
 
     void resetStrand (int s, const Params* from)
     {
         auto& st = strands[size_t (s)];
         st = {};
-        st.seed = uint32_t (std::random_device {}()) | 1u;
+        st.seed = seedBase != 0 ? (seedBase + uint32_t (s) * 7919u) | 1u : uint32_t (std::random_device {}()) | 1u;
         std::mt19937 rng (st.seed);
         std::normal_distribution<float> n (0, 1);
         static constexpr float startNoise[STRANDS] = { 0.0f, 0.08f, 0.15f, 0.25f };
         st.parent = from != nullptr ? *from : guess;
         if (from == nullptr)
-            for (int k : netGenes()) st.parent[size_t (k)] = clamp01 (st.parent[size_t (k)] + n (rng) * startNoise[s]);
+            for (int k : netGenes())
+                if (! isUnobservable (k)) st.parent[size_t (k)] = clamp01 (st.parent[size_t (k)] + n (rng) * startNoise[s]);
+        for (int k = 0; k < NP; ++k)
+            if (locks[size_t (k)]) st.parent[size_t (k)] = lockValues[size_t (k)];
+        st.locks = locks;
         st.parentDist = -1; // evaluated by the worker
         st.sigma = from != nullptr ? 0.06f : 0.12f;
     }
@@ -492,42 +566,74 @@ private:
             st = strands[size_t (s)];
         }
         rng.seed (st.seed + uint32_t (st.generation));
-        if (st.parentDist < 0) st.parentDist = distance (ref, patchFeatures (st.parent, refNote, 0, cfg));
+        if (st.parentDist < 0) measure (st.parent, st.parentMel, st.parentDist);
+        std::vector<int> genes; // the genes a child may change
+        for (int k : netGenes())
+            if (! isUnobservable (k) && ! st.locks[size_t (k)]) genes.push_back (k);
+        if (genes.empty()) // everything locked: the start is the answer
+        {
+            st.done = true;
+            if (st.solutions.empty()) st.solutions.push_back ({ st.parent, similarity (st.parentMel) });
+            std::lock_guard<std::mutex> lock (m);
+            strands[size_t (s)] = st;
+        }
 
         while (! stopFlag && ! st.done)
         {
             Params best = st.parent;
-            float bestDist = 1e9f;
+            float bestDist = 1e9f, bestMel = 1e9f;
             for (int c = 0; c < CHILDREN && ! stopFlag; ++c)
             {
                 Params child = st.parent;
-                for (int k : netGenes()) child[size_t (k)] = clamp01 (child[size_t (k)] + n (rng) * st.sigma);
-                const float d = distance (ref, patchFeatures (child, refNote, 0, cfg));
+                if (mutate <= 0 || mutate >= int (genes.size()))
+                    for (int k : genes) child[size_t (k)] = clamp01 (child[size_t (k)] + n (rng) * st.sigma);
+                else
+                    for (int j = 0; j < mutate; ++j) // `mutate` distinct genes, drawn without repeats
+                    {
+                        std::swap (genes[size_t (j)], genes[size_t (j) + rng() % (genes.size() - size_t (j))]);
+                        const int k = genes[size_t (j)];
+                        child[size_t (k)] = clamp01 (child[size_t (k)] + n (rng) * st.sigma);
+                    }
+                float mel, d;
+                measure (child, mel, d);
                 ++triedCount;
-                if (d < bestDist) { bestDist = d; best = child; }
+                if (d < bestDist) { bestDist = d; bestMel = mel; best = child; }
             }
             if (stopFlag) break;
 
             const bool improved = bestDist < st.parentDist;
             if (improved)
             {
-                const bool worthShowing = st.solutions.empty() || similarity (bestDist) > st.solutions.back().score + 0.004f;
+                const bool worthShowing = st.solutions.empty() || similarity (bestMel) > st.solutions.back().score + 0.004f;
                 st.parent = best;
                 st.parentDist = bestDist;
+                st.parentMel = bestMel;
                 st.sigma = std::min (0.3f, st.sigma * 1.15f);
-                if (worthShowing) st.solutions.push_back ({ best, similarity (bestDist) });
+                if (worthShowing) st.solutions.push_back ({ best, similarity (bestMel) });
             }
             else
                 st.sigma *= 0.88f;
-            if (st.solutions.empty()) st.solutions.push_back ({ st.parent, similarity (st.parentDist) });
-            st.done = st.sigma < 0.004f || ++st.generation >= MAX_GENERATIONS || similarity (st.parentDist) > 0.985f;
+            // the score and the stop stay on the melogram alone (similarity and 0.985 are calibrated on it)
+            if (st.solutions.empty()) st.solutions.push_back ({ st.parent, similarity (st.parentMel) });
+            st.done = st.sigma < 0.004f || ++st.generation >= MAX_GENERATIONS || similarity (st.parentMel) > 0.985f;
 
             std::lock_guard<std::mutex> lock (m);
             strands[size_t (s)] = st;
         }
     }
 
+    // one render of a patch: its melogram distance to the reference, and that plus the weighted attack distance
+    void measure (const Params& genes, float& mel, float& pick) const
+    {
+        const auto audio = patchAudio (genes, refNote, 0, cfg);
+        mel = distance (ref, features (audio.data(), int (audio.size()), refNote, cfg));
+        pick = envWeight > 0 ? mel + envWeight * envDistance (refEnv, envelope (audio.data(), int (audio.size()), cfg.sampleRate)) : mel;
+    }
+
     Reference ref;
+    Envelope refEnv {};
+    std::bitset<NP> locks;
+    Params lockValues {};
     Params guess {};
     int refNote = 60;
     std::array<Strand, STRANDS> strands;
