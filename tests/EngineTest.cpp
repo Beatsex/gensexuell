@@ -103,6 +103,10 @@ int main()
     {
         auto p = branchParams (g, c, 5);
         check (p[space] == c.base[space] && p[bass] == c.base[bass], "master genes come from the seed");
+        Genome locked = g;
+        locked.lock[cutoff] = locked.lock[ratioB] = true;
+        const auto q = branchParams (locked, c, 5);
+        check (q[cutoff] == c.base[cutoff] && q[ratioB] == c.base[ratioB] && q[reso] == p[reso], "a locked gene plays the seed's value on every branch");
     }
 
     // ---- bulb modes
@@ -553,6 +557,34 @@ int main()
             const float apart = envDistance (ea, eb), shifted = envDistance (ea, envelope (late.data(), int (late.size())));
             std::printf ("attack: pluck vs slow attack %.3f apart, pluck vs the same pluck after silence %.4f\n", apart, shifted);
             check (envDistance (ea, ea) == 0 && apart > 0.1f && shifted < 0.01f, "the attack envelope tells a pluck from a slow attack and ignores leading silence");
+        }
+
+        // locked genes keep the current patch's value, and the genes one note cannot tell keep their start (here neutral)
+        {
+            Search ls;
+            ls.seedBase = 99;
+            std::bitset<NP> lk;
+            lk[cutoff] = lk[waveA] = true;
+            Params values = neutralGenes();
+            values[cutoff] = 0.123f;
+            values[waveA] = 0.81f;
+            ls.setLocks (lk, values);
+            const auto target = patchAudio (base, 60);
+            ls.setReference (target, 60, nullptr);
+            runSearch (ls, 120);
+            std::array<std::vector<Search::Solution>, Search::STRANDS> sol;
+            std::array<bool, Search::STRANDS> done;
+            long tested = 0;
+            ls.snapshot (sol, done, tested);
+            bool kept = tested > 0, fixed = true;
+            for (const auto& strand : sol)
+                for (const auto& so : strand)
+                {
+                    kept = kept && so.genes[cutoff] == 0.123f && so.genes[waveA] == 0.81f;
+                    fixed = fixed && so.genes[envKey] == 0.5f && so.genes[fltKey] == 0.5f && so.genes[modVel] == 0.5f;
+                }
+            check (kept, "the search leaves locked genes at the patch's value");
+            check (fixed, "the search keeps key tracking and velocity amount where it started");
         }
 
         // the search must get close to a target rendered by the engine itself

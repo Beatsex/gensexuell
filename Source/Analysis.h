@@ -29,6 +29,10 @@ inline const std::vector<int>& netGenes()
     return g;
 }
 
+// net genes one reference note cannot tell: how envelope times and the filter follow the key, how the mod envelope
+// follows velocity. The search keeps them where it starts (the net's guess or the current patch)
+inline bool isUnobservable (int k) { return k == envKey || k == fltKey || k == modVel; }
+
 inline Params neutralGenes()
 {
     Params p;
@@ -375,6 +379,14 @@ public:
     uint32_t seedBase = 0;  // 0: every strand starts from a random seed; else fixed (seedBase + strand), for comparisons
     int mutate = 8;         // genes a child changes (0 = every net gene): 8 of 45 climbs further than all of them
 
+    // genes the user locked keep `values` (the current patch) in every strand; takes effect on the next start or restart
+    void setLocks (const std::bitset<NP>& locked, const Params& values)
+    {
+        std::lock_guard<std::mutex> lock (m);
+        locks = locked;
+        lockValues = values;
+    }
+
     // reference: mono audio at FEAT_SR (any length, the config's window length used)
     void setReference (const std::vector<float>& audio, int midi, const Net* net)
     {
@@ -450,6 +462,7 @@ private:
         bool done = false;
         std::vector<Solution> solutions;
         uint32_t seed = 1;
+        std::bitset<NP> locks; // as they were when the strand started
     };
 
     void resetStrand (int s, const Params* from)
@@ -462,7 +475,11 @@ private:
         static constexpr float startNoise[STRANDS] = { 0.0f, 0.08f, 0.15f, 0.25f };
         st.parent = from != nullptr ? *from : guess;
         if (from == nullptr)
-            for (int k : netGenes()) st.parent[size_t (k)] = clamp01 (st.parent[size_t (k)] + n (rng) * startNoise[s]);
+            for (int k : netGenes())
+                if (! isUnobservable (k)) st.parent[size_t (k)] = clamp01 (st.parent[size_t (k)] + n (rng) * startNoise[s]);
+        for (int k = 0; k < NP; ++k)
+            if (locks[size_t (k)]) st.parent[size_t (k)] = lockValues[size_t (k)];
+        st.locks = locks;
         st.parentDist = -1; // evaluated by the worker
         st.sigma = from != nullptr ? 0.06f : 0.12f;
     }
@@ -478,7 +495,16 @@ private:
         }
         rng.seed (st.seed + uint32_t (st.generation));
         if (st.parentDist < 0) measure (st.parent, st.parentMel, st.parentDist);
-        std::vector<int> genes = netGenes(); // the genes a child may change
+        std::vector<int> genes; // the genes a child may change
+        for (int k : netGenes())
+            if (! isUnobservable (k) && ! st.locks[size_t (k)]) genes.push_back (k);
+        if (genes.empty()) // everything locked: the start is the answer
+        {
+            st.done = true;
+            if (st.solutions.empty()) st.solutions.push_back ({ st.parent, similarity (st.parentMel) });
+            std::lock_guard<std::mutex> lock (m);
+            strands[size_t (s)] = st;
+        }
 
         while (! stopFlag && ! st.done)
         {
@@ -534,6 +560,8 @@ private:
 
     Features ref;
     Envelope refEnv {};
+    std::bitset<NP> locks;
+    Params lockValues {};
     Params guess {};
     int refNote = 60;
     std::array<Strand, STRANDS> strands;

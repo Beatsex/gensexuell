@@ -2,6 +2,7 @@
 #pragma once
 #include <algorithm>
 #include <array>
+#include <bitset>
 #include <cmath>
 #include <cstdint>
 #include <vector>
@@ -62,6 +63,7 @@ struct Genome // everything about a patch that isn't a host parameter
     std::array<Params, NB> dir {};
     std::array<float, NB> off {}, gain {};
     std::array<bool, NB> layer {};
+    std::bitset<NP> lock; // locked genes: every branch plays the seed's value, and sound -> seed leaves them alone
     Genome() { gain.fill (1); layer.fill (true); }
 };
 
@@ -185,9 +187,9 @@ inline Params branchParams (const Genome& g, const Controls& c, int i)
     const float a = c.atonality / 100, l = effectiveLen (c, i), amt = l * l * (0.4f + a);
     Params p;
     for (int k = 0; k < NP; ++k)
-        p[size_t (k)] = isMasterGene (k) ? c.base[size_t (k)]
+        p[size_t (k)] = isMasterGene (k) || g.lock[size_t (k)] ? c.base[size_t (k)]
                                          : clamp01 (c.base[size_t (k)] + g.dir[size_t (i)][size_t (k)] * amt * (isPitchGene (k) ? a : 1.0f));
-    if (a < 0.5f && amt > 0) p[ratioB] = snap (p[ratioB]);
+    if (a < 0.5f && amt > 0 && ! g.lock[ratioB]) p[ratioB] = snap (p[ratioB]);
     if (a < 0.5f) for (int k : { octA, semiA, semiB }) p[size_t (k)] = c.base[size_t (k)]; // tonal: whole steps stay put
     return p;
 }

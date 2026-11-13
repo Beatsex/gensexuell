@@ -152,6 +152,8 @@ dialog::backdrop{background:#f2b8c633;-webkit-backdrop-filter:blur(3px);backdrop
 .tabs button{padding:12px 18px;font-size:11px;border-right:1.5px solid var(--ink)}
 .tabs button[aria-selected=true]{background:var(--ink);color:var(--cream)}
 .geneGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px 22px;margin-top:14px}
+.geneLocks{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:10px;font-size:11px;letter-spacing:.08em}
+.geneLocks .chip[aria-pressed=true]{background:var(--ink);color:var(--cream)}
 .graph{display:block;width:100%;height:120px;background:#ffffff40;border:1px solid var(--line)}
 .lib{display:grid;grid-template-columns:180px 1fr;height:min(480px,62vh);border:1.5px solid var(--ink)}
 .lib>div{overflow:auto;padding:4px 0}
@@ -323,7 +325,7 @@ footer{display:grid;grid-template-columns:260px minmax(0,1fr) 340px;border-top:1
       </div>
       <div class="genesView" id="genesView" role="tabpanel" aria-labelledby="vGenes" hidden>
         <div class="tabs" role="tablist" id="geneTabs"></div>
-        <div class="dlgBody"><svg class="graph" id="geneGraph" viewBox="0 0 800 120" preserveAspectRatio="none"></svg><div class="geneGrid" id="geneGrid"></div><div class="foot mono" id="geneFoot">DOUBLE-CLICK A GENE TO RESET IT · GENES SET THE SEED, BRANCHES STILL GROW AT RANDOM</div></div>
+        <div class="dlgBody"><div class="geneLocks mono" id="geneLocks"></div><svg class="graph" id="geneGraph" viewBox="0 0 800 120" preserveAspectRatio="none"></svg><div class="geneGrid" id="geneGrid"></div><div class="foot mono" id="geneFoot">DOUBLE-CLICK A GENE TO RESET IT · GENES SET THE SEED, BRANCHES STILL GROW AT RANDOM</div></div>
       </div>
     </section>
     <aside class="panel right">
@@ -586,7 +588,7 @@ const SECTIONS=[['ENVELOPE & LFO',['attack','decay','sustain','volFade','envLoop
   ['EXTRA',['envTime','envTilt','modHold','lfoBalance','noiseB','modB','holdB','fmMod','mixMod','shaper','rvbSize','rvbAttack','rvbLength','fxMix','fxSize','fxLength','fxDamp','fxChorus']]];
 const NOTE=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 const HARM=[0,.5,.75,.5+Math.log2(3)/4,1]; // ratio positions for 0.5x 1x 2x 3x 4x
-const PATCH_FIELDS=['name','seed','base','br','len','gain','layers','tuning','effect','volume','release','atonality','fxType','fxVariant','fxSwarm','fxTail','fxSpan','fxScatter','fxMix',
+const PATCH_FIELDS=['name','seed','base','br','len','gain','layers','lock','tuning','effect','volume','release','atonality','fxType','fxVariant','fxSwarm','fxTail','fxSpan','fxScatter','fxMix',
   'fxOrder','fxPlace','drvOn','drvStyle','drvAmt','drvTone','drvMix','tapeOn','tapeSpeed','tapeDrive','tapeWow','tapeHiss','tapeMix','verbOn','verbMode','verbDecay','verbSize','verbPre','verbDamp','verbMix',
   'bulbMode','voiceMode','wheelTarget','wheelScale','tempoSync','glide','velSens','rotation'];
 // presets drafted by DeepSeek v4.1 Flash, checked and adjusted by hand; genes they don't name stay neutral (0.5)
@@ -657,8 +659,9 @@ function wheelAmt(){return clamp(Math.max(S.wheel,wheelLive))*S.wheelScale/100}
 function effLen(i){const l=S.len[i],w=wheelAmt();return S.wheelTarget===0?l+(1-l)*w:S.wheelTarget===1?l*(1-w):l}
 function branchParams(i){
   const b=S.br[i],a=S.atonality/100,l=effLen(i),amt=l*l*(.4+a),p={};
-  for(const k of KEYS)p[k]=MASTER.has(k)?S.base[k]:clamp(S.base[k]+b.dir[k]*amt*(k==='pitchMod'||PITCH.includes(k)?a:1));
-  if(a<.5&&amt>0)p.ratioB=snap(p.ratioB);
+  const locked=new Set(S.lock);
+  for(const k of KEYS)p[k]=MASTER.has(k)||locked.has(k)?S.base[k]:clamp(S.base[k]+b.dir[k]*amt*(k==='pitchMod'||PITCH.includes(k)?a:1));
+  if(a<.5&&amt>0&&!locked.has('ratioB'))p.ratioB=snap(p.ratioB);
   if(a<.5)for(const k of ['octA','semiA','semiB'])p[k]=S.base[k]; // tonal: whole steps stay put
   return p;
 }
@@ -672,7 +675,7 @@ let S={lowCpu:0,seed:0x5EED1E55,name:'',sel:2,tuning:0,effect:35,volume:-8,relea
   bulbMode:0,voiceMode:0,wheelTarget:0,tempoSync:0,fxType:0,fxVariant:0,fxSwarm:.5,fxTail:.5,fxSpan:.5,fxScatter:0,fxMix:.35,
   ...FX_DEFAULT,
   liveOn:0,liveGate:-45,liveGlide:.03,liveFollow:0,liveOctave:0,
-  gain:Array(12).fill(1),layers:Array(12).fill(true),midi:{...MIDI_DEFAULT},cc:{},programs:Array(16).fill(null),patchPath:'',zoom:1};
+  gain:Array(12).fill(1),layers:Array(12).fill(true),lock:[],midi:{...MIDI_DEFAULT},cc:{},programs:Array(16).fill(null),patchPath:'',zoom:1};
 S.base=seedParams(S.seed);S.br=dirsFor(S.seed);S.len=freshLens(S.seed);S.len[2]=.75;
 let wheelLive=0;
 const undo=[],redo=[];
@@ -689,7 +692,7 @@ function regrow(){VIS.forEach(v=>{v.L.x=0;v.L.v=0});hud()}
 function patchOf(){const p={format:'seedling-patch',version:1};for(const k of PATCH_FIELDS)p[k]=structuredClone(S[k]);return p}
 function applyPatch(p,path=''){
   if(!p||p.format!=='seedling-patch'||!p.base){toast('NOT A PATCH');return false}
-  pushUndo();Object.assign(S,FX_DEFAULT);for(const k of PATCH_FIELDS)if(p[k]!==undefined)S[k]=structuredClone(p[k]);
+  pushUndo();Object.assign(S,FX_DEFAULT);S.lock=[];for(const k of PATCH_FIELDS)if(p[k]!==undefined)S[k]=structuredClone(p[k]);
   S.base={...neutral(),...S.base};S.patchPath=path;regrow();syncAll();preview();return true;
 }
 
@@ -973,6 +976,20 @@ document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>b.closest('di
 function openDlg(id){const d=$(id);if(!d.open)d.showModal()}
 
 // ---------------- genes
+// gene locks: a locked group plays the seed's value on every branch, and sound -> seed leaves it alone
+const LOCK_GROUPS=[['ENV',['attack','decay','sustain','volFade','envLoop','envKey','modAttack','modDecay','modVel','modSH','envTime','envTilt','modHold']],
+  ['OSC A/B',['waveA','waveB','ratioB','mix','noise','noiseColor','noiseB','pitchMod','octA','semiA','centA','semiB','centB']],
+  ['FM/SUB',['fm','fmMod','modB','holdB','sub']],
+  ['FILTER',['cutoff','reso','fltEnv','fltType','fltSpread','fltKey','drive','shaper']]];
+function renderLocks(){
+  const box=$('geneLocks');box.replaceChildren(Object.assign(document.createElement('span'),{textContent:'LOCK'}));
+  for(const [name,genes] of LOCK_GROUPS){
+    const on=genes.every(k=>S.lock.includes(k)),b=Object.assign(document.createElement('button'),{className:'chip',textContent:name});
+    b.setAttribute('aria-pressed',on);b.title=on?'Unlock: branches and sound → seed may change these genes again':'Lock: every branch keeps the seed’s '+name.toLowerCase()+' genes, and sound → seed leaves them alone';
+    b.onclick=()=>{pushUndo();S.lock=on?S.lock.filter(k=>!genes.includes(k)):[...new Set([...S.lock,...genes])];renderLocks();hud()};
+    box.append(b);
+  }
+}
 let geneTab=0;
 SECTIONS.forEach(([name],i)=>{const b=document.createElement('button');b.role='tab';b.textContent=name;b.onclick=()=>{geneTab=i;$('geneFind').value='';renderGenes()};$('geneTabs').append(b)});
 {const f=Object.assign(document.createElement('input'),{id:'geneFind',className:'geneFind',type:'search',placeholder:'FIND A GENE…',ariaLabel:'Find a gene by name or what it does'});f.oninput=renderGenes;$('geneTabs').append(f)}
@@ -994,6 +1011,7 @@ function renderGenes(){
     s.gene=k;s.reset=k==='space'?.3:.5;s.el.title=GENE_INFO[k][1];
     s.el.addEventListener('pointerenter',()=>$('geneFoot').textContent=GENE_INFO[k][1].toUpperCase());
   }
+  renderLocks();
   syncCtls();hud(false);drawGraph();
 }
 function drawGraph(){

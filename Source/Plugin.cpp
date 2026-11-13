@@ -756,6 +756,10 @@ public:
             for (int i = 0; i < NB; ++i) g.gain[size_t (i)] = std::clamp (float (gains->getReference (i)), 0.0f, 2.0f);
         if (auto* layers = s["layers"].getArray(); layers != nullptr && layers->size() == NB)
             for (int i = 0; i < NB; ++i) g.layer[size_t (i)] = bool (layers->getReference (i));
+        if (auto* locked = s["lock"].getArray()) // gene keys
+            for (auto& key : *locked)
+                for (int k = 0; k < NP; ++k)
+                    if (key.toString() == KEYS[k]) g.lock[size_t (k)] = true;
 
         std::array<int, 512> map;
         map.fill (-1);
@@ -1368,6 +1372,7 @@ private:
         audio.resize (std::min (audio.size(), size_t (FEAT_LEN)));
         const float hz = detectPitch (audio.data(), int (audio.size()), FEAT_SR);
         const int note = hz > 0 ? std::clamp (nearestNote (hz), 24, 96) : 60;
+        proc.search.setLocks (proc.currentGenome().lock, proc.controls().base);
         proc.search.setReference (audio, note, &proc.net);
         proc.soundRef = audio;
         DynamicObject::Ptr o = new DynamicObject();
@@ -1387,6 +1392,7 @@ private:
     void genoRestart (int strand, bool fromCurrent)
     {
         const auto c = proc.controls();
+        proc.search.setLocks (proc.currentGenome().lock, c.base);
         proc.search.restart (jlimit (0, Search::STRANDS - 1, strand), fromCurrent ? &c.base : nullptr);
     }
 

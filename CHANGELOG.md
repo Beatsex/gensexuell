@@ -14,6 +14,8 @@
 - Fixed: switching live input off and on again started with the last tracked note.
 - Fixed: the patch counter of sound → seed kept counting from the previous sample.
 - Fixed: a pitch sweep or pitch bend of more than an octave up aliased (a saw bent up four octaves: aliases 18.5 dB below the tone, now 66.4 dB), because the oscillator's wave table was chosen for the unbent note. Notes with a pitch sweep, TUNE or bend now start with the table of the pitch they really play, so swept seeds can sound slightly different.
+- Gene locks: LOCK ENV, OSC A/B, FM/SUB and FILTER above the GENES view. A locked group plays the seed's value on every branch, and sound → seed leaves it at the current patch's value. Saved with the patch.
+- Sound → seed no longer changes how envelope times and the filter follow the key, or how much velocity scales the mod envelope: one sample note cannot tell them, so they stay where the search starts.
 - Sound → seed also compares the first 80 ms of each try with the sample, in 5 ms steps, when it picks the next generation: the attack of plucks and hits now matches about 2.5 times better (average step difference 0.053 → 0.021 on eight percussive tests), at the same match score and speed. The match score shown is unchanged. Each try also changes only 8 of its 45 sound genes instead of all of them, so the search climbs further: average match 94.6 % → 95.5 %, and 30 of 32 strands reach 92 % instead of 26.
 - Performance → seed: rendering the WAV no longer freezes the DAW's window while it runs.
 - Voices take about 3 % less CPU, and sound → seed tries about 8 % more patches per second. The sound is unchanged.
