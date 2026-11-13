@@ -15,7 +15,8 @@ using Descriptors = std::array<float, ND>;
 constexpr float DESC_SECONDS = 1.5f, DESC_HOLD = DESC_SECONDS; // held to the end, so a sustained sound can reach full length
 
 constexpr float MOTION_SCALE = 4.0f, NOISE_SCALE = 3.0f; // calibrated on random seeds, see the text -> seed test
-constexpr int LONG_FFT = 4096;                           // 6 Hz bins: tells the harmonics of a low note apart
+constexpr float BRIGHT_FLOOR = 1e-3f;                    // bins 30 dB under the loudest are not timbre: hundreds of quiet noise bins would outweigh the tone
+constexpr int LONG_FFT = 4096;                          // 6 Hz bins: tells the harmonics of a low note apart
 
 // all values 0..1, from audio at FEAT_SR. Brightness, noise and inharmonicity are measured against the
 // played note, so a patch reads the same on every key.
@@ -78,17 +79,20 @@ inline Descriptors describe (const std::vector<float>& x, int midi = 60)
         prev = shape;
         prevSum = sum;
     }
-    double total = 1e-20, weighted = 0, bassE = 0;
+    double total = 1e-20, bassE = 0, ampSum = 1e-20, ampHz = 0;
+    float loudest = 0;
+    for (int k = 1; k <= FFT_N / 2; ++k) loudest = std::max (loudest, power[size_t (k)]);
     for (int k = 1; k <= FFT_N / 2; ++k)
     {
         const double p = power[size_t (k)], hz = k * FEAT_SR / FFT_N;
         total += p;
-        weighted += p * hz;
         if (hz < 200) bassE += p;
+        if (p > loudest * BRIGHT_FLOOR) { ampSum += std::sqrt (p); ampHz += std::sqrt (p) * hz; }
     }
-    // octaves of the centroid above the note: 100 Hz -> 0, 12.8 kHz -> 1 at C4 and the same timbre on every key below.
-    // Above C4 the scale stays put, or the analysis rate would leave a hi-hat no room to be bright.
-    d[dBright] = clamp01 (float (std::log2 (std::max (weighted / total, 20.0) / std::min (noteHz, 261.63f)) + 1.39) / 7);
+    // octaves of the centroid above the note, weighted by amplitude so the overtones count the way they are heard:
+    // a sine reads 0.1, an open saw 0.8, noise 1. The same timbre reads the same on every key up to C4; above it
+    // the scale stays put, or the analysis rate would leave a hi-hat no room to be bright.
+    d[dBright] = clamp01 (float (std::log2 (std::max (ampHz / ampSum, 20.0) / std::min (noteHz, 261.63f)) + 0.5) / 5);
     d[dBass] = clamp01 (float (bassE / total) * 1.5f);
     d[dMotion] = clamp01 (flux / fluxNorm * MOTION_SCALE);
 
@@ -470,7 +474,7 @@ struct Take
 };
 
 // draw `count` candidate seeds, keep the best distinct ones and refine each by a short evolution
-inline std::vector<Take> textTakes (const Wish& w, uint32_t seed, int takes = 4, int count = 240, int generations = 10)
+inline std::vector<Take> textTakes (const Wish& w, uint32_t seed, int takes = 4, int count = 240, int generations = 30)
 {
     std::mt19937 rng (seed);
     std::uniform_real_distribution<float> u (0, 1);
