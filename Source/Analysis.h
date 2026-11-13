@@ -373,6 +373,7 @@ public:
     FeatConfig cfg;
     float envWeight = 0.2f; // how much the attack (envDistance) counts next to the melogram when a strand picks its child
     uint32_t seedBase = 0;  // 0: every strand starts from a random seed; else fixed (seedBase + strand), for comparisons
+    int mutate = 8;         // genes a child changes (0 = every net gene): 8 of 45 climbs further than all of them
 
     // reference: mono audio at FEAT_SR (any length, the config's window length used)
     void setReference (const std::vector<float>& audio, int midi, const Net* net)
@@ -477,6 +478,7 @@ private:
         }
         rng.seed (st.seed + uint32_t (st.generation));
         if (st.parentDist < 0) measure (st.parent, st.parentMel, st.parentDist);
+        std::vector<int> genes = netGenes(); // the genes a child may change
 
         while (! stopFlag && ! st.done)
         {
@@ -485,7 +487,15 @@ private:
             for (int c = 0; c < CHILDREN && ! stopFlag; ++c)
             {
                 Params child = st.parent;
-                for (int k : netGenes()) child[size_t (k)] = clamp01 (child[size_t (k)] + n (rng) * st.sigma);
+                if (mutate <= 0 || mutate >= int (genes.size()))
+                    for (int k : genes) child[size_t (k)] = clamp01 (child[size_t (k)] + n (rng) * st.sigma);
+                else
+                    for (int j = 0; j < mutate; ++j) // `mutate` distinct genes, drawn without repeats
+                    {
+                        std::swap (genes[size_t (j)], genes[size_t (j) + rng() % (genes.size() - size_t (j))]);
+                        const int k = genes[size_t (j)];
+                        child[size_t (k)] = clamp01 (child[size_t (k)] + n (rng) * st.sigma);
+                    }
                 float mel, d;
                 measure (child, mel, d);
                 ++triedCount;
