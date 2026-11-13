@@ -14,6 +14,7 @@
 - Fixed: switching live input off and on again started with the last tracked note.
 - Fixed: the patch counter of sound → seed kept counting from the previous sample.
 - Fixed: a pitch sweep or pitch bend of more than an octave up aliased (a saw bent up four octaves: aliases 18.5 dB below the tone, now 66.4 dB), because the oscillator's wave table was chosen for the unbent note. Notes with a pitch sweep, TUNE or bend now start with the table of the pitch they really play, so swept seeds can sound slightly different.
+- MORPH (next to VELOCITY): each note blends its branch towards the next one clockwise, genes, level and pan together; stepped genes such as RATIO B only jump at their grid points. In the VELOCITY bulb it blends by how hard you play between two branches, so velocity moves smoothly instead of in twelve steps. It acts when a note starts; 0 plays as before.
 - Live input modulates the sound: LEVEL → CUTOFF (−100 … +100 %) and LEVEL → FM follow the loudness of your input, NOISE → BRIGHT opens the filter when the input is breathy or noisy (no clear pitch). All three act on every voice, start at 0 and can be automated.
 - Gene locks: LOCK ENV, OSC A/B, FM/SUB and FILTER above the GENES view. A locked group plays the seed's value on every branch, and sound → seed leaves it at the current patch's value. Saved with the patch.
 - Sound → seed no longer changes how envelope times and the filter follow the key, or how much velocity scales the mod envelope: one sample note cannot tell them, so they stay where the search starts.

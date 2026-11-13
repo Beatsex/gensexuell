@@ -52,6 +52,7 @@ const std::vector<ParamDef>& paramDefs()
         top ("wheel", "Mod Wheel", 0, 1, 0.001f, 0);
         top ("wheelScale", "Wheel Scaling", 0, 100, 1, 100);
         top ("rotation", "Rotation", 0, 11, 1, 0);
+        top ("morph", "Morph", 0, 1, 0.001f, 0);
         choice ("bulbMode", "Bulb Mode", { "Standard", "Velocity", "Ranges", "Layered" });
         choice ("voiceMode", "Voice Mode", { "Poly", "Mono", "Legato" });
         choice ("wheelTarget", "Wheel Target", { "Growth +", "Growth -", "Filter +", "Filter -", "Env Time +", "Env Time -", "FM", "LFO", "Effect", "Volume" });
@@ -449,6 +450,7 @@ public:
         c.wheel = std::max ({ value ("wheel"), midiWheel.load(), pressureWheel.load() });
         c.wheelScale = value ("wheelScale");
         c.rotation = int (value ("rotation"));
+        c.morph = value ("morph");
         c.bulbMode = int (value ("bulbMode"));
         c.voiceMode = int (value ("voiceMode"));
         c.wheelTarget = int (value ("wheelTarget"));

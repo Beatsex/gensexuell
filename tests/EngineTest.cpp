@@ -109,6 +109,33 @@ int main()
         check (q[cutoff] == c.base[cutoff] && q[ratioB] == c.base[ratioB] && q[reso] == p[reso], "a locked gene plays the seed's value on every branch");
     }
 
+    // ---- morph: 0 plays the branch, 1 the next one clockwise; the velocity bulb still picks the same branches
+    {
+        Controls mc = defaults();
+        mc.len.fill (0.8f);
+        mc.atonality = 60; // no tonal snapping, so the blend is plain
+        bool zero = true, one = true;
+        for (int i = 0; i < NB; ++i)
+        {
+            const auto p0 = branchParams (g, mc, i), pm = branchParams (g, mc, i, 0), p1 = branchParams (g, mc, i, 1), next = branchParams (g, mc, (i + 1) % NB, 0);
+            zero = zero && p0 == pm;
+            for (int k = 0; k < NP; ++k) one = one && near (p1[size_t (k)], next[size_t (k)], 1e-6f);
+        }
+        check (zero, "morph 0 plays the branch unchanged");
+        check (one, "morph 1 plays the next branch clockwise");
+        mc.bulbMode = bulbVelocity;
+        std::array<int, NB> a {}, b {};
+        float frac = -1;
+        bool same = true;
+        for (int v = 1; v < 128; ++v)
+        {
+            branchesFor (60, v, g, mc, a);
+            branchesFor (60, v, g, mc, b, &frac);
+            same = same && a[0] == b[0] && frac >= 0 && frac < 1;
+        }
+        check (same, "the velocity bulb picks the same branches and a blend between 0 and 1");
+    }
+
     // ---- bulb modes
     c = defaults();
     std::array<int, NB> brs {};

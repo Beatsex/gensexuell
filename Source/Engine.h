@@ -74,6 +74,7 @@ struct Controls // host parameters, snapshotted once per block
     float tuning = 0, effect = 35, volume = -8, release = 40, atonality = 20;
     float velSens = 100, glide = 0, wheel = 0, wheelScale = 100;
     int wheelTarget = growthUp, bulbMode = bulbStandard, voiceMode = voicePoly, rotation = 0, tempoSync = 0;
+    float morph = 0; // 0 .. 1: a note's branch blends this far towards the next one clockwise
     float bpm = 120;
     bool lowCpu = false; // voices run at the host rate, without oversampling
 };
@@ -182,25 +183,50 @@ inline bool isPitchGene (int k) { return k == pitchMod || (k >= octA && k <= cen
 // whole steps: floor (x + 0.5) rounds the same way as pitchSteps() in index.html
 inline float pitchSteps (float p, float range) { return std::floor ((p - 0.5f) * range + 0.5f); }
 
-inline Params branchParams (const Genome& g, const Controls& c, int i)
+// a branch's genes before the tonal rules; `amt` gets how far it grew from the seed
+inline Params rawBranch (const Genome& g, const Controls& c, int i, float& amt)
 {
-    const float a = c.atonality / 100, l = effectiveLen (c, i), amt = l * l * (0.4f + a);
+    const float a = c.atonality / 100, l = effectiveLen (c, i);
+    amt = l * l * (0.4f + a);
     Params p;
     for (int k = 0; k < NP; ++k)
         p[size_t (k)] = isMasterGene (k) || g.lock[size_t (k)] ? c.base[size_t (k)]
                                          : clamp01 (c.base[size_t (k)] + g.dir[size_t (i)][size_t (k)] * amt * (isPitchGene (k) ? a : 1.0f));
+    return p;
+}
+
+// branch i's genes, `morph` (0 .. 1) of the way to the next branch clockwise; the tonal rules apply once to the mix,
+// so a stepped gene (ratio B) only jumps at its grid points. morph < 0: the MORPH control
+inline Params branchParams (const Genome& g, const Controls& c, int i, float morph = -1)
+{
+    if (morph < 0) morph = c.morph;
+    const float a = c.atonality / 100;
+    float amt = 0;
+    Params p = rawBranch (g, c, i, amt);
+    if (morph > 0)
+    {
+        float amtNext = 0;
+        const Params q = rawBranch (g, c, (i + 1) % NB, amtNext);
+        for (size_t k = 0; k < p.size(); ++k) p[k] += (q[k] - p[k]) * morph;
+        amt += (amtNext - amt) * morph;
+    }
     if (a < 0.5f && amt > 0 && ! g.lock[ratioB]) p[ratioB] = snap (p[ratioB]);
     if (a < 0.5f) for (int k : { octA, semiA, semiB }) p[size_t (k)] = c.base[size_t (k)]; // tonal: whole steps stay put
     return p;
 }
 
-// which branches a note plays; returns how many were written to `out`
-inline int branchesFor (int note, int vel127, const Genome& g, const Controls& c, std::array<int, NB>& out)
+// which branches a note plays; returns how many were written to `out`. `frac` (velocity bulb): how far the
+// velocity sits between its branch and the next, 0 .. 1, which MORPH turns into a blend
+inline int branchesFor (int note, int vel127, const Genome& g, const Controls& c, std::array<int, NB>& out, float* frac = nullptr)
 {
     const int rot = c.rotation;
+    if (frac != nullptr) *frac = 0;
     switch (c.bulbMode)
     {
-        case bulbVelocity: out[0] = (6 + (127 - vel127) * NB / 128 + rot) % NB; return 1; // bottom branch = hardest hits
+        case bulbVelocity: // bottom branch = hardest hits
+            out[0] = (6 + (127 - vel127) * NB / 128 + rot) % NB;
+            if (frac != nullptr) *frac = float ((127 - vel127) * NB % 128) / 128.0f;
+            return 1;
         case bulbRanges:   out[0] = (std::clamp ((note - 24) / 6, 0, NB - 1) + rot) % NB; return 1;
         case bulbLayered:
         {
@@ -382,7 +408,7 @@ public:
     float frozenBend = 0;
 
     void start (int midi, int ch, int br, float vel, const Genome& g, const Controls& c, const Settings& s, float sampleRate,
-                uint32_t& rng, float glideFrom, float layerCents)
+                uint32_t& rng, float glideFrom, float layerCents, float morph = -1)
     {
         // a sounding voice taken over (voice steal, mono retrigger) keeps its phases, filters and decimator and
         // ramps from its current level, so it does not click; a free voice starts exactly as before
@@ -394,7 +420,9 @@ public:
         note = midi;
         channel = ch;
         branch = br;
-        p = branchParams (g, c, br);
+        if (morph < 0) morph = c.morph;
+        const int next = (br + 1) % NB; // the branch MORPH blends towards
+        p = branchParams (g, c, br, morph);
         const float a = c.atonality / 100;
         tune = c.tuning * 100 + layerCents;
         if (a > 0.5f) tune += (rand (rng) * 2 - 1) * (a - 0.5f) * 100;
@@ -448,13 +476,16 @@ public:
         const float dec = 0.01f * std::pow (800.0f, p[decay]) * timeMul * std::exp2 (-envTiltVal * 0.7f);
         decCoef = std::exp (-1.0f / (dec / 3 * sr));
         sus = p[sustain] < 0.08f ? 0.0f : p[sustain];
-        peak = velEff * 0.22f * g.gain[size_t (br)];
+        const float gain = morph > 0 ? g.gain[size_t (br)] + (g.gain[size_t (next)] - g.gain[size_t (br)]) * morph : g.gain[size_t (br)];
+        peak = velEff * 0.22f * gain;
         fadeCoef = p[volFade] > 0.75f ? std::exp (-1.0f / ((10.0f - (p[volFade] - 0.75f) * 4 * 9.5f) * sr)) : 1.0f;
         const float loopSec = p[envLoop] < 0.98f ? syncSeconds (0.05f * std::pow (160.0f, p[envLoop]) * timeMul, c) : 0.0f;
         loopS = loopSec > 0 && loopSec * sr < atkS + dec * 2 * sr ? loopSec * sr : 0.0f;
         oneShotEnd = sus > 0 || loopS > 0 ? -1.0f : atkS + dec * 2.5f * sr;
 
-        const float pan = std::cos (branchAngle (g, br)) * c.effect / 100 * p[spread] * 2;
+        float angle = branchAngle (g, br);
+        if (morph > 0) angle += (branchAngle (g, next) + (next == 0 ? 2 * PI : 0.0f) - angle) * morph; // the short way round past 12 o'clock
+        const float pan = std::cos (angle) * c.effect / 100 * p[spread] * 2;
         const float x = (std::clamp (pan, -1.0f, 1.0f) + 1) * 0.25f * PI; // equal power, like StereoPannerNode
         gl = std::cos (x);
         gr = std::sin (x);
@@ -666,7 +697,10 @@ public:
     void noteOn (int ch, int midi, float vel, int forcedBranch, const Genome& g, const Controls& c, const Settings& s)
     {
         std::array<int, NB> brs {};
-        const int nb = forcedBranch >= 0 ? (brs[0] = forcedBranch, 1) : branchesFor (midi, int (vel * 127), g, c, brs);
+        float frac = 0;
+        const int nb = forcedBranch >= 0 ? (brs[0] = forcedBranch, 1) : branchesFor (midi, int (vel * 127), g, c, brs, &frac);
+        // velocity bulb: MORPH blends by where the velocity sits between two branches (at 0 it steps as before)
+        const float morph = c.bulbMode == bulbVelocity && forcedBranch < 0 ? frac * c.morph : c.morph;
         if (nb == 0) return;
         const bool layered = c.bulbMode == bulbLayered && forcedBranch < 0;
         const float a = c.atonality / 100;
@@ -686,7 +720,7 @@ public:
             for (int j = nb; j < MAXV; ++j) // fewer layers than before: fade the extra voices out instead of cutting them
                 if (voices[size_t (j)].active && voices[size_t (j)].held) voices[size_t (j)].release (0.015f, bend[size_t (voices[size_t (j)].channel)]);
             for (int j = 0; j < nb; ++j)
-                voices[size_t (j)].start (midi, ch, brs[size_t (j)], vel, g, c, s, sr, rng, from, layered ? layerCents (g, brs[size_t (j)], a) : 0.0f),
+                voices[size_t (j)].start (midi, ch, brs[size_t (j)], vel, g, c, s, sr, rng, from, layered ? layerCents (g, brs[size_t (j)], a) : 0.0f, morph),
                 voices[size_t (j)].age = ++clock;
             lastNote = midi;
             return;
@@ -701,7 +735,7 @@ public:
         for (int j = 0; j < nb; ++j)
         {
             Voice* pick = oldestOrFree (limit);
-            pick->start (midi, ch, brs[size_t (j)], vel, g, c, s, sr, rng, from, layered ? layerCents (g, brs[size_t (j)], a) : 0.0f);
+            pick->start (midi, ch, brs[size_t (j)], vel, g, c, s, sr, rng, from, layered ? layerCents (g, brs[size_t (j)], a) : 0.0f, morph);
             pick->age = ++clock;
         }
         lastNote = midi;

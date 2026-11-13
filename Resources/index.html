@@ -590,7 +590,7 @@ const NOTE=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 const HARM=[0,.5,.75,.5+Math.log2(3)/4,1]; // ratio positions for 0.5x 1x 2x 3x 4x
 const PATCH_FIELDS=['name','seed','base','br','len','gain','layers','lock','tuning','effect','volume','release','atonality','fxType','fxVariant','fxSwarm','fxTail','fxSpan','fxScatter','fxMix',
   'fxOrder','fxPlace','drvOn','drvStyle','drvAmt','drvTone','drvMix','tapeOn','tapeSpeed','tapeDrive','tapeWow','tapeHiss','tapeMix','verbOn','verbMode','verbDecay','verbSize','verbPre','verbDamp','verbMix',
-  'bulbMode','voiceMode','wheelTarget','wheelScale','tempoSync','glide','velSens','rotation'];
+  'bulbMode','voiceMode','wheelTarget','wheelScale','tempoSync','glide','velSens','rotation','morph'];
 // presets drafted by DeepSeek v4.1 Flash, checked and adjusted by hand; genes they don't name stay neutral (0.5)
 const PRESETS=[
 {name:"WARM PAD",params:{waveA:0,waveB:.28,ratioB:.5,fm:.05,mix:.35,noise:.03,cutoff:.45,reso:.2,fltEnv:.4,attack:.6,decay:.7,sustain:.75,modDecay:.6,pitchMod:.5,lfoRate:.2,lfoAmt:.15,space:.6,chorus:.7},atonality:.1},
@@ -657,11 +657,17 @@ function dirsFor(n){
 function freshLens(n){const r=mulberry32(n^0x1234567);return Array.from({length:12},()=>.15+r()*.45)}
 function wheelAmt(){return clamp(Math.max(S.wheel,wheelLive))*S.wheelScale/100}
 function effLen(i){const l=S.len[i],w=wheelAmt();return S.wheelTarget===0?l+(1-l)*w:S.wheelTarget===1?l*(1-w):l}
-function branchParams(i){
-  const b=S.br[i],a=S.atonality/100,l=effLen(i),amt=l*l*(.4+a),p={};
-  const locked=new Set(S.lock);
+// a branch before the tonal rules (keep in sync with rawBranch() in Engine.h)
+function rawBranch(i){
+  const b=S.br[i],a=S.atonality/100,l=effLen(i),amt=l*l*(.4+a),p={},locked=new Set(S.lock);
   for(const k of KEYS)p[k]=MASTER.has(k)||locked.has(k)?S.base[k]:clamp(S.base[k]+b.dir[k]*amt*(k==='pitchMod'||PITCH.includes(k)?a:1));
-  if(a<.5&&amt>0&&!locked.has('ratioB'))p.ratioB=snap(p.ratioB);
+  return [p,amt];
+}
+// branch i, `morph` of the way to the next branch clockwise; the tonal rules apply once to the mix
+function branchParams(i,morph=S.morph){
+  const a=S.atonality/100;let [p,amt]=rawBranch(i);
+  if(morph>0){const [q,amtNext]=rawBranch((i+1)%12);for(const k of KEYS)p[k]+=(q[k]-p[k])*morph;amt+=(amtNext-amt)*morph}
+  if(a<.5&&amt>0&&!S.lock.includes('ratioB'))p.ratioB=snap(p.ratioB);
   if(a<.5)for(const k of ['octA','semiA','semiB'])p[k]=S.base[k]; // tonal: whole steps stay put
   return p;
 }
@@ -671,7 +677,7 @@ const MIDI_DEFAULT={inChannel:0,velCurve:1,pressure:3,minPoly:16,maxPoly:32,pbRa
 // FX tab defaults: what a patch or preset without FX settings plays with
 const FX_DEFAULT={fxOrder:0,fxPlace:0,drvOn:0,drvStyle:0,drvAmt:.35,drvTone:.5,drvMix:1,tapeOn:0,tapeSpeed:1,tapeDrive:.35,tapeWow:.25,tapeHiss:.1,tapeMix:1,
   verbOn:0,verbMode:0,verbDecay:.5,verbSize:.55,verbPre:10,verbDamp:.45,verbMix:.3};
-let S={lowCpu:0,seed:0x5EED1E55,name:'',sel:2,tuning:0,effect:35,volume:-8,release:40,atonality:20,velSens:100,glide:0,wheel:0,wheelScale:100,rotation:0,
+let S={lowCpu:0,seed:0x5EED1E55,name:'',sel:2,tuning:0,effect:35,volume:-8,release:40,atonality:20,velSens:100,glide:0,wheel:0,wheelScale:100,rotation:0,morph:0,
   bulbMode:0,voiceMode:0,wheelTarget:0,tempoSync:0,fxType:0,fxVariant:0,fxSwarm:.5,fxTail:.5,fxSpan:.5,fxScatter:0,fxMix:.35,
   ...FX_DEFAULT,
   liveOn:0,liveGate:-45,liveGlide:.03,liveFollow:0,liveOctave:0,liveCutoff:0,liveFm:0,liveBright:0,
@@ -815,6 +821,7 @@ const HELP={tuning:'Tunes the whole sound, ±12 semitones',effect:'How much reve
   release:'How long notes ring after you let go: 20 ms … 4 s',atonality:'How wild new branches grow: low stays in tune and close to the seed, above 50 % ratios go free, metallic and noisy',
   glide:'Portamento: how long the pitch slides to the next note while you still hold the previous one',wheelScale:'How far the mod wheel reaches',velSens:'How much playing harder makes it louder',
   liveGate:'Live input quieter than this counts as silence: raise it if breaths or room noise trigger notes',liveGlide:'How smoothly the live pitch follows you between notes',liveOctave:'Plays the live input up to two octaves higher or lower',
+  morph:'Each note blends its branch towards the next one clockwise; in the VELOCITY bulb it blends by how hard you play between two branches',
   liveCutoff:'How much the loudness of your input opens (or, below 0, closes) the filter of every voice',liveFm:'How much the loudness of your input adds FM to every voice',liveBright:'Breathy or noisy input (no clear pitch) opens the filter of every voice',
   fxSwarm:'Grain density: how many grains per second',fxTail:'Feedback: how long the grain effect keeps going',fxSpan:'Grain length',fxScatter:'Randomness: where grains start, their pitch and their place in the stereo field',fxMix:'How much of the grain effect you hear',
   HAZE:'Reverb type: Room, Plate, Hall or Swell (EFFECT sets how much)',DUSK:'Low-pass on the whole sound: off up to 50, darker above',
@@ -851,6 +858,7 @@ const pct=v=>Math.round(v)+' %',unit=v=>v.toFixed(2);
 mkSlider($('lower'),{key:'glide',name:'GLIDE',min:0,max:1,step:.001,get:()=>Math.cbrt(S.glide/10),set:v=>S.glide=+(10*v**3).toFixed(3),fmt:v=>sec(10*v**3)}).reset=0; // cubic: fine control of short glides
 mkSlider($('lower'),{key:'wheelScale',name:'WHEEL DEPTH',min:0,max:100,step:1,fmt:pct});
 mkSlider($('lower'),{key:'velSens',name:'VELOCITY',min:0,max:100,step:1,fmt:pct});
+mkSlider($('lower'),{key:'morph',name:'MORPH',min:0,max:1,step:.001,fmt:v=>Math.round(v*100)+' %'});
 for(const [k,n] of [['fxSwarm','SWARM'],['fxTail','TAIL'],['fxSpan','SPAN'],['fxScatter','SCATTER'],['fxMix','MIX']])
   mkSlider($('fxMinis'),{key:k,name:n,min:0,max:1,step:.001,fmt:v=>Math.round(v*100)});
 for(const [k,n] of [['space','HAZE'],['damp','DUSK']])
