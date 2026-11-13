@@ -14,12 +14,17 @@ using Descriptors = std::array<float, ND>;
 
 constexpr float DESC_SECONDS = 1.5f, DESC_HOLD = DESC_SECONDS; // held to the end, so a sustained sound can reach full length
 
-// all values 0..1, from audio at FEAT_SR
-inline Descriptors describe (const std::vector<float>& x)
+constexpr float MOTION_SCALE = 4.0f, NOISE_SCALE = 3.0f; // calibrated on random seeds, see the text -> seed test
+constexpr int LONG_FFT = 4096;                           // 6 Hz bins: tells the harmonics of a low note apart
+
+// all values 0..1, from audio at FEAT_SR. Brightness, noise and inharmonicity are measured against the
+// played note, so a patch reads the same on every key.
+inline Descriptors describe (const std::vector<float>& x, int midi = 60)
 {
     Descriptors d {};
     const int hop = int (FEAT_SR * 0.01f), frames = int (x.size()) / hop;
     if (frames < 4) return d;
+    const float noteHz = 440.0f * std::exp2 ((midi - 69) / 12.0f);
     std::vector<float> env (static_cast<size_t> (frames));
     float peak = 1e-9f;
     int peakAt = 0;
@@ -38,11 +43,13 @@ inline Descriptors describe (const std::vector<float>& x)
     while (last > peakAt && env[size_t (last)] < peak * 0.01f) --last;
     d[dLength] = clamp01 (last * 0.01f / DESC_SECONDS);
 
-    // averaged spectrum over the first half second, plus spectral flux between frames
+    // averaged spectrum over the first half second, plus how much the shape of the spectrum changes between frames:
+    // mel bands with each frame scaled to the same loudness, so the envelope alone is not motion
     const int specFrames = 6;
-    std::vector<float> power (FFT_N / 2 + 1, 0.0f), prev (FFT_N / 2 + 1, 0.0f);
+    const auto& bank = melBankFor ({});
+    std::vector<float> power (FFT_N / 2 + 1, 0.0f), shape (size_t (MEL), 0.0f), prev (size_t (MEL), 0.0f);
     std::vector<std::complex<float>> buf (FFT_N);
-    float flux = 0, fluxNorm = 1e-9f;
+    float flux = 0, fluxNorm = 1e-9f, prevSum = 0;
     for (int j = 0; j < specFrames; ++j)
     {
         const int start = j * int (FEAT_SR * 0.08f);
@@ -52,44 +59,79 @@ inline Descriptors describe (const std::vector<float>& x)
             buf[size_t (i)] = { start + i < int (x.size()) ? x[size_t (start + i)] * w : 0.0f, 0.0f };
         }
         fft (buf);
-        for (int k = 0; k <= FFT_N / 2; ++k)
+        for (int k = 0; k <= FFT_N / 2; ++k) power[size_t (k)] += std::norm (buf[size_t (k)]);
+        float sum = 1e-12f;
+        for (int b = 0; b < MEL; ++b)
         {
-            const float m = std::abs (buf[size_t (k)]);
-            power[size_t (k)] += m * m;
-            if (j > 0) { flux += std::abs (m - prev[size_t (k)]); fluxNorm += m + prev[size_t (k)]; }
-            prev[size_t (k)] = m;
+            float e = 0;
+            for (int k = 0; k <= FFT_N / 2; ++k) e += bank[size_t (b)][size_t (k)] * std::norm (buf[size_t (k)]);
+            sum += shape[size_t (b)] = std::sqrt (e);
         }
+        if (j > 0)
+        {
+            float diff = 0;
+            for (int b = 0; b < MEL; ++b) diff += std::abs (shape[size_t (b)] / sum - prev[size_t (b)] / prevSum);
+            const float w = std::min (sum, prevSum); // a frame of silence has no shape
+            flux += w * diff * 0.5f;
+            fluxNorm += w;
+        }
+        prev = shape;
+        prevSum = sum;
     }
-    double total = 1e-20, weighted = 0, logSum = 0, bassE = 0;
+    double total = 1e-20, weighted = 0, bassE = 0;
     for (int k = 1; k <= FFT_N / 2; ++k)
     {
-        const double p = power[size_t (k)] + 1e-20, hz = k * FEAT_SR / FFT_N;
+        const double p = power[size_t (k)], hz = k * FEAT_SR / FFT_N;
         total += p;
         weighted += p * hz;
-        logSum += std::log (p);
         if (hz < 200) bassE += p;
     }
-    const double centroid = weighted / total, nBins = FFT_N / 2;
-    d[dBright] = clamp01 (float (std::log2 (std::max (centroid, 100.0) / 100) / 7)); // 100 Hz -> 0, 12.8 kHz -> 1
-    d[dNoise] = clamp01 (float (std::exp (logSum / nBins) / (total / nBins)) * 3);   // spectral flatness
+    // octaves of the centroid above the note: 100 Hz -> 0, 12.8 kHz -> 1 at C4 and the same timbre on every key below.
+    // Above C4 the scale stays put, or the analysis rate would leave a hi-hat no room to be bright.
+    d[dBright] = clamp01 (float (std::log2 (std::max (weighted / total, 20.0) / std::min (noteHz, 261.63f)) + 1.39) / 7);
     d[dBass] = clamp01 (float (bassE / total) * 1.5f);
-    d[dMotion] = clamp01 (flux / fluxNorm * 4);
+    d[dMotion] = clamp01 (flux / fluxNorm * MOTION_SCALE);
+
+    // one long window where the sound is at full level
+    const int n = int (x.size()), at = std::clamp (atk * hop, 0, std::max (0, n - LONG_FFT));
+    std::vector<std::complex<float>> lbuf (LONG_FFT);
+    for (int i = 0; i < LONG_FFT; ++i)
+        lbuf[size_t (i)] = { at + i < n ? x[size_t (at + i)] * (0.5f - 0.5f * std::cos (2 * PI * i / (LONG_FFT - 1))) : 0.0f, 0.0f };
+    fft (lbuf);
+    const int half = LONG_FFT / 2;
+    const float binHz = FEAT_SR / LONG_FFT;
+    std::vector<double> lp (size_t (half + 1));
+    double ltotal = 1e-20;
+    for (int k = 1; k <= half; ++k) ltotal += lp[size_t (k)] = std::norm (lbuf[size_t (k)]);
+
+    // noise = spectral flatness, but only where the sound is: from under the note up to where 95 % of the energy
+    // lies (at least three octaves), so a dark noise is still noise and a low note is not
+    int top = 1;
+    for (double acc = 0; top < half && (acc += lp[size_t (top)]) < 0.95 * ltotal;) ++top;
+    const int lo = std::max (1, int (noteHz * 0.4f / binHz)), hi = std::clamp (std::max (top, int (noteHz * 8 / binHz)), lo + 1, half);
+    double logSum = 0, bandSum = 0;
+    for (int k = lo; k <= hi; ++k)
+    {
+        const double p = lp[size_t (k)] + ltotal * 1e-12;
+        logSum += std::log (p);
+        bandSum += p;
+    }
+    const double bins = hi - lo + 1;
+    d[dNoise] = clamp01 (float (std::exp (logSum / bins) / (bandSum / bins)) * NOISE_SCALE);
 
     float strength = 0;
-    const float f0 = detectPitch (x.data(), int (x.size()), FEAT_SR, &strength);
+    const int from = std::clamp (atk * hop, 0, std::max (0, n - int (FEAT_SR * 0.34f))); // listen where it sounds, not 0.2 s in
+    const float found = detectPitch (x.data() + from, std::min (n - from, int (FEAT_SR * 0.34f)), FEAT_SR, &strength);
     d[dTonal] = clamp01 ((strength - 0.3f) / 0.65f);
-    if (f0 > 0) // energy away from the harmonic series
+    // energy away from the harmonic series of the pitch; with no clear pitch, of the note
+    const float f0 = found > 0 ? found : noteHz;
+    double harmonic = 0;
+    for (int h = 1; h * f0 < FEAT_SR / 2 && h <= 60; ++h)
     {
-        double harmonic = 0;
-        for (int h = 1; h * f0 < FEAT_SR / 2 && h <= 40; ++h)
-        {
-            const int c = int (std::lround (h * f0 * FFT_N / FEAT_SR)), w = std::max (1, int (c * 0.03f));
-            for (int k = std::max (1, c - w); k <= std::min (FFT_N / 2, c + w); ++k) harmonic += power[size_t (k)];
-        }
-        d[dInharm] = clamp01 (float (1 - harmonic / total) * 1.4f);
+        const int c = int (std::lround (h * f0 / binHz)), w = std::max (2, int (c * 0.03f));
+        for (int k = std::max (1, c - w); k <= std::min (half, c + w); ++k) harmonic += lp[size_t (k)];
     }
-    else
-        d[dInharm] = 0.5f;
+    d[dInharm] = clamp01 (float (1 - std::min (1.0, harmonic / ltotal)) * 1.4f);
     return d;
 }
 
@@ -100,7 +142,7 @@ inline Descriptors describePatch (const Params& genes, int midi)
     c.base = genes;
     c.len.fill (0);
     c.atonality = 0;
-    return describe (renderNote (g, c, 0, midi, DESC_SECONDS, FEAT_SR, DESC_HOLD));
+    return describe (renderNote (g, c, 0, midi, DESC_SECONDS, FEAT_SR, DESC_HOLD), midi);
 }
 
 // ---------------------------------------------------------------- lexicon
@@ -120,10 +162,10 @@ inline const std::vector<Word>& lexicon()
     static const std::vector<Word> words = {
         // categories
         { "pad|flaeche|teppich|strings", { { dAttack, 0.7f, 1 }, { dSustain, 0.8f, 1 }, { dLength, 0.9f, 1 } }, { { attack, 0.5f, 0.8f }, { sustain, 0.6f, 0.95f }, { decay, 0.6f, 0.95f } }, 60 },
-        { "bass|bas", { { dBass, 0.8f, 1.5f }, { dBright, 0.3f, 0.7f } }, { { sub, 0.6f, 1 }, { cutoff, 0.15f, 0.45f }, { attack, 0, 0.05f } }, 36 },
+        { "bass|bas", { { dBass, 1, 1.5f }, { dBright, 0.3f, 0.7f } }, { { sub, 0.6f, 1 }, { cutoff, 0.15f, 0.45f }, { attack, 0, 0.05f } }, 36 },
         { "sub|subbass|808", { { dBass, 1, 2 }, { dBright, 0.1f, 1 }, { dTonal, 0.9f, 1 } }, { { sub, 0.75f, 1 }, { waveA, 0, 0.09f }, { cutoff, 0.1f, 0.3f }, { noise, 0, 0.05f } }, 36 },
         { "pluck|zupf|gezupft|pizz", { { dAttack, 0, 1 }, { dSustain, 0, 1 }, { dLength, 0.25f, 1 } }, { { attack, 0, 0.05f }, { sustain, 0, 0.07f }, { decay, 0.3f, 0.55f }, { fltEnv, 0.4f, 0.8f } }, 60 },
-        { "lead|solo|melodie", { { dSustain, 0.7f, 1 }, { dTonal, 0.9f, 1 }, { dBright, 0.6f, 0.7f } }, { { sustain, 0.6f, 0.9f }, { attack, 0, 0.15f } }, 67 },
+        { "lead|solo|melodie", { { dSustain, 0.7f, 0.5f }, { dTonal, 0.9f, 1 }, { dBright, 0.6f, 0.7f } }, { { sustain, 0.6f, 0.9f }, { attack, 0, 0.15f } }, 67 },
         { "glocke|bell|glockenspiel|chime", { { dAttack, 0, 1 }, { dInharm, 0.65f, 1 }, { dLength, 0.7f, 1 }, { dSustain, 0.15f, 0.7f } }, { { fm, 0.25f, 0.6f }, { sustain, 0, 0.07f }, { decay, 0.6f, 0.85f }, { attack, 0, 0.03f } }, 72 },
         { "mallet|marimba|xylophon|vibraphon", { { dAttack, 0, 1 }, { dLength, 0.45f, 1 }, { dTonal, 0.85f, 0.7f } }, { { sustain, 0, 0.07f }, { decay, 0.4f, 0.65f }, { attack, 0, 0.02f } }, 64 },
         { "kick|bassdrum|bd", { { dAttack, 0, 1 }, { dBass, 1, 2 }, { dLength, 0.25f, 1 } }, { { pitchMod, 0.1f, 0.3f }, { modDecay, 0.15f, 0.35f }, { sustain, 0, 0.07f }, { decay, 0.3f, 0.5f }, { waveA, 0, 0.13f } }, 36 },
@@ -144,7 +186,7 @@ inline const std::vector<Word>& lexicon()
         { "dreckig|dirty|schmutzig|gritty|kaputt|broken|lofi|lo-fi", { { dNoise, 0.6f, 1 }, { dInharm, 0.6f, 0.6f } } },
         { "verzerrt|distorted|distortion|crunch|zerre", { { dNoise, 0.5f, 0.7f }, { dBright, 0.75f, 0.6f } }, { { drive, 0.75f, 1 } } },
         { "sauber|clean|pur|pure|rein", { { dNoise, 0, 1 }, { dInharm, 0.1f, 0.8f }, { dTonal, 1, 0.7f } } },
-        { "kurz|kuerz|short|knapp|staccato|perkussiv|percussive|snappy|tight", { { dLength, 0.15f, 1 }, { dAttack, 0, 0.6f } } },
+        { "kurz|kuerz|short|knapp|staccato|perkussiv|percussive|snappy|tight", { { dLength, 0.15f, 1 }, { dAttack, 0, 0.6f }, { dSustain, 0, 1.5f } }, { { sustain, 0, 0.07f }, { decay, 0.15f, 0.45f } } }, // held to the end, only a sound without sustain is short
         { "lang|laeng|long|endlos|endless|ausklingend|sustained", { { dLength, 0.95f, 1 }, { dSustain, 0.6f, 0.5f } } },
         { "langsam|slow|schwellend|swell", { { dAttack, 0.8f, 1 } } },
         { "schnell|fast|direkt|immediate", { { dAttack, 0, 1 } } },
@@ -320,6 +362,7 @@ inline Wish parseWish (const std::string& text)
     static const auto isAmount = [] (Gene g) { return g == space || g == drive || g == fm || g == lfoAmt || g == chorus; };
     Wish w;
     std::array<double, ND> sum {}, wsum {};
+    std::vector<GeneRange> qualities; // a quality (short, hollow) is drawn after the kind of sound (lead), so it wins
     bool negate = false, mild = false; // mild: "nicht zu ...", a moderate value instead of the opposite
     float scale = 1;
 
@@ -374,11 +417,12 @@ inline Wish parseWish (const std::string& text)
             sum[size_t (t.d)] += double (v) * k;
             wsum[size_t (t.d)] += k;
         }
+        auto& into = hit->note != 0 ? w.genes : qualities;
         for (GeneRange r : hit->genes)
         {
             if (! isAmount (r.g))
             {
-                if (! negate && ! mild) w.genes.push_back (r);
+                if (! negate && ! mild) into.push_back (r);
                 continue;
             }
             if (negate)
@@ -389,12 +433,13 @@ inline Wish parseWish (const std::string& text)
             else if (mild) r = { r.g, 0.5f + (r.lo - 0.5f) * 0.25f, 0.5f + (r.hi - 0.5f) * 0.25f };
             else if (scale > 1.2f) r.lo += 0.4f * (r.hi - r.lo);
             else if (scale < 0.8f) r = { r.g, r.lo * 0.5f, r.lo };
-            w.genes.push_back (r);
+            into.push_back (r);
         }
         if (! negate && hit->note != 0) w.note = hit->note;
         negate = mild = false;
         scale = 1;
     }
+    w.genes.insert (w.genes.end(), qualities.begin(), qualities.end());
     for (int d = 0; d < ND; ++d)
         if (wsum[size_t (d)] > 0)
         {
