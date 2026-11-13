@@ -142,6 +142,13 @@ inline const std::vector<std::vector<float>>& melBankFor (const FeatConfig& c)
     return cache.emplace (key, std::move (bank)).first->second;
 }
 
+// first sample of analysis window `j`: the windows sit denser near the attack
+inline int frameStart (int j, const FeatConfig& cfg)
+{
+    const float u = cfg.frames > 1 ? float (j) / (cfg.frames - 1) : 0.0f;
+    return int (u * u * (std::max (cfg.fftN, featLen (cfg)) - cfg.fftN));
+}
+
 // `frames` windows (denser near the attack) x `melBands` mel bands of log power, normalised to the
 // loudest cell, plus the note. The vector length is nfeat(cfg).
 inline Features features (const float* x, int n, int midi, const FeatConfig& cfg = {})
@@ -151,12 +158,10 @@ inline Features features (const float* x, int n, int midi, const FeatConfig& cfg
 
     Features out (static_cast<size_t> (nfeat (cfg)), 0.0f);
     std::vector<std::complex<float>> buf (static_cast<size_t> (fftN));
-    const int span = std::max (fftN, featLen (cfg));
     float top = -100, sumSq = 0;
     for (int j = 0; j < frames; ++j)
     {
-        const float u = frames > 1 ? float (j) / (frames - 1) : 0.0f;
-        const int start = int (u * u * (span - fftN));
+        const int start = frameStart (j, cfg);
         for (int i = 0; i < fftN; ++i)
         {
             const int idx = start + i;
@@ -193,6 +198,73 @@ inline float distance (const Features& a, const Features& b)
     float d = 0;
     for (int i = 0; i < cells; ++i) d += std::abs (a[size_t (i)] - b[size_t (i)]);
     return d / cells;
+}
+
+// A recording to match. Unlike a patch rendered here it may start a little early or late, carry a noise
+// floor and stop before the analysis window does, and none of that should count against a patch.
+struct Reference
+{
+    struct Shift { Features f; int frames = 0; }; // frames: how many windows the recording really covers
+    std::vector<Shift> shifts;                    // the recording moved by a few ms; [0] is as it came
+    std::vector<float> floor;                     // per band: below this the recording is noise
+    int bands = 0;
+    const Features& plain() const { return shifts.front().f; }
+};
+
+constexpr float REF_FLOOR_MARGIN = 0.1f, REF_FLOOR_MAX = 0.5f; // in cell units: 0.1 = 8 dB, 0.5 = 40 dB under the loudest cell
+
+inline Reference makeReference (const float* x, int n, int midi, const FeatConfig& cfg = {})
+{
+    Reference r;
+    r.bands = cfg.melBands;
+    const int span = std::max (cfg.fftN, featLen (cfg)), tail = std::min (n = std::min (n, span), cfg.sampleRate / 100);
+    float peak = 0;
+    double tailSq = 0;
+    for (int i = 0; i < n; ++i) peak = std::max (peak, std::abs (x[i]));
+    for (int i = n - tail; i < n; ++i) tailSq += double (x[i]) * x[i];
+    // still sounding at its last sample: the recording was cut, so what comes after is unknown, not silence
+    const bool cut = n < span && tail > 0 && std::sqrt (tailSq / tail) > 0.03f * peak;
+    for (int ms : { 0, -10, 10, -20, 20, -35, 35, -50, 50 })
+    {
+        const int by = ms * cfg.sampleRate / 1000;
+        std::vector<float> a (size_t (std::max (0, by)), 0.0f);
+        a.insert (a.end(), x + std::min (n, std::max (0, -by)), x + n);
+        a.resize (std::min (a.size(), size_t (span)));
+        int covered = cfg.frames;
+        if (cut)
+        {
+            covered = 0;
+            while (covered < cfg.frames && frameStart (covered, cfg) + cfg.fftN <= int (a.size())) ++covered;
+            covered = std::max (1, covered);
+        }
+        r.shifts.push_back ({ features (a.data(), int (a.size()), midi, cfg), covered });
+    }
+    // the quietest moment of a band is the most its noise can be
+    r.floor.assign (size_t (r.bands), 1.0f);
+    for (int j = 0; j < r.shifts.front().frames; ++j)
+        for (int b = 0; b < r.bands; ++b)
+            r.floor[size_t (b)] = std::min (r.floor[size_t (b)], r.plain()[size_t (j * r.bands + b)]);
+    for (auto& f : r.floor) f = std::min (REF_FLOOR_MAX, f + REF_FLOOR_MARGIN);
+    return r;
+}
+
+// distance of a patch to a recording: the best onset shift, only the windows the recording covers, nothing below its noise
+inline float distance (const Reference& r, const Features& f)
+{
+    float best = 1.0f;
+    for (const auto& s : r.shifts)
+    {
+        if (s.f.size() != f.size() || r.bands < 1) continue;
+        float d = 0;
+        for (int j = 0; j < s.frames; ++j)
+            for (int b = 0; b < r.bands; ++b)
+            {
+                const size_t i = size_t (j * r.bands + b);
+                d += std::abs (std::max (s.f[i], r.floor[size_t (b)]) - std::max (f[i], r.floor[size_t (b)]));
+            }
+        best = std::min (best, d / float (s.frames * r.bands));
+    }
+    return best;
 }
 
 // similarity shown on the strands: 1 = identical features
@@ -325,8 +397,8 @@ public:
     {
         pause();
         refNote = midi;
-        ref = features (audio.data(), int (audio.size()), midi, cfg);
-        guess = net != nullptr && net->ready() && net->inDim() == int (ref.size()) ? net->predict (ref) : neutralGenes();
+        ref = makeReference (audio.data(), int (audio.size()), midi, cfg);
+        guess = net != nullptr && net->ready() && net->inDim() == int (ref.plain().size()) ? net->predict (ref.plain()) : neutralGenes();
         std::lock_guard<std::mutex> lock (m);
         for (int s = 0; s < STRANDS; ++s) resetStrand (s, nullptr);
     }
@@ -455,7 +527,7 @@ private:
         }
     }
 
-    Features ref;
+    Reference ref;
     Params guess {};
     int refNote = 60;
     std::array<Strand, STRANDS> strands;

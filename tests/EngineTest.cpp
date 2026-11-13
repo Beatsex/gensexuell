@@ -498,6 +498,20 @@ int main()
         const float randomScore = similarity (distance (features (ref.data(), int (ref.size()), 60), patchFeatures (seedParams (99, 20), 60)));
         std::printf ("search: net %s, %ld patches tried, best match %.1f %% (a random patch: %.1f %%)\n", haveNet ? "on" : "off", tested, best * 100, randomScore * 100);
         check (best > randomScore + 0.1f && best > 0.75f, "search gets close to the target");
+
+        // a real recording of the target: 20 ms late, a noise floor at -50 dB, cut off after one second
+        std::vector<float> rec (480, 0.0f);
+        rec.insert (rec.end(), ref.begin(), ref.begin() + 24000);
+        float recPeak = 0;
+        for (float v : ref) recPeak = std::max (recPeak, std::abs (v));
+        std::mt19937 noiseRng (1);
+        std::normal_distribution<float> noise01 (0, 1);
+        for (auto& v : rec) v += 0.003f * recPeak * noise01 (noiseRng);
+        const Reference recRef = makeReference (rec.data(), int (rec.size()), 60);
+        const float own = similarity (distance (recRef, patchFeatures (target, 60))), stranger = similarity (distance (recRef, patchFeatures (seedParams (99, 20), 60)));
+        const float plainOwn = similarity (distance (features (rec.data(), int (rec.size()), 60), patchFeatures (target, 60)));
+        std::printf ("late, noisy, cut recording: its own patch %.1f %% (cell by cell: %.1f %%), another patch %.1f %%\n", own * 100, plainOwn * 100, stranger * 100);
+        check (own > 0.9f && own > stranger + 0.3f, "a late, noisy, cut recording still matches its own patch and no other");
     }
 
     // ---- a custom feature config through the whole chain (G7): signed net, reference, guess, children
