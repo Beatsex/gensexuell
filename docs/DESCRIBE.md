@@ -72,7 +72,7 @@ If you name several kinds of sound, the **last** one sets the register. Single t
 
 Two quirks of the percentage:
 - Room and reverb words set the effect directly and do not count. `viel Raum` on its own therefore always shows 100 %, however it sounds.
-- A low number often means the words are hard to combine. In testing, `slow dirty drone without reverb` reached 60 %, `dark soft bass` 89 %. The exact numbers change from click to click.
+- A low number often means the words are hard to combine. In testing, `noisy dark long texture` reached 66 %, `dark soft bass` 100 %. The exact numbers change from click to click.
 
 ## When it doesn't fit
 
