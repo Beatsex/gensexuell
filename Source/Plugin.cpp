@@ -76,6 +76,8 @@ const std::vector<ParamDef>& paramDefs()
         choice ("tapeSpeed", "Tape Speed", { "7.5 ips", "15 ips", "30 ips" }, 1);
         top ("tapeDrive", "Tape Drive", 0, 1, 0.001f, 0.35f);
         top ("tapeWow", "Tape Wow", 0, 1, 0.001f, 0.25f);
+        top ("tapeBias", "Tape Bias", 0, 1, 0.001f, 0.4f);
+        top ("tapeBump", "Tape Head Bump", 0, 9, 0.1f, 3);
         top ("tapeHiss", "Tape Hiss", 0, 1, 0.001f, 0.1f);
         top ("tapeMix", "Tape Mix", 0, 1, 0.001f, 1);
         choice ("verbOn", "Verb On", { "Off", "On" });
@@ -149,7 +151,7 @@ struct RetroSettings
 {
     bool driveOn = false, tapeOn = false, verbOn = false, before = false; // before: ahead of grain FX, Haze and Dusk
     int driveStyle = 0, tapeSpeed = 1, verbMode = 0, order = 0;           // order: one of the six orders of drive, tape, verb
-    float drive = 0.35f, driveTone = 0.5f, driveMix = 1, tapeDrive = 0.35f, tapeWow = 0.25f, tapeHiss = 0.1f, tapeMix = 1;
+    float drive = 0.35f, driveTone = 0.5f, driveMix = 1, tapeDrive = 0.35f, tapeWow = 0.25f, tapeHiss = 0.1f, tapeMix = 1, tapeBias = 0.4f, tapeBump = 3;
     float verbDecay = 0.5f, verbSize = 0.55f, verbPreMs = 10, verbDamp = 0.45f, verbMix = 0.3f;
 };
 struct FxSettings { int family = -1, variant = 0; float swarm = 0.5f, tail = 0.5f, span = 0.5f, scatter = 0, mix = 0.35f; RetroSettings retro {}; };
@@ -217,8 +219,8 @@ struct MasterChain
         {
             tape.setDrive (r.tapeDrive);
             tape.setSpeed (r.tapeSpeed);
-            tape.setBias (0.4f);
-            tape.setBump (3.0f);
+            tape.setBias (r.tapeBias);
+            tape.setBump (r.tapeBump);
             tape.setWowFlutter (r.tapeWow);
             tape.setNoise (r.tapeHiss);
             for (int i = 0; i < n; ++i)
@@ -478,6 +480,8 @@ public:
         r.tapeSpeed = int (value ("tapeSpeed"));
         r.tapeDrive = value ("tapeDrive");
         r.tapeWow = value ("tapeWow");
+        r.tapeBias = value ("tapeBias");
+        r.tapeBump = value ("tapeBump");
         r.tapeHiss = value ("tapeHiss");
         r.tapeMix = value ("tapeMix");
         r.verbOn = value ("verbOn") > 0.5f;
