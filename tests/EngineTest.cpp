@@ -541,6 +541,20 @@ int main()
             check (same == 2, "features of fixed patches match the recorded reference");
         }
 
+        // the attack envelope the search compares next to the melogram
+        {
+            Params pluck = base, slow = base;
+            pluck[attack] = 0; pluck[sustain] = 0; pluck[decay] = 0.2f;
+            slow[attack] = 0.75f;
+            const auto a = patchAudio (pluck, 60), b = patchAudio (slow, 60);
+            const Envelope ea = envelope (a.data(), int (a.size())), eb = envelope (b.data(), int (b.size()));
+            std::vector<float> late (a.size() + 4800, 0.0f); // the same pluck after 200 ms of silence
+            std::copy (a.begin(), a.end(), late.begin() + 4800);
+            const float apart = envDistance (ea, eb), shifted = envDistance (ea, envelope (late.data(), int (late.size())));
+            std::printf ("attack: pluck vs slow attack %.3f apart, pluck vs the same pluck after silence %.4f\n", apart, shifted);
+            check (envDistance (ea, ea) == 0 && apart > 0.1f && shifted < 0.01f, "the attack envelope tells a pluck from a slow attack and ignores leading silence");
+        }
+
         // the search must get close to a target rendered by the engine itself
         Net net;
         std::ifstream in ("Resources/net.bin", std::ios::binary);
