@@ -1,0 +1,11 @@
+#!/bin/sh
+# Runs as root after the pkg is installed: copies the factory presets into the
+# logged-in user's Documents/Seedling/Presets. Existing files are never overwritten.
+U=$(stat -f%Su /dev/console)
+if [ -z "$U" ] || [ "$U" = root ]; then exit 0; fi
+H=$(dscl . -read /Users/"$U" NFSHomeDirectory | awk '{print $2}')
+D="$H/Documents/Seedling/Presets"
+mkdir -p "$D"
+cp -Rn "/Library/Application Support/beatsexuell/gensexuell/Presets/" "$D/"
+chown -R "$U":staff "$H/Documents/Seedling"
+exit 0
