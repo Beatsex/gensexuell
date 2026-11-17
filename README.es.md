@@ -18,7 +18,7 @@ Descarga la última versión en [Releases](https://github.com/Beatsex/gensexuell
 | Sistema | Cómo |
 |---|---|
 | Windows 10 / 11 (64 bits) | Ejecuta `gensexuell-…-win64-setup.exe`. La beta aún no está firmada: si aparece SmartScreen, haz clic en *Más información* → *Ejecutar de todas formas*. La interfaz necesita Microsoft WebView2 Runtime; Windows 11 ya lo incluye y el instalador te avisa si falta. Los 355 presets se instalan en `Documentos\Seedling\Presets`. |
-| macOS | Copia `gensexuell.vst3` a `~/Library/Audio/Plug-Ins/VST3`, `gensexuell.component` a `~/Library/Audio/Plug-Ins/Components` y `gensexuell.clap` a `~/Library/Audio/Plug-Ins/CLAP`. Pon la carpeta `Presets` en `~/Documents/Seedling/`. La versión de macOS aún no se ha probado a mano. |
+| macOS (Intel + Apple Silicon) | Ejecuta `gensexuell-…-macos-universal.pkg`. Instala la aplicación, VST3, AU, CLAP y LV2, y los 355 presets van a `~/Documents/Seedling/Presets` (tus propios archivos ahí nunca se sobrescriben). La beta aún no está notarizada: si macOS dice que no se puede abrir, haz clic en *OK*, luego en *Abrir igualmente* en *Ajustes del Sistema → Privacidad y seguridad* (macOS 13 o anterior: clic derecho → *Abrir*). |
 
 Después reinicia tu DAW (o vuelve a escanear los plugins) e insértalo como instrumento: *beatsexuell → gensexuell*.
 

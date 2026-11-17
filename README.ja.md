@@ -18,7 +18,7 @@ Windows と macOS の VST3・CLAP・LV2、macOS の AU、スタンドアロン�
 | システム | 方法 |
 |---|---|
 | Windows 10 / 11（64 ビット） | `gensexuell-…-win64-setup.exe` を実行します。ベータ版はまだコード署名されていません。SmartScreen が表示されたら *詳細情報* → *実行* をクリックしてください。画面表示には Microsoft WebView2 Runtime が必要です。Windows 11 には含まれており、不足している場合はセットアップが知らせます。355 のプリセットは `Documents\Seedling\Presets` に入ります。 |
-| macOS | `gensexuell.vst3` を `~/Library/Audio/Plug-Ins/VST3` に、`gensexuell.component` を `~/Library/Audio/Plug-Ins/Components` に、`gensexuell.clap` を `~/Library/Audio/Plug-Ins/CLAP` にコピーします。`Presets` フォルダーは `~/Documents/Seedling/` に置いてください。macOS 版はまだ手動でテストされていません。 |
+| macOS（Intel + Apple Silicon） | `gensexuell-…-macos-universal.pkg` を実行します。アプリ、VST3、AU、CLAP、LV2 がインストールされ、355 個のプリセットは `~/Documents/Seedling/Presets` に入ります（そこにある自分のファイルは上書きされません）。ベータ版はまだ公証されていません。macOS が「開けません」と表示したら *完了* をクリックし、*システム設定 → プライバシーとセキュリティ* で *このまま開く* をクリックしてください（macOS 13 以前：右クリック → *開く*）。 |
 
 その後 DAW を再起動（またはプラグインを再スキャン）し、インストゥルメントとして挿入します：*beatsexuell → gensexuell*。
 
