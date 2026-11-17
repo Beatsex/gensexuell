@@ -1,5 +1,6 @@
 # Builds, tests and packages gensexuell for Windows x64 and macOS (universal: Intel + Apple Silicon).
-# A tag push (or a manual run with a release tag) attaches the zips and the installer to that tag's GitHub release
+# A tag push (or a manual run with a release tag) attaches the Windows zip, the installers (setup.exe, macOS .pkg)
+# and the source zip to that tag's GitHub release
 # (a draft is created if none exists); other runs only build and test, they store nothing.
 name: build
 
@@ -86,7 +87,8 @@ jobs:
           OUT="gensexuell-beta-${VERSION}-${{ matrix.name }}"
           A=build/Seedling_artefacts/Release
           mkdir -p "$OUT"
-          cp installer/README.txt LICENSE THIRD-PARTY-LICENSES.txt "$OUT/"
+          cp LICENSE THIRD-PARTY-LICENSES.txt "$OUT/"
+          if [ "$RUNNER_OS" = "macOS" ]; then cp installer/README_mac.txt "$OUT/README.txt"; else cp installer/README.txt "$OUT/"; fi
           cp docs/manual.html "$OUT/User Manual.html"
           cp docs/handbuch.html "$OUT/Benutzerhandbuch.html"
           cp -R presets "$OUT/Presets"
@@ -97,7 +99,8 @@ jobs:
             for b in "$OUT/gensexuell.vst3" "$OUT/gensexuell.clap" "$OUT/gensexuell.component" "$OUT/gensexuell.app"; do
               codesign --force --deep --sign - "$b"
             done
-            ditto -c -k --keepParent "$OUT" "$OUT.zip"
+            sh installer/make-pkg.sh "$OUT" "$VERSION" "$OUT.pkg"
+            cp installer/README_mac.txt "gensexuell-beta-${VERSION}-README-mac.txt"
           else
             cp "$A/Standalone/gensexuell.exe" "$OUT/"
             7z a -bd "$OUT.zip" "$OUT" > /dev/null
@@ -118,5 +121,7 @@ jobs:
           fail_on_unmatched_files: false
           files: |
             ${{ env.PACKAGE }}.zip
+            ${{ env.PACKAGE }}.pkg
+            *-README-mac.txt
             *-setup.exe
             *-source.zip
